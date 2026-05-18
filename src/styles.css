@@ -514,8 +514,8 @@ button:disabled {
 
 .sync-action-button {
   position: fixed;
-  right: 184px;
-  bottom: 24px;
+  right: 24px;
+  bottom: 88px;
   z-index: 14;
   min-height: 52px;
   padding: 0 18px;
