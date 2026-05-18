@@ -2541,27 +2541,29 @@ td:nth-child(8) {
 
   .mobile-movement-list {
     display: grid;
-    gap: 10px;
-    padding: 10px;
-    background: #f6faf8;
+    gap: 7px;
+    padding: 8px;
+    background: #e8f0ec;
+    border-radius: 8px;
   }
 
   .mobile-movement-card {
     min-width: 0;
     display: grid;
-    gap: 10px;
-    border: 1px solid #dbe4e5;
-    border-radius: 12px;
+    gap: 7px;
+    border: 1px solid #cbd8d9;
+    border-left: 4px solid #8fb8b0;
+    border-radius: 8px;
     background: #ffffff;
-    padding: 12px;
-    box-shadow: 0 8px 18px rgba(20, 48, 58, 0.05);
+    padding: 9px;
+    box-shadow: 0 6px 14px rgba(20, 48, 58, 0.09);
   }
 
   .mobile-movement-card header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
     min-width: 0;
   }
 
@@ -2571,25 +2573,27 @@ td:nth-child(8) {
 
   .mobile-movement-card header strong {
     display: block;
-    font-size: 1rem;
-    line-height: 1.25;
+    font-size: 0.92rem;
+    line-height: 1.16;
     font-weight: 800;
     word-break: break-word;
   }
 
   .mobile-movement-card header span {
     display: block;
-    margin-top: 3px;
+    margin-top: 2px;
     color: #64748b;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     font-weight: 700;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mobile-movement-card header b {
     flex: 0 0 auto;
-    font-size: 0.98rem;
+    font-size: 0.88rem;
+    line-height: 1.15;
     text-align: right;
     white-space: nowrap;
   }
@@ -2597,52 +2601,58 @@ td:nth-child(8) {
   .mobile-movement-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
   }
 
   .mobile-movement-meta > span:not(.pill) {
     display: inline-flex;
     align-items: center;
-    min-height: 24px;
+    min-height: 20px;
     max-width: 100%;
-    padding: 2px 8px;
+    padding: 1px 7px;
     border-radius: 999px;
     background: #f1f5f9;
     color: #405168;
-    font-size: 0.72rem;
+    font-size: 0.66rem;
     font-weight: 800;
   }
 
   .mobile-movement-card footer {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(116px, 1fr) auto;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #edf1f5;
+    gap: 8px;
+    padding-top: 7px;
+    border-top: 1px solid #e6edf0;
   }
 
   .mobile-card-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 6px;
+    gap: 5px;
   }
 
   .mobile-card-actions .icon-button {
-    width: 40px;
-    height: 40px;
-    min-height: 40px;
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    border-radius: 6px;
   }
 
   .status-select {
-    min-height: 32px;
+    min-height: 30px;
     width: auto;
-    max-width: 150px;
+    max-width: 132px;
+    padding-inline: 9px 24px;
+    font-size: 0.68rem;
   }
 
   .pill {
-    min-width: 72px;
+    min-width: 58px;
+    min-height: 20px;
+    padding: 1px 7px;
+    font-size: 0.65rem;
   }
 
   .modal-backdrop {
