@@ -578,7 +578,7 @@ export function App() {
   async function syncRemoteData() {
     if (!isRemote) return;
 
-    await loadMovements({ showLoading: true });
+    await loadMovements();
     await Promise.all([loadAccounts(), loadResponsibles(), loadProfile()]);
     setNotice("Datos sincronizados.");
   }
