@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { calculateAccountLedger, formatCurrency, monthLabels } from "../lib/finance";
 
 function getVisibleSortValue(movement) {
@@ -33,6 +34,18 @@ function hasAccountRows(account, rows) {
 
 export function AnnualSummaryView({ accounts, movements, year, summary }) {
   const yearMovements = movements.filter((movement) => Number(movement.year) === Number(year));
+  const summaryScrollRef = useRef(null);
+
+  function selectMonth(month) {
+    const container = summaryScrollRef.current;
+    const card = container?.querySelector(`[data-annual-month="${month}"]`);
+    if (!container || !card) return;
+
+    container.scrollTo({
+      left: card.offsetLeft - container.offsetLeft,
+      behavior: "smooth"
+    });
+  }
 
   return (
     <section className="annual-summary-view">
@@ -46,14 +59,14 @@ export function AnnualSummaryView({ accounts, movements, year, summary }) {
       </div>
 
       <div className="annual-month-slicer" aria-label="Meses del año">
-        {monthLabels.map((month) => (
-          <a key={month} href={`#annual-${month.toLowerCase()}`}>
+        {monthLabels.map((month, index) => (
+          <button type="button" key={month} onClick={() => selectMonth(index + 1)}>
             {month.slice(0, 3)}
-          </a>
+          </button>
         ))}
       </div>
 
-      <div className="annual-summary-scroll">
+      <div className="annual-summary-scroll" ref={summaryScrollRef}>
         {monthLabels.map((monthName, index) => {
           const month = index + 1;
           const monthRows = yearMovements.filter((movement) => Number(movement.month) === month);
@@ -64,7 +77,7 @@ export function AnnualSummaryView({ accounts, movements, year, summary }) {
           const cardAccounts = visibleAccounts.filter((account) => account.type === "tarjeta_credito");
 
           return (
-            <article className="annual-month-card" id={`annual-${monthName.toLowerCase()}`} key={monthName}>
+            <article className="annual-month-card" data-annual-month={month} key={monthName}>
               <header>
                 <h3>Finales de {monthName}</h3>
                 <div>

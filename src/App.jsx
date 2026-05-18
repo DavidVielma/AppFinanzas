@@ -362,6 +362,12 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  useEffect(() => {
+    if (activeView === "annual-summary") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  }, [activeView]);
+
   async function loadMovements({ showLoading = false } = {}) {
     if (showLoading) {
       setLoading(true);
