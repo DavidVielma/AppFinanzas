@@ -4,12 +4,12 @@
   "description": "Control financiero personal",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#155e63",
+  "background_color": "#ffffff",
   "theme_color": "#155e63",
   "icons": [
     {
-      "src": "/Fluxa_Blanco.png",
-      "sizes": "500x500",
+      "src": "/Fluxa_Favicon.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
