@@ -1311,12 +1311,6 @@ export function App() {
             <Link size={18} />
             Link rapido
           </button>
-          {isRemote && (
-            <button type="button" className="icon-text" onClick={syncRemoteData}>
-              <RefreshCcw size={18} />
-              Sincronizar
-            </button>
-          )}
         </div>
       </header>
 
