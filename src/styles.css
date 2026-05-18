@@ -2743,9 +2743,9 @@ td:nth-child(8) {
 
   .modal-panel {
     width: 100%;
-    max-height: 92vh;
+    max-height: min(84dvh, calc(100dvh - 88px));
     border-radius: 14px 14px 0 0;
-    padding: 16px;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
   }
 
   .account-admin-list,
