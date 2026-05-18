@@ -73,6 +73,17 @@ button {
   color: #2457a6;
 }
 
+.brand-mark {
+  overflow: hidden;
+  background: transparent;
+}
+
+.brand-mark img {
+  width: 44px;
+  height: 44px;
+  display: block;
+}
+
 h1,
 h2,
 p {
@@ -331,10 +342,18 @@ button:disabled {
 
 .sidebar-brand {
   display: grid;
-  gap: 4px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
   padding: 8px 10px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.16);
   margin-bottom: 16px;
+}
+
+.sidebar-brand img {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
 }
 
 .sidebar-brand strong {
@@ -525,6 +544,20 @@ button:disabled {
   border-left: 6px solid var(--brand);
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(21, 94, 99, 0.08);
+}
+
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-title img {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(21, 94, 99, 0.18);
 }
 
 .topbar-actions {
@@ -2319,6 +2352,16 @@ td:nth-child(8) {
   .topbar > div {
     width: 100%;
     min-width: 0;
+  }
+
+  .topbar-title {
+    align-items: flex-start;
+  }
+
+  .topbar-title img {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
   }
 
   .topbar h1 {

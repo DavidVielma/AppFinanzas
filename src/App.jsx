@@ -1226,8 +1226,11 @@ export function App() {
     <main className="app-layout">
       <aside className="app-sidebar">
         <div className="sidebar-brand">
-          <strong>Finanzas</strong>
-          <span>Control familiar</span>
+          <img src="/fluxa-logo.svg" alt="" />
+          <div>
+            <strong>Fluxa</strong>
+            <span>Control financiero</span>
+          </div>
         </div>
         <nav className="sidebar-nav">
           {navItems.map((item) => {
@@ -1282,9 +1285,12 @@ export function App() {
 
       <section className="app-shell">
       <header className="topbar">
-        <div>
-          <span className="eyebrow">Panel financiero</span>
-          <h1>Gestión financiera personal</h1>
+        <div className="topbar-title">
+          <img src="/fluxa-logo.svg" alt="" />
+          <div>
+            <span className="eyebrow">Panel financiero</span>
+            <h1>Fluxa</h1>
+          </div>
         </div>
         <div className="topbar-actions">
           <button type="button" className="icon-text" onClick={exportCsv}>

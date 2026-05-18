@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { WalletCards } from "lucide-react";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 
 export function AuthPanel() {
@@ -73,9 +72,9 @@ export function AuthPanel() {
     <main className="auth-shell">
       <section className="auth-panel">
         <div className="brand-mark">
-          <WalletCards size={28} />
+          <img src="/fluxa-logo.svg" alt="" />
         </div>
-        <h1>Finanzas Familiares</h1>
+        <h1>Fluxa</h1>
         <p>Administra ingresos, egresos, proyecciones, ahorros e inversiones con una vista mensual similar a tu hoja Flujo.</p>
 
         <form onSubmit={handleSubmit} className="auth-form">

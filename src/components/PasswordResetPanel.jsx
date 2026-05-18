@@ -54,7 +54,7 @@ export function PasswordResetPanel({ session, onDone }) {
           <KeyRound size={28} />
         </div>
         <h1>Nueva contraseña</h1>
-        <p>Ingresa y confirma tu nueva contraseña para recuperar el acceso a Finanzas Familiares.</p>
+        <p>Ingresa y confirma tu nueva contraseña para recuperar el acceso a Fluxa.</p>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Nueva contraseña
