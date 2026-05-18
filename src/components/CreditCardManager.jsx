@@ -1,0 +1,58 @@
+import { Plus, Trash2 } from "lucide-react";
+import { formatCurrency } from "../lib/finance";
+
+const colorOptions = [
+  { label: "Verde", value: "#edf8ef" },
+  { label: "Azul", value: "#eef5ff" },
+  { label: "Amarillo", value: "#fff8df" },
+  { label: "Rojo", value: "#fff0f0" },
+  { label: "Gris", value: "#f4f6f8" }
+];
+
+export function CreditCardManager({ accounts, cardPaymentTotals, draft, onDraftChange, onCreate, onDelete }) {
+  const cards = accounts.filter((account) => account.type === "tarjeta_credito");
+
+  return (
+    <section className="card-manager">
+      <div className="section-heading compact-heading">
+        <div>
+          <h2>Tarjetas</h2>
+          <p>Administra tarjetas de credito</p>
+        </div>
+      </div>
+      <form className="card-form" onSubmit={onCreate}>
+        <label>
+          Nombre
+          <input value={draft.name} onChange={(event) => onDraftChange({ ...draft, name: event.target.value })} placeholder="Ej: Visa Santander" required />
+        </label>
+        <label>
+          Color
+          <select value={draft.color} onChange={(event) => onDraftChange({ ...draft, color: event.target.value })}>
+            {colorOptions.map((color) => (
+              <option key={color.value} value={color.value}>
+                {color.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="primary-action">
+          <Plus size={16} />
+          Crear
+        </button>
+      </form>
+      <div className="card-list">
+        {cards.map((card) => (
+          <article className="credit-card-row" key={card.name} style={{ backgroundColor: card.color || "#f8fafc" }}>
+            <div>
+              <strong>{card.name}</strong>
+              <span>{formatCurrency(-(cardPaymentTotals[card.name] || 0))}</span>
+            </div>
+            <button type="button" className="icon-button danger" onClick={() => onDelete(card)} aria-label={`Eliminar ${card.name}`}>
+              <Trash2 size={16} />
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}

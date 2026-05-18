@@ -1,0 +1,67 @@
+[2m12:56:08 a. m.[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\src\App.jsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (132:63)
+
+[0m [90m 130 |[31m     [36mconst[31m signedAmount [33m=[31m draft[33m.[31mflow [33m===[31m [32m"Movimiento"[31m
+ [90m 131 |[31m       [33m?[31m [33mNumber[31m(draft[33m.[31mamount) [33m||[31m [35m0[31m
+[31m[1m>[22m[31m[90m 132 |[31m       [33m:[31m [33m-[31m[33mMath[31m[33m.[31mabs(dynamicPaymentAmount [33m?[31m[33m?[31m [33mNumber[31m(draft[33m.[31mamount) [33m||[31m [35m0[31m)[33m;[31m
+ [90m     |[31m                                                                [31m[1m^[22m[31m
+ [90m 133 |[31m
+ [90m 134 |[31m     [36mif[31m (draft[33m.[31mflow [33m===[31m [32m"Pago Tarjeta"[31m [33m&&[31m [33m![31mdynamicPaymentAmount) {
+ [90m 135 |[31m       setNotice([32m"La tarjeta seleccionada no tiene saldo pendiente para pagar."[31m)[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/powerbi/OneDrive - David KEYPRO/OneDrive - KEYPRO/Documentos/David/Apliación Financiera/app-financiera/src/App.jsx[39m:132:63
+[33m  130|      const signedAmount = draft.flow === "Movimiento"
+  131|        ? Number(draft.amount) || 0
+  132|        : -Math.abs(dynamicPaymentAmount ?? Number(draft.amount) || 0);
+     |                                                                 ^
+  133|  
+  134|      if (draft.flow === "Pago Tarjeta" && !dynamicPaymentAmount) {[39m
+      at constructor (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:365:19)
+      at JSXParserMixin.raise (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:6616:19)
+      at JSXParserMixin.parseExprOp (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10968:22)
+      at JSXParserMixin.parseExprOps (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10925:17)
+      at JSXParserMixin.parseMaybeConditional (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10848:21)
+      at C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10817:39
+      at JSXParserMixin.allowInAnd (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12443:12)
+      at JSXParserMixin.parseMaybeAssignAllowIn (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10817:17)
+      at JSXParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12510:17)
+      at JSXParserMixin.parseExprListItem (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12192:18)
+      at JSXParserMixin.parseCallExpressionArguments (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:11269:22)
+      at JSXParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:11203:29)
+      at JSXParserMixin.parseSubscript (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:11137:19)
+      at JSXParserMixin.parseSubscripts (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:11111:19)
+      at JSXParserMixin.parseExprSubscripts (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:11102:17)
+      at JSXParserMixin.parseUpdate (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnary (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:11046:28)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10916:61)
+      at JSXParserMixin.parseExprOps (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10848:21)
+      at JSXParserMixin.parseConditional (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10910:29)
+      at JSXParserMixin.parseMaybeConditional (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10902:17)
+      at JSXParserMixin.parseMaybeAssign (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10848:21)
+      at C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10817:39
+      at JSXParserMixin.allowInAnd (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12438:16)
+      at JSXParserMixin.parseMaybeAssignAllowIn (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:10817:17)
+      at JSXParserMixin.parseVar (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13401:91)
+      at JSXParserMixin.parseVarStatement (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13247:10)
+      at JSXParserMixin.parseStatementContent (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12868:23)
+      at JSXParserMixin.parseStatementLike (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12784:17)
+      at JSXParserMixin.parseStatementListItem (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12764:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13333:61)
+      at JSXParserMixin.parseBlockBody (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13326:10)
+      at JSXParserMixin.parseBlock (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13314:10)
+      at JSXParserMixin.parseFunctionBody (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12117:24)
+      at JSXParserMixin.parseFunctionBodyAndFinish (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12103:10)
+      at C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13462:12
+      at JSXParserMixin.withSmartMixTopicForbiddingContext (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12420:14)
+      at JSXParserMixin.parseFunction (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13461:10)
+      at JSXParserMixin.parseFunctionStatement (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13142:17)
+      at JSXParserMixin.parseStatementContent (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12907:25)
+      at JSXParserMixin.parseStatementLike (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12784:17)
+      at JSXParserMixin.parseStatementListItem (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12764:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13333:61)
+      at JSXParserMixin.parseBlockBody (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13326:10)
+      at JSXParserMixin.parseBlock (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:13314:10)
+      at JSXParserMixin.parseFunctionBody (C:\Users\powerbi\OneDrive - David KEYPRO\OneDrive - KEYPRO\Documentos\David\Apliación Financiera\app-financiera\node_modules\@babel\parser\lib\index.js:12117:24)
