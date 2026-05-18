@@ -359,13 +359,19 @@ button:disabled {
 }
 
 .sidebar-brand strong {
+  display: block;
   font-size: 1.25rem;
+  line-height: 1.1;
 }
 
 .sidebar-brand span {
+  display: block;
+  margin-top: 5px;
   color: #b9d4d4;
   font-size: 0.85rem;
   font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
 }
 
 .sidebar-nav {
