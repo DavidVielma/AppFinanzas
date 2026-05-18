@@ -3,11 +3,11 @@ export const movementTypes = ["Ingreso", "Egreso"];
 export const flowTypes = ["Movimiento", "Transferencia", "Pago Tarjeta"];
 
 export const defaultAccounts = [
-  { name: "Principal", type: "principal", color: "#f8fafc", archived: false, locked: true },
-  { name: "Ahorro", type: "ahorro", color: "#f3f8ef", archived: false, locked: true },
-  { name: "Tarjeta Falabella", type: "tarjeta_credito", color: "#edf8ef", archived: false, locked: false },
-  { name: "Banco de Chile", type: "tarjeta_credito", color: "#eef5ff", archived: false, locked: false },
-  { name: "Otros", type: "principal", color: "#f8fafc", archived: false, locked: true }
+  { name: "Principal", type: "principal", color: "#e2e8f0", archived: false, locked: true },
+  { name: "Ahorro", type: "ahorro", color: "#cfe9d8", archived: false, locked: true },
+  { name: "Tarjeta Falabella", type: "tarjeta_credito", color: "#cfe9d8", archived: false, locked: false },
+  { name: "Banco de Chile", type: "tarjeta_credito", color: "#d7e7ff", archived: false, locked: false },
+  { name: "Otros", type: "principal", color: "#e2e8f0", archived: false, locked: true }
 ];
 
 export const incomeCategories = [

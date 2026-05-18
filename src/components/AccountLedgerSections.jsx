@@ -10,6 +10,28 @@ function sortVisibleRows(a, b) {
   return getVisibleSortValue(a) - getVisibleSortValue(b) || String(a.id).localeCompare(String(b.id));
 }
 
+const accountColorTokens = {
+  "#f8fafc": { fill: "#e2e8f0", accent: "#64748b" },
+  "#e2e8f0": { fill: "#e2e8f0", accent: "#64748b" },
+  "#f3f8ef": { fill: "#d8efc8", accent: "#4d7c0f" },
+  "#edf8ef": { fill: "#cfecd8", accent: "#15803d" },
+  "#cfe9d8": { fill: "#cfe9d8", accent: "#15803d" },
+  "#eef5ff": { fill: "#d7e8ff", accent: "#2563eb" },
+  "#d7e7ff": { fill: "#d7e7ff", accent: "#2563eb" },
+  "#fff8df": { fill: "#fde68a", accent: "#b45309" },
+  "#fde68a": { fill: "#fde68a", accent: "#b45309" },
+  "#fff0f0": { fill: "#ffd6d6", accent: "#dc2626" },
+  "#ffd6d6": { fill: "#ffd6d6", accent: "#dc2626" },
+  "#e9d5ff": { fill: "#e9d5ff", accent: "#7e22ce" },
+  "#cceff2": { fill: "#cceff2", accent: "#0e7490" },
+  "#fed7aa": { fill: "#fed7aa", accent: "#c2410c" }
+};
+
+function getAccountColorToken(account) {
+  const color = String(account.color || "").toLowerCase();
+  return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
+}
+
 export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, allMovements = movements, currentResponsible, filterMovement, onEdit, onDelete, onStatusChange, onMove, onQuickAdd, onQuickPay }) {
   const visibleAccounts = accounts.filter((account) => account.name !== "Otros");
   const accountsByName = Object.fromEntries(visibleAccounts.map((account) => [account.name, account]));
@@ -68,11 +90,13 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, 
     const isCard = account.type === "tarjeta_credito";
     const displayTotal = isCard ? -(cardPaymentTotals[account.name] || 0) : total;
     const isPrincipal = account.name === "Principal";
-    const accountAccent = isPrincipal ? "#155e63" : account.color || "#d8e3e1";
+    const colorToken = getAccountColorToken(account);
+    const accountAccent = isPrincipal ? "#155e63" : colorToken.accent;
+    const accountFill = isPrincipal ? "#d8efed" : colorToken.fill;
 
     return (
-      <section className={`account-section ${isPrincipal ? "principal-account-section" : ""}`} key={account.name} style={{ "--account-accent": accountAccent }}>
-        <header className="account-section-header" style={{ backgroundColor: account.color || "#f8fafc" }}>
+      <section className={`account-section ${isPrincipal ? "principal-account-section" : ""}`} key={account.name} style={{ "--account-accent": accountAccent, "--account-fill": accountFill }}>
+        <header className="account-section-header">
           <div>
             <h3>{account.name}</h3>
             <span>{account.type === "tarjeta_credito" ? "Movimientos de tarjeta" : "Movimientos de cuenta"}</span>

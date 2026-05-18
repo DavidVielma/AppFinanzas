@@ -52,11 +52,14 @@ const emptyDraft = {
 const movementStatuses = ["Confirmado", "Proyectado", "Pendiente"];
 
 const accountColorOptions = [
-  { label: "Gris", value: "#f8fafc" },
-  { label: "Verde", value: "#edf8ef" },
-  { label: "Azul", value: "#eef5ff" },
-  { label: "Amarillo", value: "#fff8df" },
-  { label: "Rojo", value: "#fff0f0" }
+  { label: "Gris", value: "#e2e8f0" },
+  { label: "Verde", value: "#cfe9d8" },
+  { label: "Azul", value: "#d7e7ff" },
+  { label: "Amarillo", value: "#fde68a" },
+  { label: "Rojo", value: "#ffd6d6" },
+  { label: "Morado", value: "#e9d5ff" },
+  { label: "Cian", value: "#cceff2" },
+  { label: "Naranja", value: "#fed7aa" }
 ];
 
 function buildLocalId() {
