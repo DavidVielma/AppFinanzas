@@ -1,5 +1,5 @@
 import { Plus, Save } from "lucide-react";
-import { flowTypes, getCategoryOptions, getTypeFromAmount, isCreditCardAccount, normalizeCategory } from "../lib/finance";
+import { flowTypes, getCategoryOptions, getTypeFromAmount, isCreditCardAccount } from "../lib/finance";
 
 function normalizeResponsibleName(name, currentResponsible) {
   const value = String(name || "").trim();
@@ -68,6 +68,7 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
     ? Math.abs(Number(draft.amount)) / installmentCount
     : Math.abs(Number(draft.amount) || 0);
   const canUseInstallments = !editingId && draft.flow === "Movimiento";
+  const visibleCategoryOptions = categoryOptions.includes(draft.category) ? categoryOptions : [draft.category, ...categoryOptions].filter(Boolean);
 
   function toggleResponsible(name) {
     const next = selectedResponsibles.includes(name)
@@ -111,18 +112,11 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
       )}
       <label>
         Categoria
-        <input
-          list="categories"
-          value={draft.category}
-          onChange={(event) => update("category", event.target.value)}
-          onBlur={(event) => update("category", normalizeCategory(event.target.value, inferredType))}
-          placeholder="Sin definir, sueldo, supermercado"
-        />
-        <datalist id="categories">
-          {categoryOptions.map((category) => (
-            <option key={category} value={category} />
+        <select value={draft.category} onChange={(event) => update("category", event.target.value)}>
+          {visibleCategoryOptions.map((category) => (
+            <option key={category} value={category}>{category}</option>
           ))}
-        </datalist>
+        </select>
       </label>
       <label className="wide">
         Descripcion
