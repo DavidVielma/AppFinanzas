@@ -1450,7 +1450,7 @@ export function App() {
               </label>
             </div>
           </section>
-          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} movements={monthMovements} allMovements={monthMovements} currentResponsible={currentResponsible} filterMovement={matchesMovementFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onMove={moveMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} />
+          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} movements={monthMovements} allMovements={monthMovements} currentResponsible={currentResponsible} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onMove={moveMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} />
         </div>
 
         <aside className="side-panel">

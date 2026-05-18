@@ -32,7 +32,7 @@ function getAccountColorToken(account) {
   return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
 }
 
-export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, allMovements = movements, currentResponsible, filterMovement, onEdit, onDelete, onStatusChange, onMove, onQuickAdd, onQuickPay }) {
+export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, allMovements = movements, currentResponsible, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onMove, onQuickAdd, onQuickPay }) {
   const visibleAccounts = accounts.filter((account) => account.name !== "Otros");
   const accountsByName = Object.fromEntries(visibleAccounts.map((account) => [account.name, account]));
   const grouped = visibleAccounts.reduce((acc, account) => {
@@ -88,7 +88,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, 
     });
     const total = rows.reduce((sum, movement) => sum + Number(movement.amount || 0), 0);
     const isCard = account.type === "tarjeta_credito";
-    const displayTotal = isCard ? -(cardPaymentTotals[account.name] || 0) : total;
+    const displayTotal = isCard && !hasActiveFilters ? -(cardPaymentTotals[account.name] || 0) : total;
     const isPrincipal = account.name === "Principal";
     const colorToken = getAccountColorToken(account);
     const accountAccent = isPrincipal ? "#155e63" : colorToken.accent;
