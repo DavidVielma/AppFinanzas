@@ -180,7 +180,8 @@ function getQuickMovementParams() {
     amount: parsedAmount,
     description: search.get("descripcion") || search.get("description") || "",
     year: Number(search.get("year")) || null,
-    month: Number(search.get("month")) || null
+    month: Number(search.get("month")) || null,
+    status: search.get("status") || search.get("estado") || null
   };
 }
 
@@ -338,7 +339,8 @@ export function App() {
 
     openNewMovementModal({
       amount: quickParams.amount,
-      description: quickParams.description
+      description: quickParams.description,
+      status: quickParams.status
     });
     setActiveView("movements");
     setQuickLinkHandled(true);
