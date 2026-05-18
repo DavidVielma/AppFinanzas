@@ -72,7 +72,7 @@ export function AuthPanel() {
     <main className="auth-shell">
       <section className="auth-panel">
         <div className="brand-mark">
-          <img src="/fluxa-logo.svg" alt="" />
+          <img src="/Fluxa_Verde.png" alt="" />
         </div>
         <h1>Fluxa</h1>
         <p>Administra ingresos, egresos, proyecciones, ahorros e inversiones con una vista mensual similar a tu hoja Flujo.</p>

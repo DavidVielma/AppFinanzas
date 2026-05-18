@@ -1226,7 +1226,7 @@ export function App() {
     <main className="app-layout">
       <aside className="app-sidebar">
         <div className="sidebar-brand">
-          <img src="/fluxa-logo.svg" alt="" />
+          <img src="/Fluxa_Blanco.png" alt="" />
           <div>
             <strong>Fluxa</strong>
             <span>Control financiero</span>
@@ -1286,7 +1286,7 @@ export function App() {
       <section className="app-shell">
       <header className="topbar">
         <div className="topbar-title">
-          <img src="/fluxa-logo.svg" alt="" />
+          <img src="/Fluxa_Verde.png" alt="" />
           <div>
             <span className="eyebrow">Panel financiero</span>
             <h1>Fluxa</h1>

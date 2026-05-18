@@ -82,6 +82,7 @@ button {
   width: 44px;
   height: 44px;
   display: block;
+  object-fit: contain;
 }
 
 h1,
@@ -354,6 +355,7 @@ button:disabled {
   width: 42px;
   height: 42px;
   border-radius: 10px;
+  object-fit: contain;
 }
 
 .sidebar-brand strong {
@@ -557,6 +559,7 @@ button:disabled {
   height: 48px;
   flex: 0 0 auto;
   border-radius: 12px;
+  object-fit: contain;
   box-shadow: 0 8px 18px rgba(21, 94, 99, 0.18);
 }
 
