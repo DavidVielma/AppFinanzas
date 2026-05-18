@@ -1,0 +1,17 @@
+{
+  "name": "Fluxa",
+  "short_name": "Fluxa",
+  "description": "Control financiero personal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#155e63",
+  "theme_color": "#155e63",
+  "icons": [
+    {
+      "src": "/Fluxa_Blanco.png",
+      "sizes": "500x500",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
