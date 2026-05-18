@@ -1097,16 +1097,22 @@ td:nth-child(8) {
   font-weight: 900;
 }
 
-.pill.income,
-.bar.income {
+.pill.income {
   background: #dff7eb;
   color: #17633d;
 }
 
-.pill.expense,
-.bar.expense {
+.pill.expense {
   background: #ffe1e1;
   color: #a62219;
+}
+
+.bar.income {
+  background: #34c481;
+}
+
+.bar.expense {
+  background: #ff7777;
 }
 
 .status-pill {
@@ -1299,7 +1305,7 @@ td:nth-child(8) {
 
 .bar-track {
   height: 8px;
-  background: #edf1f5;
+  background: #e5ebef;
   border-radius: 999px;
   overflow: hidden;
 }
