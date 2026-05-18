@@ -513,7 +513,27 @@ button:disabled {
 }
 
 .sync-action-button {
-  display: none;
+  position: fixed;
+  right: 184px;
+  bottom: 24px;
+  z-index: 14;
+  min-height: 52px;
+  padding: 0 18px;
+  border: 1px solid #cbd8df;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--brand-strong);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 14px 32px rgba(16, 63, 70, 0.16);
+  font-weight: 900;
+}
+
+.sync-action-button:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  box-shadow: 0 16px 36px rgba(16, 63, 70, 0.22);
 }
 
 .app-shell {
