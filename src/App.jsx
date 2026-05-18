@@ -49,6 +49,8 @@ const emptyDraft = {
   installment_count: "1"
 };
 
+const movementStatuses = ["Confirmado", "Proyectado", "Pendiente"];
+
 const accountColorOptions = [
   { label: "Gris", value: "#f8fafc" },
   { label: "Verde", value: "#edf8ef" },
@@ -176,12 +178,15 @@ function getQuickMovementParams() {
     return null;
   }
 
+  const rawStatus = search.get("status") || search.get("estado") || "";
+  const normalizedStatus = movementStatuses.find((status) => status.toLowerCase() === rawStatus.trim().toLowerCase()) || null;
+
   return {
     amount: parsedAmount,
     description: search.get("descripcion") || search.get("description") || "",
     year: Number(search.get("year")) || null,
     month: Number(search.get("month")) || null,
-    status: search.get("status") || search.get("estado") || null
+    status: normalizedStatus
   };
 }
 
@@ -719,6 +724,7 @@ export function App() {
       ...emptyDraft,
       amount: prefill.amount ?? "",
       description: prefill.description ?? "",
+      status: prefill.status || emptyDraft.status,
       responsible: responsibles[0]?.name || currentResponsible || getDefaultResponsible(session)
     });
     setMovementModalOpen(true);
