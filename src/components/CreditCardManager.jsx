@@ -1,12 +1,16 @@
 import { Plus, Trash2 } from "lucide-react";
+import { ColorPicker } from "./ColorPicker";
 import { formatCurrency } from "../lib/finance";
 
 const colorOptions = [
-  { label: "Verde", value: "#edf8ef" },
-  { label: "Azul", value: "#eef5ff" },
-  { label: "Amarillo", value: "#fff8df" },
-  { label: "Rojo", value: "#fff0f0" },
-  { label: "Gris", value: "#f4f6f8" }
+  { label: "Verde", value: "#cfe9d8" },
+  { label: "Azul", value: "#d7e7ff" },
+  { label: "Amarillo", value: "#fde68a" },
+  { label: "Rojo", value: "#ffd6d6" },
+  { label: "Gris", value: "#e2e8f0" },
+  { label: "Morado", value: "#e9d5ff" },
+  { label: "Cian", value: "#cceff2" },
+  { label: "Naranja", value: "#fed7aa" }
 ];
 
 export function CreditCardManager({ accounts, cardPaymentTotals, draft, onDraftChange, onCreate, onDelete }) {
@@ -27,13 +31,7 @@ export function CreditCardManager({ accounts, cardPaymentTotals, draft, onDraftC
         </label>
         <label>
           Color
-          <select value={draft.color} onChange={(event) => onDraftChange({ ...draft, color: event.target.value })}>
-            {colorOptions.map((color) => (
-              <option key={color.value} value={color.value}>
-                {color.label}
-              </option>
-            ))}
-          </select>
+          <ColorPicker value={draft.color} onChange={(color) => onDraftChange({ ...draft, color })} presets={colorOptions} compact />
         </label>
         <button type="submit" className="primary-action">
           <Plus size={16} />

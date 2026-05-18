@@ -8,6 +8,7 @@ import { AnnualSummaryView } from "./components/AnnualSummaryView";
 import { AuthPanel } from "./components/AuthPanel";
 import { CategoryBreakdown } from "./components/CategoryBreakdown";
 import { CategoryPieChart } from "./components/CategoryPieChart";
+import { ColorPicker } from "./components/ColorPicker";
 import { CreditCardManager } from "./components/CreditCardManager";
 import { CreditCardMonthlyChart } from "./components/CreditCardMonthlyChart";
 import { MonthlyGrid } from "./components/MonthlyGrid";
@@ -241,8 +242,8 @@ export function App() {
   const [responsibles, setResponsibles] = useState([]);
   const [responsibleDraft, setResponsibleDraft] = useState("");
   const [filters, setFilters] = useState({ search: "", account: "", responsible: "", type: "", category: "", status: "", flow: "" });
-  const [accountDraft, setAccountDraft] = useState({ name: "", type: "principal", color: "#f8fafc" });
-  const [cardDraft, setCardDraft] = useState({ name: "", color: "#edf8ef" });
+  const [accountDraft, setAccountDraft] = useState({ name: "", type: "principal", color: "#e2e8f0" });
+  const [cardDraft, setCardDraft] = useState({ name: "", color: "#cfe9d8" });
   const [movements, setMovements] = useState([]);
   const [selectedYear, setSelectedYear] = useState(initialPeriod.year);
   const [selectedMonth, setSelectedMonth] = useState(initialPeriod.month);
@@ -784,7 +785,7 @@ export function App() {
       setAccounts((current) => [...current, nextAccount]);
     }
 
-    setAccountDraft({ name: "", type: "principal", color: "#f8fafc" });
+    setAccountDraft({ name: "", type: "principal", color: "#e2e8f0" });
     setNotice("Cuenta creada.");
   }
 
@@ -888,7 +889,7 @@ export function App() {
       setAccounts((current) => [...current, nextCard]);
     }
 
-    setCardDraft({ name: "", color: "#edf8ef" });
+    setCardDraft({ name: "", color: "#cfe9d8" });
     setNotice("Tarjeta creada.");
   }
 
@@ -1628,11 +1629,7 @@ export function App() {
               </label>
               <label>
                 Color
-                <select value={accountDraft.color} onChange={(event) => setAccountDraft((current) => ({ ...current, color: event.target.value }))}>
-                  {accountColorOptions.map((color) => (
-                    <option key={color.value} value={color.value}>{color.label}</option>
-                  ))}
-                </select>
+                <ColorPicker value={accountDraft.color} onChange={(color) => setAccountDraft((current) => ({ ...current, color }))} presets={accountColorOptions} />
               </label>
               <button type="submit" className="primary-action">
                 <Plus size={18} />
@@ -1662,11 +1659,7 @@ export function App() {
                       <option value="principal">Principal</option>
                       <option value="tarjeta_credito">Tarjeta</option>
                     </select>
-                    <select name="color" defaultValue={account.color || "#f8fafc"}>
-                      {accountColorOptions.map((color) => (
-                        <option key={color.value} value={color.value}>{color.label}</option>
-                      ))}
-                    </select>
+                    <ColorPicker defaultValue={account.color || "#e2e8f0"} compact />
                     <span className="account-status">{account.archived ? "Archivada" : hasMovements ? "Con movimientos" : "Sin movimientos"}</span>
                     <button type="submit" className="ghost-action">Guardar</button>
                     {account.type === "tarjeta_credito" && (
