@@ -101,7 +101,7 @@ export function AnnualSummaryView({ accounts, movements, year, summary }) {
                           <span>Descripcion</span>
                           <span>Monto</span>
                         </div>
-                        {rows.slice(0, 12).map((movement) => (
+                        {rows.map((movement) => (
                           <div className="annual-movement-row" key={movement.row_key || movement.id}>
                             <span className="annual-movement-description" title={`${movement.description} - ${movement.type}`}>
                               <i className={`annual-type-dot ${movement.type === "Ingreso" ? "income" : "expense"}`} />
@@ -111,7 +111,6 @@ export function AnnualSummaryView({ accounts, movements, year, summary }) {
                           </div>
                         ))}
                         {!rows.length && <div className="annual-movement-empty">Sin movimientos</div>}
-                        {rows.length > 12 && <div className="annual-movement-empty">+ {rows.length - 12} movimientos mas</div>}
                       </div>
                     </div>
                   );
