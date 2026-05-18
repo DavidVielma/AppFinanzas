@@ -2260,9 +2260,16 @@ td:nth-child(8) {
   .topbar-actions,
   .copy-actions {
     display: grid;
-    grid-template-columns: 1fr;
     width: 100%;
     gap: 8px;
+  }
+
+  .topbar-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .copy-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .topbar-actions {
@@ -2330,7 +2337,7 @@ td:nth-child(8) {
 
   .controls-row {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     align-items: stretch;
   }
@@ -2339,7 +2346,6 @@ td:nth-child(8) {
     min-width: 0;
   }
 
-  .summary-grid,
   .side-panel,
   .dashboard-kpis,
   .dashboard-split,
@@ -2355,29 +2361,44 @@ td:nth-child(8) {
   }
 
   .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
   .summary-card {
     display: grid;
-    grid-template-columns: 44px 1fr;
-    align-items: center;
-    column-gap: 12px;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 8px;
     padding: 12px;
     min-width: 0;
   }
 
+  .summary-card span,
+  .summary-card strong {
+    min-width: 0;
+  }
+
+  .summary-card span {
+    font-size: 0.72rem;
+    line-height: 1.18;
+  }
+
   .summary-card .summary-icon {
     grid-row: span 2;
+    width: 34px;
+    height: 34px;
     margin-bottom: 0;
   }
 
   .summary-card strong {
-    font-size: 1.15rem;
+    font-size: 1rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
   }
 
   .month-grid {
-    grid-template-columns: repeat(12, minmax(94px, 1fr));
+    grid-template-columns: repeat(12, minmax(112px, 1fr));
     gap: 6px;
     margin-inline: -2px;
   }
@@ -2385,6 +2406,22 @@ td:nth-child(8) {
   .month-cell {
     min-height: 86px;
     padding: 10px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .month-cell strong {
+    color: #07111f;
+    font-size: 0.88rem;
+    font-weight: 900;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .month-cell span,
+  .month-cell small {
+    color: #526176;
+    overflow-wrap: anywhere;
   }
 
   .sidebar-nav {
