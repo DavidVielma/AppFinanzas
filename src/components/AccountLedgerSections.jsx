@@ -67,9 +67,11 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, 
     const total = rows.reduce((sum, movement) => sum + Number(movement.amount || 0), 0);
     const isCard = account.type === "tarjeta_credito";
     const displayTotal = isCard ? -(cardPaymentTotals[account.name] || 0) : total;
+    const isPrincipal = account.name === "Principal";
+    const accountAccent = isPrincipal ? "#155e63" : account.color || "#d8e3e1";
 
     return (
-      <section className="account-section" key={account.name}>
+      <section className={`account-section ${isPrincipal ? "principal-account-section" : ""}`} key={account.name} style={{ "--account-accent": accountAccent }}>
         <header className="account-section-header" style={{ backgroundColor: account.color || "#f8fafc" }}>
           <div>
             <h3>{account.name}</h3>

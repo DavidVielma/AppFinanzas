@@ -869,10 +869,16 @@ button:disabled {
 }
 
 .account-section {
-  border: 1px solid #d8e3e1;
+  border: 1px solid color-mix(in srgb, var(--account-accent, #d8e3e1) 54%, #cbd8d9);
   border-radius: 8px;
   overflow: hidden;
   background: #ffffff;
+}
+
+.principal-account-section {
+  border-width: 2px;
+  border-color: #155e63;
+  box-shadow: 0 12px 28px rgba(21, 94, 99, 0.12);
 }
 
 .account-section-header {
@@ -882,8 +888,13 @@ button:disabled {
   align-items: center;
   padding: 12px 14px;
   border-bottom: 1px solid #edf1f5;
-  box-shadow: inset 4px 0 0 rgba(21, 94, 99, 0.16);
+  box-shadow: inset 4px 0 0 var(--account-accent, rgba(21, 94, 99, 0.16));
   background: #f7faf9;
+}
+
+.principal-account-section .account-section-header {
+  border-bottom-color: #b8d1d0;
+  background: #eef7f5 !important;
 }
 
 .account-section-header h3 {
@@ -2551,12 +2562,22 @@ td:nth-child(8) {
     min-width: 0;
     display: grid;
     gap: 7px;
-    border: 1px solid #cbd8d9;
-    border-left: 4px solid #8fb8b0;
+    border: 1px solid color-mix(in srgb, var(--account-accent, #cbd8d9) 58%, #cbd8d9);
+    border-left: 5px solid var(--account-accent, #8fb8b0);
     border-radius: 8px;
     background: #ffffff;
     padding: 9px;
     box-shadow: 0 6px 14px rgba(20, 48, 58, 0.09);
+  }
+
+  .principal-account-section .mobile-movement-list {
+    background: #dfecea;
+  }
+
+  .principal-account-section .mobile-movement-card {
+    border-color: #9fc1bf;
+    border-left-color: #155e63;
+    box-shadow: 0 8px 18px rgba(21, 94, 99, 0.14);
   }
 
   .mobile-movement-card header {
