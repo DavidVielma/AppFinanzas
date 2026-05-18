@@ -491,6 +491,10 @@ button:disabled {
   background: var(--brand-strong);
 }
 
+.sync-action-button {
+  display: none;
+}
+
 .app-shell {
   width: min(1720px, 100%);
   margin: 0 auto;
@@ -2284,6 +2288,28 @@ td:nth-child(8) {
   }
 
   .quick-action-button span {
+    display: none;
+  }
+
+  .sync-action-button {
+    position: fixed;
+    left: 14px;
+    bottom: calc(104px + env(safe-area-inset-bottom));
+    z-index: 14;
+    width: 56px;
+    height: 56px;
+    min-height: 56px;
+    padding: 0;
+    border: 1px solid #cbd8df;
+    border-radius: 50%;
+    background: #ffffff;
+    color: var(--brand-strong);
+    display: grid;
+    place-items: center;
+    box-shadow: 0 12px 28px rgba(16, 63, 70, 0.18);
+  }
+
+  .sync-action-button span {
     display: none;
   }
 

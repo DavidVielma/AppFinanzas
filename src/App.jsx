@@ -565,6 +565,14 @@ export function App() {
     setNotice("Estado actualizado.");
   }
 
+  async function syncRemoteData() {
+    if (!isRemote) return;
+
+    await loadMovements({ showLoading: true });
+    await Promise.all([loadAccounts(), loadResponsibles(), loadProfile()]);
+    setNotice("Datos sincronizados.");
+  }
+
   async function moveMovement(movement, direction) {
     const account = movement.display_account || movement.account || "Principal";
     const movementId = movement.source_movement?.id || movement.id;
@@ -1252,6 +1260,13 @@ export function App() {
         <span>Movimiento</span>
       </button>
 
+      {isRemote && (
+        <button type="button" className="sync-action-button" onClick={syncRemoteData} aria-label="Sincronizar datos">
+          <RefreshCcw size={20} />
+          <span>Sincronizar</span>
+        </button>
+      )}
+
       {notice && (
         <div className="toast-notice" role="status" aria-live="polite">
           <span>{notice}</span>
@@ -1281,7 +1296,7 @@ export function App() {
             Link rapido
           </button>
           {isRemote && (
-            <button type="button" className="icon-text" onClick={loadMovements}>
+            <button type="button" className="icon-text" onClick={syncRemoteData}>
               <RefreshCcw size={18} />
               Sincronizar
             </button>
