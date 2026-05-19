@@ -97,7 +97,7 @@ export function getCategoryOptions(type) {
   return type === "Ingreso" ? incomeCategories : expenseCategories;
 }
 
-export function normalizeCategory(category, type = "Egreso") {
+export function normalizeCategory(category, type = "Egreso", categoryOptions = null) {
   const value = String(category || "").trim();
   const normalized = value
     .normalize("NFD")
@@ -164,7 +164,7 @@ export function normalizeCategory(category, type = "Egreso") {
   if (["Transferencia", "Pago Tarjeta", "Ahorro"].includes(canonical)) {
     return canonical;
   }
-  const options = getCategoryOptions(type);
+  const options = categoryOptions || getCategoryOptions(type);
   return options.includes(canonical) ? canonical : "Otros";
 }
 

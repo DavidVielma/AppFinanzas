@@ -509,7 +509,7 @@ export function App() {
       type,
       account: draft.account,
       target_account: draft.target_account || null,
-      category: normalizeCategory(draft.category, type),
+      category: normalizeCategory(draft.category, type, categoryOptionsByType[type]),
       amount: signedAmount,
       status: draft.status,
       responsible: serializeResponsibleNames(draft.responsible, responsibles[0]?.name || getDefaultResponsible(session))
@@ -1305,19 +1305,6 @@ export function App() {
     return Array.from(years).sort((a, b) => b - a);
   }, [movements, selectedYear]);
 
-  const resolvedMovements = useMemo(
-    () => resolveDynamicPayments(movements, accounts).map((movement) => ({ ...movement, category: normalizeCategory(movement.category, movement.type) })),
-    [accounts, movements]
-  );
-  const summary = useMemo(() => calculateSummary(resolvedMovements, Number(selectedYear), accounts), [accounts, resolvedMovements, selectedYear]);
-  const monthMovements = resolvedMovements
-    .filter((item) => item.year === Number(selectedYear) && item.month === Number(selectedMonth))
-    .sort(sortMovementsByAccountOrder);
-  const visibleAccounts = useMemo(
-    () => getVisibleAccountsForPeriod(accounts, resolvedMovements, Number(selectedYear), Number(selectedMonth)),
-    [accounts, resolvedMovements, selectedMonth, selectedYear]
-  );
-  const currentResponsible = profile?.username || getDefaultResponsible(session);
   const categoryOptionsByType = useMemo(() => {
     function mergeCategories(defaults, type) {
       const seen = new Set();
@@ -1343,6 +1330,20 @@ export function App() {
       Egreso: mergeCategories(expenseCategories, "Egreso")
     };
   }, [customCategories]);
+
+  const resolvedMovements = useMemo(
+    () => resolveDynamicPayments(movements, accounts).map((movement) => ({ ...movement, category: normalizeCategory(movement.category, movement.type, categoryOptionsByType[movement.type]) })),
+    [accounts, categoryOptionsByType, movements]
+  );
+  const summary = useMemo(() => calculateSummary(resolvedMovements, Number(selectedYear), accounts), [accounts, resolvedMovements, selectedYear]);
+  const monthMovements = resolvedMovements
+    .filter((item) => item.year === Number(selectedYear) && item.month === Number(selectedMonth))
+    .sort(sortMovementsByAccountOrder);
+  const visibleAccounts = useMemo(
+    () => getVisibleAccountsForPeriod(accounts, resolvedMovements, Number(selectedYear), Number(selectedMonth)),
+    [accounts, resolvedMovements, selectedMonth, selectedYear]
+  );
+  const currentResponsible = profile?.username || getDefaultResponsible(session);
 
   function matchesMovementFilters(movement) {
     const search = filters.search.trim().toLowerCase();
