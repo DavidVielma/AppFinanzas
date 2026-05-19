@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, ClipboardCopy, ClipboardPaste, Download, FileText, LayoutDashboard, Link, ListChecks, LogOut, Plus, RefreshCcw, User, UploadCloud, X, Zap } from "lucide-react";
 import { AccountBalances } from "./components/AccountBalances";
 import { AccountEvolutionChart } from "./components/AccountEvolutionChart";
@@ -111,9 +111,10 @@ function isBaseAccount(account) {
 
 function addMonthsToPeriod(year, month, offset) {
   const zeroBased = Number(month) - 1 + offset;
+  const normalizedMonth = ((zeroBased % 12) + 12) % 12;
   return {
     year: Number(year) + Math.floor(zeroBased / 12),
-    month: (zeroBased % 12) + 1
+    month: normalizedMonth + 1
   };
 }
 
@@ -263,6 +264,7 @@ export function App() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
+  const movementSwipeRef = useRef(null);
 
   const isRemote = hasSupabaseConfig && session && !demoMode;
 
@@ -581,6 +583,45 @@ export function App() {
     await loadMovements();
     await Promise.all([loadAccounts(), loadResponsibles(), loadProfile()]);
     setNotice("Datos sincronizados.");
+  }
+
+  function moveSelectedMonth(offset) {
+    const period = addMonthsToPeriod(selectedYear, selectedMonth, offset);
+    setSelectedYear(period.year);
+    setSelectedMonth(period.month);
+  }
+
+  function isInteractiveSwipeTarget(target) {
+    return Boolean(target?.closest("button, a, input, select, textarea, label, [role='button']"));
+  }
+
+  function handleMovementTouchStart(event) {
+    if (window.innerWidth > 720 || isInteractiveSwipeTarget(event.target) || event.touches.length !== 1) {
+      movementSwipeRef.current = null;
+      return;
+    }
+
+    const touch = event.touches[0];
+    movementSwipeRef.current = {
+      x: touch.clientX,
+      y: touch.clientY
+    };
+  }
+
+  function handleMovementTouchEnd(event) {
+    const start = movementSwipeRef.current;
+    movementSwipeRef.current = null;
+
+    if (!start || event.changedTouches.length !== 1) return;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const isHorizontalSwipe = Math.abs(deltaX) > 70 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35;
+
+    if (!isHorizontalSwipe) return;
+
+    moveSelectedMonth(deltaX < 0 ? 1 : -1);
   }
 
   async function moveMovement(movement, direction) {
@@ -1362,7 +1403,7 @@ export function App() {
       )}
 
       {activeView === "movements" && (
-      <section className="work-area">
+      <section className="work-area" onTouchStart={handleMovementTouchStart} onTouchEnd={handleMovementTouchEnd}>
         <div className="ledger-panel">
           <div className="section-heading">
             <div>
