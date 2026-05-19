@@ -1334,7 +1334,8 @@ export function App() {
           if (seen.has(key)) return false;
           seen.add(key);
           return true;
-        });
+        })
+        .sort((a, b) => a.localeCompare(b, "es"));
     }
 
     return {
@@ -1908,8 +1909,8 @@ export function App() {
             </form>
             <div className="category-admin-grid">
               {["Ingreso", "Egreso"].map((type) => {
-                const defaultList = type === "Ingreso" ? incomeCategories : expenseCategories;
-                const customList = customCategories.filter((category) => category.type === type);
+                const defaultList = [...(type === "Ingreso" ? incomeCategories : expenseCategories)].sort((a, b) => a.localeCompare(b, "es"));
+                const customList = customCategories.filter((category) => category.type === type).sort((a, b) => a.name.localeCompare(b.name, "es"));
                 return (
                   <section className="category-admin-panel" key={type}>
                     <h3>{type}</h3>
