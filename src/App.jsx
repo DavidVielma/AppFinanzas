@@ -264,6 +264,7 @@ export function App() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
+  const [noticeAction, setNoticeAction] = useState(null);
   const movementSwipeRef = useRef(null);
 
   const isRemote = hasSupabaseConfig && session && !demoMode;
@@ -360,7 +361,14 @@ export function App() {
   useEffect(() => {
     if (!notice) return undefined;
 
-    const timer = window.setTimeout(() => setNotice(""), 4200);
+    if (notice !== "Movimiento eliminado.") {
+      setNoticeAction(null);
+    }
+
+    const timer = window.setTimeout(() => {
+      setNotice("");
+      setNoticeAction(null);
+    }, 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
@@ -552,6 +560,12 @@ export function App() {
   }
 
   async function deleteMovement(id) {
+    const deletedMovement = movements.find((item) => item.id === id);
+    if (!deletedMovement) {
+      setNotice("Movimiento no encontrado.");
+      return;
+    }
+
     if (isRemote) {
       const { error } = await supabase.from("movements").delete().eq("id", id);
       if (error) {
@@ -562,6 +576,31 @@ export function App() {
 
     setMovements((current) => current.filter((item) => item.id !== id));
     setNotice("Movimiento eliminado.");
+    setNoticeAction({
+      label: "Deshacer",
+      run: () => undoDeleteMovement(deletedMovement)
+    });
+  }
+
+  async function undoDeleteMovement(movement) {
+    setNoticeAction(null);
+    const restoredMovement = { ...movement };
+
+    if (isRemote) {
+      const { data, error } = await supabase.from("movements").insert(restoredMovement).select().single();
+      if (error) {
+        setNotice(error.message);
+        setNoticeAction(null);
+        return;
+      }
+
+      setMovements((current) => [...current.filter((item) => item.id !== data.id), data]);
+    } else {
+      setMovements((current) => [...current.filter((item) => item.id !== restoredMovement.id), restoredMovement]);
+    }
+
+    setNotice("Movimiento restaurado.");
+    setNoticeAction(null);
   }
 
   async function updateMovementStatus(movement, status) {
@@ -1324,7 +1363,12 @@ export function App() {
       {notice && (
         <div className="toast-notice" role="status" aria-live="polite">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice("")} aria-label="Cerrar mensaje">
+          {noticeAction && (
+            <button type="button" className="toast-action" onClick={noticeAction.run}>
+              {noticeAction.label}
+            </button>
+          )}
+          <button type="button" onClick={() => { setNotice(""); setNoticeAction(null); }} aria-label="Cerrar mensaje">
             <X size={16} />
           </button>
         </div>

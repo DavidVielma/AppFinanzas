@@ -324,6 +324,13 @@ button:disabled {
   padding: 0;
 }
 
+.toast-notice .toast-action {
+  width: auto;
+  min-width: 86px;
+  padding: 0 12px;
+  font-weight: 900;
+}
+
 .app-layout {
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
