@@ -2936,6 +2936,11 @@ td:nth-child(8) {
     font-size: 16px;
   }
 
+  .filter-grid input,
+  .filter-grid select {
+    font-size: 16px;
+  }
+
   .account-admin-row {
     padding: 10px;
   }
