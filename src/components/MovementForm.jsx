@@ -43,6 +43,12 @@ function formatAmountInput(value) {
   return `${isNegative ? "-" : ""}${Number(digits).toLocaleString("es-CL")}`;
 }
 
+function getStatusClass(status) {
+  if (status === "Confirmado") return "confirmed";
+  if (status === "Pendiente") return "pending";
+  return "projected";
+}
+
 export function MovementForm({ accounts, cardPaymentTotals, responsibles, currentResponsible, categoryOptionsByType, draft, onChange, onSubmit, editingId }) {
   const amountInputRef = useRef(null);
 
@@ -199,7 +205,7 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
       )}
       <label>
         Estado
-        <select value={draft.status} onChange={(event) => update("status", event.target.value)}>
+        <select className={`status-select form-status-select ${getStatusClass(draft.status)}`} value={draft.status} onChange={(event) => update("status", event.target.value)}>
           <option>Confirmado</option>
           <option>Proyectado</option>
           <option>Pendiente</option>
