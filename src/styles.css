@@ -234,6 +234,26 @@ select {
   color: #172033;
 }
 
+.amount-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+}
+
+.amount-input-row button {
+  min-height: 40px;
+  border: 1px solid #cfd8e3;
+  border-radius: 6px;
+  background: #f8fbfa;
+  color: var(--brand-strong);
+  font-weight: 900;
+}
+
+.amount-input-row button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .primary-action,
 .ghost-action,
 .icon-text,
@@ -2135,6 +2155,77 @@ td:nth-child(8) {
   margin-top: 14px;
 }
 
+.category-admin-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 150px auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.category-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.category-admin-panel {
+  padding: 12px;
+  border: 1px solid #dce6e2;
+  border-radius: 8px;
+  background: #f8fbfa;
+}
+
+.category-admin-panel h3 {
+  margin: 0 0 10px;
+  font-size: 0.98rem;
+}
+
+.category-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-chip {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid #d6e1dd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #223047;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.category-chip.default {
+  color: #66758a;
+  background: #edf4f1;
+}
+
+.category-chip.custom {
+  border-color: #baded1;
+  background: #e4f6ed;
+  color: var(--brand-strong);
+}
+
+.category-chip button {
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: 1px solid #b9d2cc;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #b42318;
+  display: grid;
+  place-items: center;
+}
+
 .account-admin-form {
   display: grid;
   grid-template-columns: minmax(180px, 1.2fr) minmax(130px, 0.7fr) minmax(180px, 0.8fr) auto;
@@ -2622,6 +2713,8 @@ td:nth-child(8) {
 
   .filter-grid,
   .responsible-form,
+  .category-admin-form,
+  .category-admin-grid,
   .installment-grid,
   .account-admin-form,
   .account-admin-row {
@@ -2835,6 +2928,12 @@ td:nth-child(8) {
   .account-admin-list,
   .responsible-list {
     grid-template-columns: 1fr;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
   }
 
   .account-admin-row {

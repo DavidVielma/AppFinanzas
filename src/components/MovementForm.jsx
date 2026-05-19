@@ -42,7 +42,7 @@ function formatAmountInput(value) {
   return `${isNegative ? "-" : ""}${Number(digits).toLocaleString("es-CL")}`;
 }
 
-export function MovementForm({ accounts, cardPaymentTotals, responsibles, currentResponsible, draft, onChange, onSubmit, editingId }) {
+export function MovementForm({ accounts, cardPaymentTotals, responsibles, currentResponsible, categoryOptionsByType, draft, onChange, onSubmit, editingId }) {
   function update(field, value) {
     const next = { ...draft, [field]: value };
 
@@ -60,12 +60,12 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
     if (field === "amount" && draft.flow === "Movimiento" && draft.installment_mode === "none") {
       const nextType = getTypeFromAmount(value);
       if (getTypeFromAmount(draft.amount) !== nextType) {
-        next.category = getCategoryOptions(nextType)[0];
+        next.category = (categoryOptionsByType?.[nextType] || getCategoryOptions(nextType))[0];
       }
     }
 
-    if (field === "installment_mode" && value !== "none" && !getCategoryOptions("Egreso").includes(next.category)) {
-      next.category = getCategoryOptions("Egreso")[0];
+    if (field === "installment_mode" && value !== "none" && !(categoryOptionsByType?.Egreso || getCategoryOptions("Egreso")).includes(next.category)) {
+      next.category = (categoryOptionsByType?.Egreso || getCategoryOptions("Egreso"))[0];
     }
 
     onChange(next);
@@ -73,7 +73,7 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
 
   const hasInstallments = draft.installment_mode && draft.installment_mode !== "none";
   const inferredType = hasInstallments ? "Egreso" : draft.flow === "Movimiento" ? getTypeFromAmount(draft.amount) : "Egreso";
-  const categoryOptions = getCategoryOptions(inferredType);
+  const categoryOptions = categoryOptionsByType?.[inferredType] || getCategoryOptions(inferredType);
   const needsTarget = draft.flow === "Transferencia" || draft.flow === "Pago Tarjeta";
   const targetLabel = draft.flow === "Pago Tarjeta" ? "Tarjeta" : "Destino";
   const targetAccounts = accounts.filter((account) => account.name !== draft.account && (draft.flow !== "Pago Tarjeta" || isCreditCardAccount(account.name, accounts)));
@@ -92,6 +92,16 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
       ? selectedResponsibles.filter((item) => item !== name)
       : [...selectedResponsibles, name];
     update("responsible", next.join(", "));
+  }
+
+  function toggleAmountSign() {
+    const currentAmount = String(draft.amount || "");
+    const nextAmount = currentAmount.startsWith("-")
+      ? currentAmount.replace(/^-/, "")
+      : currentAmount
+        ? `-${currentAmount}`
+        : "-";
+    update("amount", nextAmount);
   }
 
   return (
@@ -141,15 +151,20 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
       </label>
       <label>
         {draft.installment_mode === "total" ? "Valor total" : draft.installment_mode === "fixed" ? "Valor cuota mensual" : "Monto"}
-        <input
-          type="text"
-          inputMode="numeric"
-          value={paymentAmount !== null ? formatAmountInput(-paymentAmount) : formatAmountInput(draft.amount)}
-          onChange={(event) => update("amount", parseAmountInput(event.target.value))}
-          placeholder="Ej: 1.450.000 o -250.000"
-          readOnly={paymentAmount !== null}
-          required
-        />
+        <div className="amount-input-row">
+          <input
+            type="text"
+            inputMode="decimal"
+            value={paymentAmount !== null ? formatAmountInput(-paymentAmount) : formatAmountInput(draft.amount)}
+            onChange={(event) => update("amount", parseAmountInput(event.target.value))}
+            placeholder="Ej: 1.450.000 o -250.000"
+            readOnly={paymentAmount !== null}
+            required
+          />
+          <button type="button" onClick={toggleAmountSign} disabled={paymentAmount !== null} aria-label="Cambiar signo del monto">
+            {String(draft.amount || "").startsWith("-") || paymentAmount !== null ? "-" : "+"}
+          </button>
+        </div>
       </label>
       {canUseInstallments && (
         <fieldset className="installment-box">

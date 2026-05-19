@@ -47,14 +47,25 @@ create table if not exists public.responsibles (
   unique (user_id, name)
 );
 
+create table if not exists public.categories (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null,
+  type text not null check (type in ('Ingreso', 'Egreso')),
+  created_at timestamptz not null default now(),
+  unique (user_id, type, name)
+);
+
 create index if not exists movements_user_period_idx on public.movements(user_id, year, month);
 create index if not exists movements_user_category_idx on public.movements(user_id, category);
 create index if not exists movements_user_account_idx on public.movements(user_id, account);
+create index if not exists categories_user_type_idx on public.categories(user_id, type);
 
 alter table public.profiles enable row level security;
 alter table public.movements enable row level security;
 alter table public.accounts enable row level security;
 alter table public.responsibles enable row level security;
+alter table public.categories enable row level security;
 
 create policy "profiles_select_own"
 on public.profiles for select
@@ -114,6 +125,23 @@ with check (auth.uid() = user_id);
 
 create policy "responsibles_delete_own"
 on public.responsibles for delete
+using (auth.uid() = user_id);
+
+create policy "categories_select_own"
+on public.categories for select
+using (auth.uid() = user_id);
+
+create policy "categories_insert_own"
+on public.categories for insert
+with check (auth.uid() = user_id);
+
+create policy "categories_update_own"
+on public.categories for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy "categories_delete_own"
+on public.categories for delete
 using (auth.uid() = user_id);
 
 create or replace function public.set_updated_at()

@@ -25,10 +25,12 @@ import {
   formatCurrency,
   getCurrentPeriod,
   getTypeFromAmount,
+  incomeCategories,
   isCreditCardAccount,
   isSummaryMovement,
   monthLabels,
   normalizeCategory,
+  expenseCategories,
   resolveDynamicPayments
 } from "./lib/finance";
 import { seedMovements } from "./lib/sampleData";
@@ -242,6 +244,8 @@ export function App() {
   const [accounts, setAccounts] = useState(defaultAccounts);
   const [responsibles, setResponsibles] = useState([]);
   const [responsibleDraft, setResponsibleDraft] = useState("");
+  const [customCategories, setCustomCategories] = useState([]);
+  const [categoryDraft, setCategoryDraft] = useState({ name: "", type: "Egreso" });
   const [filters, setFilters] = useState({ search: "", account: "", responsible: "", type: "", category: "", status: "", flow: "" });
   const [accountDraft, setAccountDraft] = useState({ name: "", type: "principal", color: "#e2e8f0" });
   const [cardDraft, setCardDraft] = useState({ name: "", color: "#cfe9d8" });
@@ -300,8 +304,10 @@ export function App() {
       const local = localStorage.getItem("finance-demo-movements");
       const localAccounts = localStorage.getItem("finance-demo-accounts");
       const localResponsibles = localStorage.getItem("finance-demo-responsibles");
+      const localCategories = localStorage.getItem("finance-demo-categories");
       setAccounts((localAccounts ? JSON.parse(localAccounts) : defaultAccounts).map((account) => ({ ...account, archived: Boolean(account.archived), locked: isBaseAccount(account) })));
       setResponsibles(localResponsibles ? JSON.parse(localResponsibles) : [{ name: getDefaultResponsible(session) }]);
+      setCustomCategories(localCategories ? JSON.parse(localCategories) : []);
       setMovements(local ? JSON.parse(local) : seedMovements.map((item) => ({ ...item, id: buildLocalId() })));
       return;
     }
@@ -310,6 +316,7 @@ export function App() {
       loadMovements();
       loadAccounts();
       loadResponsibles();
+      loadCategories();
       loadProfile();
     }
   }, [session, demoMode]);
@@ -319,8 +326,9 @@ export function App() {
       localStorage.setItem("finance-demo-movements", JSON.stringify(movements));
       localStorage.setItem("finance-demo-accounts", JSON.stringify(accounts));
       localStorage.setItem("finance-demo-responsibles", JSON.stringify(responsibles));
+      localStorage.setItem("finance-demo-categories", JSON.stringify(customCategories));
     }
-  }, [accounts, movements, responsibles, demoMode]);
+  }, [accounts, customCategories, movements, responsibles, demoMode]);
 
   useEffect(() => {
     if (hasSupabaseConfig && session && !demoMode) {
@@ -436,6 +444,20 @@ export function App() {
     }
 
     setResponsibles(data);
+  }
+
+  async function loadCategories() {
+    const { data, error } = await supabase.from("categories").select("*").order("type", { ascending: true }).order("name", { ascending: true });
+
+    if (error) {
+      if (error.code !== "42P01") {
+        setNotice(error.message);
+      }
+      setCustomCategories([]);
+      return;
+    }
+
+    setCustomCategories(data || []);
   }
 
   async function loadProfile() {
@@ -1000,6 +1022,58 @@ export function App() {
     setNotice("Tarjeta eliminada.");
   }
 
+  async function createCategory(event) {
+    event.preventDefault();
+    const name = categoryDraft.name.trim();
+    const type = categoryDraft.type;
+
+    if (!name) {
+      setNotice("Ingresa un nombre para la categoria.");
+      return;
+    }
+
+    const existingCategories = categoryOptionsByType[type] || [];
+    if (existingCategories.some((category) => category.toLowerCase() === name.toLowerCase())) {
+      setNotice("Esa categoria ya existe.");
+      return;
+    }
+
+    const nextCategory = { name, type };
+
+    if (isRemote) {
+      const { data, error } = await supabase.from("categories").insert(nextCategory).select().single();
+      if (error) {
+        setNotice(error.message);
+        return;
+      }
+      setCustomCategories((current) => [...current, data]);
+    } else {
+      setCustomCategories((current) => [...current, { ...nextCategory, id: buildLocalId() }]);
+    }
+
+    setCategoryDraft({ name: "", type });
+    setNotice("Categoria agregada.");
+  }
+
+  async function deleteCategory(category) {
+    const categoryInUse = movements.some((movement) => movement.category === category.name);
+    if (categoryInUse) {
+      setNotice("No se puede eliminar una categoria usada en movimientos.");
+      return;
+    }
+
+    if (isRemote && category.id) {
+      const { error } = await supabase.from("categories").delete().eq("id", category.id);
+      if (error) {
+        setNotice(error.message);
+        return;
+      }
+    }
+
+    setCustomCategories((current) => current.filter((item) => item.id !== category.id));
+    setNotice("Categoria eliminada.");
+  }
+
   async function createResponsible(event) {
     event.preventDefault();
     const name = responsibleDraft.trim();
@@ -1244,6 +1318,31 @@ export function App() {
     [accounts, resolvedMovements, selectedMonth, selectedYear]
   );
   const currentResponsible = profile?.username || getDefaultResponsible(session);
+  const categoryOptionsByType = useMemo(() => {
+    function mergeCategories(defaults, type) {
+      const seen = new Set();
+      return [
+        ...defaults,
+        ...customCategories
+          .filter((category) => category.type === type)
+          .map((category) => category.name)
+      ]
+        .map((category) => String(category || "").trim())
+        .filter(Boolean)
+        .filter((category) => {
+          const key = category.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    }
+
+    return {
+      Ingreso: mergeCategories(incomeCategories, "Ingreso"),
+      Egreso: mergeCategories(expenseCategories, "Egreso")
+    };
+  }, [customCategories]);
+
   function matchesMovementFilters(movement) {
     const search = filters.search.trim().toLowerCase();
     const movementResponsibles = parseResponsibleNames(movement.responsible, currentResponsible);
@@ -1268,7 +1367,7 @@ export function App() {
   const filterOptions = {
     accounts: visibleAccounts.map((account) => account.name),
     responsibles: Array.from(new Set([currentResponsible, ...responsibles.map((responsible) => normalizeResponsibleName(responsible.name, currentResponsible)), ...monthMovements.flatMap((movement) => parseResponsibleNames(movement.responsible, currentResponsible))])).sort(),
-    categories: Array.from(new Set(monthMovements.map((movement) => movement.category))).sort(),
+    categories: Array.from(new Set([...categoryOptionsByType.Ingreso, ...categoryOptionsByType.Egreso, ...monthMovements.map((movement) => movement.category)])).sort(),
     types: ["Ingreso", "Egreso"],
     statuses: ["Confirmado", "Proyectado", "Pendiente"],
     flows: ["Movimiento", "Transferencia", "Pago Tarjeta"]
@@ -1788,6 +1887,50 @@ export function App() {
               ))}
             </div>
           </div>
+          <div className="dashboard-panel profile-panel">
+            <h2>Categorias</h2>
+            <form className="category-admin-form" onSubmit={createCategory}>
+              <label>
+                Nombre
+                <input value={categoryDraft.name} onChange={(event) => setCategoryDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Ej: Mascotas, Dividendos" required />
+              </label>
+              <label>
+                Tipo
+                <select value={categoryDraft.type} onChange={(event) => setCategoryDraft((current) => ({ ...current, type: event.target.value }))}>
+                  <option>Ingreso</option>
+                  <option>Egreso</option>
+                </select>
+              </label>
+              <button type="submit" className="primary-action">
+                <Plus size={18} />
+                Agregar
+              </button>
+            </form>
+            <div className="category-admin-grid">
+              {["Ingreso", "Egreso"].map((type) => {
+                const defaultList = type === "Ingreso" ? incomeCategories : expenseCategories;
+                const customList = customCategories.filter((category) => category.type === type);
+                return (
+                  <section className="category-admin-panel" key={type}>
+                    <h3>{type}</h3>
+                    <div className="category-chip-list">
+                      {defaultList.map((category) => (
+                        <span className="category-chip default" key={category}>{category}</span>
+                      ))}
+                      {customList.map((category) => (
+                        <span className="category-chip custom" key={category.id || `${category.type}-${category.name}`}>
+                          {category.name}
+                          <button type="button" onClick={() => deleteCategory(category)} aria-label={`Eliminar categoria ${category.name}`}>
+                            <X size={14} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </div>
         </section>
       )}
 
@@ -1803,7 +1946,7 @@ export function App() {
                 <X size={18} />
               </button>
             </header>
-            <MovementForm accounts={selectableAccounts} cardPaymentTotals={cardPaymentTotals} responsibles={responsibles} currentResponsible={currentResponsible} draft={draft} onChange={setDraft} onSubmit={handleSubmit} editingId={editingId} />
+            <MovementForm accounts={selectableAccounts} cardPaymentTotals={cardPaymentTotals} responsibles={responsibles} currentResponsible={currentResponsible} categoryOptionsByType={categoryOptionsByType} draft={draft} onChange={setDraft} onSubmit={handleSubmit} editingId={editingId} />
           </section>
         </div>
       )}
