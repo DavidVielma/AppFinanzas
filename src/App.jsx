@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ClipboardCopy, ClipboardPaste, Download, FileText, LayoutDashboard, Link, ListChecks, LogOut, Plus, RefreshCcw, User, UploadCloud, X, Zap } from "lucide-react";
+import { Camera, ClipboardCopy, ClipboardPaste, Download, FileText, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, User, UploadCloud, X, Zap } from "lucide-react";
 import { AccountBalances } from "./components/AccountBalances";
 import { AccountEvolutionChart } from "./components/AccountEvolutionChart";
 import { AccountLedgerSections } from "./components/AccountLedgerSections";
@@ -270,12 +270,17 @@ export function App() {
   const [quickLinkHandled, setQuickLinkHandled] = useState(false);
   const [profile, setProfile] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
   const [noticeAction, setNoticeAction] = useState(null);
   const movementSwipeRef = useRef(null);
 
   const isRemote = hasSupabaseConfig && session && !demoMode;
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? "dark" : "light";
+  }, [darkMode]);
 
   useEffect(() => {
     if (!hasSupabaseConfig) {
@@ -341,6 +346,7 @@ export function App() {
 
     const key = session?.user?.id || session?.user?.email || "demo";
     setAvatarUrl(localStorage.getItem(`finance-avatar-${key}`) || "");
+    setDarkMode(localStorage.getItem(`finance-theme-${key}`) === "dark");
   }, [demoMode, session]);
 
   useEffect(() => {
@@ -469,7 +475,7 @@ export function App() {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("username, full_name, avatar_base64")
+      .select("username, full_name, avatar_base64, theme_mode")
       .eq("id", session.user.id)
       .maybeSingle();
 
@@ -480,6 +486,7 @@ export function App() {
 
     setProfile(data || null);
     setAvatarUrl(data?.avatar_base64 || "");
+    setDarkMode(data?.theme_mode === "dark");
   }
 
   async function handleSubmit(event) {
@@ -1128,7 +1135,36 @@ export function App() {
     setPasswordRecoveryMode(false);
     setProfile(null);
     setAvatarUrl("");
+    setDarkMode(false);
     setSession(null);
+  }
+
+  async function updateThemePreference(enabled) {
+    const themeMode = enabled ? "dark" : "light";
+    const previousMode = darkMode;
+    setDarkMode(enabled);
+
+    if (isRemote && session?.user?.id) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({ theme_mode: themeMode })
+        .eq("id", session.user.id)
+        .select("username, full_name, avatar_base64, theme_mode")
+        .single();
+
+      if (error) {
+        setDarkMode(previousMode);
+        setNotice(error.message);
+        return;
+      }
+
+      setProfile(data);
+    } else {
+      const key = session?.user?.id || session?.user?.email || "demo";
+      localStorage.setItem(`finance-theme-${key}`, themeMode);
+    }
+
+    setNotice(enabled ? "Modo oscuro activado." : "Modo claro activado.");
   }
 
   function updateAvatar(event) {
@@ -1142,7 +1178,7 @@ export function App() {
           .from("profiles")
           .update({ avatar_base64: nextAvatar })
           .eq("id", session.user.id)
-          .select("username, full_name, avatar_base64")
+          .select("username, full_name, avatar_base64, theme_mode")
           .single();
 
         if (error) {
@@ -1806,6 +1842,16 @@ export function App() {
               <span>Email</span><strong>{session?.user?.email || "Sin sesion remota"}</strong>
               <span>Usuario</span><strong>{profile?.username || session?.user?.user_metadata?.username || "No definido"}</strong>
               <span>Link rapido</span><strong>{`${window.location.origin}${window.location.pathname}?monto=10000`}</strong>
+            </div>
+            <div className="theme-setting-row">
+              <div>
+                <strong>Modo oscuro</strong>
+                <span>{darkMode ? "Interfaz oscura activa en tu sesion." : "Interfaz clara activa en tu sesion."}</span>
+              </div>
+              <button type="button" className={`theme-toggle ${darkMode ? "active" : ""}`} onClick={() => updateThemePreference(!darkMode)} aria-pressed={darkMode}>
+                {darkMode ? <Moon size={18} /> : <Sun size={18} />}
+                {darkMode ? "Oscuro" : "Claro"}
+              </button>
             </div>
             <PasswordChangeForm session={session} isRemote={isRemote} />
           </div>

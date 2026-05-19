@@ -16,6 +16,21 @@
   text-rendering: optimizeLegibility;
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  color: #e7edf2;
+  background: #07171a;
+  --ink: #e7edf2;
+  --muted: #a6b7c4;
+  --brand: #46b8a8;
+  --brand-strong: #d6fbf4;
+  --accent: #f1a46d;
+  --leaf: #5bd089;
+  --sky: #83bfff;
+  --panel: #0f2429;
+  --line: #25434a;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -29,6 +44,12 @@ body {
     #f4f7f4;
 }
 
+:root[data-theme="dark"] body {
+  background:
+    linear-gradient(180deg, rgba(70, 184, 168, 0.14), rgba(7, 23, 26, 0) 300px),
+    #07171a;
+}
+
 button,
 input,
 select {
@@ -37,6 +58,82 @@ select {
 
 button {
   cursor: pointer;
+}
+
+:root[data-theme="dark"] .auth-panel,
+:root[data-theme="dark"] .topbar,
+:root[data-theme="dark"] .setup-banner,
+:root[data-theme="dark"] .ledger-panel,
+:root[data-theme="dark"] .side-panel > *,
+:root[data-theme="dark"] .dashboard-panel,
+:root[data-theme="dark"] .filter-panel,
+:root[data-theme="dark"] .account-section,
+:root[data-theme="dark"] .monthly-grid,
+:root[data-theme="dark"] .modal-panel,
+:root[data-theme="dark"] .summary-card,
+:root[data-theme="dark"] .month-cell,
+:root[data-theme="dark"] .category-admin-panel,
+:root[data-theme="dark"] .responsible-list > div,
+:root[data-theme="dark"] .principal-payment-strip,
+:root[data-theme="dark"] .credit-card-manager,
+:root[data-theme="dark"] .chart-card {
+  background: #0f2429;
+  border-color: #25434a;
+  color: #e7edf2;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .color-hex-input {
+  background: #0a1d21;
+  border-color: #2d4d55;
+  color: #e7edf2;
+}
+
+:root[data-theme="dark"] input::placeholder {
+  color: #7f96a3;
+}
+
+:root[data-theme="dark"] label,
+:root[data-theme="dark"] .field-summary,
+:root[data-theme="dark"] .filter-grid label,
+:root[data-theme="dark"] .profile-grid span,
+:root[data-theme="dark"] .account-status,
+:root[data-theme="dark"] .muted,
+:root[data-theme="dark"] .section-heading p,
+:root[data-theme="dark"] .filter-heading span,
+:root[data-theme="dark"] .month-cell small,
+:root[data-theme="dark"] .profile-avatar-row span,
+:root[data-theme="dark"] .installment-box p {
+  color: #a6b7c4;
+}
+
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] strong,
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] td {
+  color: #e7edf2;
+}
+
+:root[data-theme="dark"] .ghost-action,
+:root[data-theme="dark"] .icon-text,
+:root[data-theme="dark"] .icon-button,
+:root[data-theme="dark"] .check-control,
+:root[data-theme="dark"] .amount-input-row button,
+:root[data-theme="dark"] .segmented button {
+  background: #102a30;
+  border-color: #2d4d55;
+  color: #d6fbf4;
+}
+
+:root[data-theme="dark"] .primary-action,
+:root[data-theme="dark"] .segmented button.active {
+  background: #46b8a8;
+  border-color: #46b8a8;
+  color: #052124;
 }
 
 .loading,
@@ -2090,6 +2187,49 @@ td:nth-child(8) {
   overflow-wrap: anywhere;
 }
 
+.theme-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid #dbe4e5;
+  border-radius: 8px;
+  background: #f8fbfa;
+}
+
+.theme-setting-row strong,
+.theme-setting-row span {
+  display: block;
+}
+
+.theme-setting-row span {
+  margin-top: 4px;
+  color: #697789;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.theme-toggle {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #cfd8e3;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--brand-strong);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+}
+
+.theme-toggle.active {
+  background: var(--brand-strong);
+  border-color: var(--brand-strong);
+  color: #ffffff;
+}
+
 .profile-avatar-row {
   display: flex;
   align-items: center;
@@ -2139,6 +2279,33 @@ td:nth-child(8) {
   color: #697789;
   font-size: 0.86rem;
   font-weight: 700;
+}
+
+:root[data-theme="dark"] .profile-avatar-row,
+:root[data-theme="dark"] .theme-setting-row {
+  background: #102a30;
+  border-color: #25434a;
+}
+
+:root[data-theme="dark"] .profile-avatar-picker {
+  background: #0a1d21;
+  border-color: #2d4d55;
+}
+
+:root[data-theme="dark"] .theme-setting-row span {
+  color: #a6b7c4;
+}
+
+:root[data-theme="dark"] .theme-toggle {
+  background: #0a1d21;
+  border-color: #2d4d55;
+  color: #d6fbf4;
+}
+
+:root[data-theme="dark"] .theme-toggle.active {
+  background: #d6fbf4;
+  border-color: #d6fbf4;
+  color: #052124;
 }
 
 .password-form {
@@ -2937,6 +3104,15 @@ td:nth-child(8) {
   .account-admin-list,
   .responsible-list {
     grid-template-columns: 1fr;
+  }
+
+  .theme-setting-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .theme-toggle {
+    justify-content: center;
   }
 
   input,

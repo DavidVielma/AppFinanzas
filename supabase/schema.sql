@@ -5,6 +5,7 @@ create table if not exists public.profiles (
   username text unique not null,
   full_name text,
   avatar_base64 text,
+  theme_mode text not null default 'light' check (theme_mode in ('light', 'dark')),
   created_at timestamptz not null default now()
 );
 
