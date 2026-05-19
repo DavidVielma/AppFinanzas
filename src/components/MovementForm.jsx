@@ -25,6 +25,23 @@ function parseResponsibleNames(value, currentResponsible) {
   return raw.split(",").map((name) => normalizeResponsibleName(name, currentResponsible)).filter(Boolean);
 }
 
+function parseAmountInput(value) {
+  const raw = String(value || "");
+  const isNegative = raw.trim().startsWith("-");
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return isNegative ? "-" : "";
+  return `${isNegative ? "-" : ""}${Number(digits)}`;
+}
+
+function formatAmountInput(value) {
+  const raw = String(value ?? "");
+  if (!raw || raw === "-") return raw;
+  const isNegative = raw.startsWith("-");
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return `${isNegative ? "-" : ""}${Number(digits).toLocaleString("es-CL")}`;
+}
+
 export function MovementForm({ accounts, cardPaymentTotals, responsibles, currentResponsible, draft, onChange, onSubmit, editingId }) {
   function update(field, value) {
     const next = { ...draft, [field]: value };
@@ -125,11 +142,11 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
       <label>
         {draft.installment_mode === "total" ? "Valor total" : draft.installment_mode === "fixed" ? "Valor cuota mensual" : "Monto"}
         <input
-          type="number"
-          value={paymentAmount !== null ? -paymentAmount : draft.amount}
-          onChange={(event) => update("amount", event.target.value)}
-          step="1"
-          placeholder="Ej: 1450000 o -250000"
+          type="text"
+          inputMode="numeric"
+          value={paymentAmount !== null ? formatAmountInput(-paymentAmount) : formatAmountInput(draft.amount)}
+          onChange={(event) => update("amount", parseAmountInput(event.target.value))}
+          placeholder="Ej: 1.450.000 o -250.000"
           readOnly={paymentAmount !== null}
           required
         />
