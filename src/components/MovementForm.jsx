@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Plus, Save } from "lucide-react";
 import { flowTypes, getCategoryOptions, getTypeFromAmount, isCreditCardAccount } from "../lib/finance";
 
@@ -43,6 +44,8 @@ function formatAmountInput(value) {
 }
 
 export function MovementForm({ accounts, cardPaymentTotals, responsibles, currentResponsible, categoryOptionsByType, draft, onChange, onSubmit, editingId }) {
+  const amountInputRef = useRef(null);
+
   function update(field, value) {
     const next = { ...draft, [field]: value };
 
@@ -102,6 +105,7 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
         ? `-${currentAmount}`
         : "-";
     update("amount", nextAmount);
+    window.requestAnimationFrame(() => amountInputRef.current?.focus({ preventScroll: true }));
   }
 
   return (
@@ -153,6 +157,7 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
         {draft.installment_mode === "total" ? "Valor total" : draft.installment_mode === "fixed" ? "Valor cuota mensual" : "Monto"}
         <div className="amount-input-row">
           <input
+            ref={amountInputRef}
             type="text"
             inputMode="decimal"
             value={paymentAmount !== null ? formatAmountInput(-paymentAmount) : formatAmountInput(draft.amount)}
@@ -161,7 +166,7 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
             readOnly={paymentAmount !== null}
             required
           />
-          <button type="button" onClick={toggleAmountSign} disabled={paymentAmount !== null} aria-label="Cambiar signo del monto">
+          <button type="button" onPointerDown={(event) => event.preventDefault()} onClick={toggleAmountSign} disabled={paymentAmount !== null} aria-label="Cambiar signo del monto">
             {String(draft.amount || "").startsWith("-") || paymentAmount !== null ? "-" : "+"}
           </button>
         </div>
