@@ -103,6 +103,10 @@ function accountHasMovementsInPeriod(accountName, movements, year, month) {
   );
 }
 
+function isCategoryChartMovement(movement) {
+  return !movement.source_movement && movement.flow !== "Pago Tarjeta" && movement.category !== "Pago Tarjeta";
+}
+
 function getVisibleAccountsForPeriod(accounts, movements, year, month) {
   return accounts.filter((account) => !account.archived || accountHasMovementsInPeriod(account.name, movements, year, month));
 }
@@ -1361,11 +1365,11 @@ export function App() {
   }
   const filteredMonthMovements = monthMovements.filter(matchesMovementFilters);
   const monthOperatingMovements = filteredMonthMovements.filter((item) => isSummaryMovement(item, accounts));
-  const monthCategoryMovements = filteredMonthMovements.filter((item) => !item.source_movement);
+  const monthCategoryMovements = filteredMonthMovements.filter(isCategoryChartMovement);
   const filteredYearMovements = resolvedMovements
     .filter((item) => Number(item.year) === Number(selectedYear))
     .filter(matchesMovementFilters);
-  const dashboardCategoryMovements = (dashboardCategoryScope === "year" ? filteredYearMovements : filteredMonthMovements).filter((item) => !item.source_movement);
+  const dashboardCategoryMovements = (dashboardCategoryScope === "year" ? filteredYearMovements : filteredMonthMovements).filter(isCategoryChartMovement);
   const filterOptions = {
     accounts: visibleAccounts.map((account) => account.name),
     responsibles: Array.from(new Set([currentResponsible, ...responsibles.map((responsible) => normalizeResponsibleName(responsible.name, currentResponsible)), ...monthMovements.flatMap((movement) => parseResponsibleNames(movement.responsible, currentResponsible))])).sort(),
