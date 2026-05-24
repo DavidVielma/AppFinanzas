@@ -33,6 +33,7 @@ Abre la URL que entregue Vite, normalmente `http://localhost:5173`.
 ```bash
 VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
 VITE_SUPABASE_ANON_KEY=tu_anon_key
+VITE_SITE_URL=http://localhost:5173
 ```
 
 5. Reinicia Vite con `npm run dev`.
@@ -47,6 +48,18 @@ En Supabase, revisa `Authentication > URL Configuration`:
 - `Redirect URLs`: agrega la misma URL y, si publicas en produccion, tambien el dominio final.
 
 Si el correo de recuperacion abre `localhost` y ves `ERR_CONNECTION_REFUSED`, significa que el navegador esta intentando volver a tu propia maquina y no al servidor donde corre la app, o que Vite no esta levantado en ese puerto.
+
+### Proveedor SMTP y plantillas HTML
+
+La alerta de Supabase se resuelve configurando un proveedor SMTP propio en `Authentication > SMTP Settings`. Puedes usar Brevo, Resend, SendGrid, Mailgun u otro proveedor transaccional; Supabase seguira generando los enlaces seguros de Auth, pero el envio saldra desde tu remitente.
+
+El repo incluye plantillas formales listas para pegar en `supabase/email-templates/`:
+
+- `confirm-signup.html` para confirmacion de cuenta.
+- `reset-password.html` para recuperacion de contrasena.
+- `invite-user.html` para invitaciones.
+
+Revisa `supabase/email-templates/README.md` para los pasos de configuracion.
 
 ## Notas de despliegue
 

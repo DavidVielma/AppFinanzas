@@ -4,9 +4,9 @@ insert into public.movements (year, month, flow, account, target_account, type, 
 values
   (2026, 4, 'Movimiento', 'Principal', null, 'Ingreso', 'Balance Anterior', 'Balance Anterior', 155653, 'Confirmado'),
   (2026, 4, 'Movimiento', 'Principal', null, 'Ingreso', 'Sueldo', 'Sueldo', 1450000, 'Confirmado'),
-  (2026, 4, 'Movimiento', 'Tarjeta Falabella', null, 'Egreso', 'Supermercado', 'Supermercado Falabella', -302559, 'Confirmado'),
-  (2026, 4, 'Pago Tarjeta', 'Principal', 'Tarjeta Falabella', 'Egreso', 'Pago Tarjeta', 'Pago total Falabella', -302559, 'Confirmado'),
+  (2026, 4, 'Movimiento', 'Tarjeta de Credito', null, 'Egreso', 'Supermercado', 'Supermercado tarjeta', -302559, 'Confirmado'),
+  (2026, 4, 'Pago Tarjeta', 'Principal', 'Tarjeta de Credito', 'Egreso', 'Pago Tarjeta', 'Pago total tarjeta', -302559, 'Confirmado'),
   (2026, 4, 'Transferencia', 'Principal', 'Ahorro', 'Egreso', 'Ahorro', 'Transferencia a ahorro', -700000, 'Proyectado'),
   (2026, 5, 'Movimiento', 'Principal', null, 'Ingreso', 'Sueldo', 'Sueldo', 1450000, 'Proyectado'),
-  (2026, 5, 'Movimiento', 'Tarjeta Falabella', null, 'Egreso', 'Supermercado', 'Falabella mayo', -1077927, 'Proyectado'),
-  (2026, 5, 'Movimiento', 'Banco de Chile', null, 'Egreso', 'Viajes', 'Gastos del Viaje', -656874, 'Proyectado');
+  (2026, 5, 'Movimiento', 'Tarjeta de Credito', null, 'Egreso', 'Supermercado', 'Supermercado mayo', -1077927, 'Proyectado'),
+  (2026, 5, 'Movimiento', 'Tarjeta de Credito', null, 'Egreso', 'Viajes', 'Gastos del Viaje', -656874, 'Proyectado');

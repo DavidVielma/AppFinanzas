@@ -13,12 +13,12 @@ export function PasswordResetPanel({ session, onDone }) {
     setMessage("");
 
     if (!hasSupabaseConfig) {
-      setMessage("Supabase no esta configurado.");
+      setMessage("No pudimos cargar la recuperación de contraseña. Solicita un nuevo enlace.");
       return;
     }
 
     if (!session) {
-      setMessage("El enlace de recuperacion no genero una sesion valida. Solicita un nuevo correo.");
+      setMessage("Este enlace no es válido o ya expiró. Solicita un nuevo correo de recuperación.");
       return;
     }
 
@@ -37,13 +37,13 @@ export function PasswordResetPanel({ session, onDone }) {
     setLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage("No pudimos actualizar la contraseña. Inténtalo nuevamente.");
       return;
     }
 
     setPassword("");
     setConfirmation("");
-    setMessage("Contraseña actualizada. Ya puedes iniciar sesion con la nueva contraseña.");
+    setMessage("Contraseña actualizada. Ya puedes iniciar sesión con la nueva contraseña.");
     window.setTimeout(() => onDone?.(), 1400);
   }
 

@@ -1,4 +1,5 @@
 import { calculateAccountLedger, formatCurrency } from "../lib/finance";
+import { getAccountColorStyle } from "../lib/colors";
 
 export function AccountBalances({ accounts, movements, year, month }) {
   const ledger = calculateAccountLedger(movements, year, month, accounts);
@@ -12,7 +13,7 @@ export function AccountBalances({ accounts, movements, year, month }) {
         const balance = ledger.closing[account.name] || 0;
         const isCard = account.type === "tarjeta_credito";
         return (
-          <article className="account-balance" key={account.name} style={{ backgroundColor: account.color || "#ffffff" }}>
+          <article className="account-balance" key={account.name} style={getAccountColorStyle(account.color, "#ffffff")}>
             <header>
               <span>
                 {account.name}

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Plus, Save } from "lucide-react";
-import { flowTypes, getCategoryOptions, getTypeFromAmount, isCreditCardAccount } from "../lib/finance";
+import { flowTypes, getCategoryOptions, getTypeFromAmount, isCreditCardAccount, monthLabels } from "../lib/finance";
 
 function normalizeResponsibleName(name, currentResponsible) {
   const value = String(name || "").trim();
@@ -63,6 +63,7 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
       if (value === "Pago Tarjeta") {
         next.type = "Egreso";
         next.category = "Pago Tarjeta";
+        next.recurring_frequency = "none";
       }
     }
 
@@ -73,8 +74,16 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
       }
     }
 
-    if (field === "installment_mode" && value !== "none" && !(categoryOptionsByType?.Egreso || getCategoryOptions("Egreso")).includes(next.category)) {
-      next.category = (categoryOptionsByType?.Egreso || getCategoryOptions("Egreso"))[0];
+    if (field === "installment_mode" && value !== "none") {
+      next.recurring_frequency = "none";
+      if (!(categoryOptionsByType?.Egreso || getCategoryOptions("Egreso")).includes(next.category)) {
+        next.category = (categoryOptionsByType?.Egreso || getCategoryOptions("Egreso"))[0];
+      }
+    }
+
+    if (field === "recurring_frequency" && value !== "none") {
+      next.installment_mode = "none";
+      next.installment_count = "1";
     }
 
     onChange(next);
@@ -94,6 +103,14 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
     ? Math.abs(Number(draft.amount)) / installmentCount
     : Math.abs(Number(draft.amount) || 0);
   const canUseInstallments = !editingId && draft.flow === "Movimiento";
+  const canUseRecurring = !editingId && draft.flow !== "Pago Tarjeta" && draft.installment_mode === "none";
+  const recurringCount = Math.max(1, Math.min(120, Number.parseInt(draft.recurring_count, 10) || 1));
+  const recurringFrequencyLabel = {
+    monthly: "mensuales",
+    bimonthly: "cada 2 meses",
+    quarterly: "trimestrales",
+    yearly: "anuales"
+  }[draft.recurring_frequency] || "mensuales";
   const visibleCategoryOptions = categoryOptions.includes(draft.category) ? categoryOptions : [draft.category, ...categoryOptions].filter(Boolean);
 
   function toggleResponsible(name) {
@@ -129,6 +146,20 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
         <strong className={`pill ${inferredType === "Ingreso" ? "income" : "expense"}`}>{inferredType}</strong>
       </div>
       <label>
+        Mes
+        <select value={draft.month} onChange={(event) => update("month", event.target.value)} required>
+          {monthLabels.map((month, index) => (
+            <option key={month} value={index + 1}>
+              {month}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Año
+        <input type="number" min="2000" max="2100" step="1" value={draft.year} onChange={(event) => update("year", event.target.value)} required />
+      </label>
+      <label>
         Cuenta
         <select value={draft.account} onChange={(event) => update("account", event.target.value)}>
           {accounts.map((account) => (
@@ -136,8 +167,16 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
           ))}
         </select>
       </label>
+      <label>
+        Categoria
+        <select value={draft.category} onChange={(event) => update("category", event.target.value)}>
+          {visibleCategoryOptions.map((category) => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+      </label>
       {needsTarget && (
-        <label>
+        <label className="full-on-mobile">
           {targetLabel}
           <select value={draft.target_account} onChange={(event) => update("target_account", event.target.value)} required>
             <option value="">Seleccionar</option>
@@ -147,19 +186,11 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
           </select>
         </label>
       )}
-      <label>
-        Categoria
-        <select value={draft.category} onChange={(event) => update("category", event.target.value)}>
-          {visibleCategoryOptions.map((category) => (
-            <option key={category} value={category}>{category}</option>
-          ))}
-        </select>
-      </label>
       <label className="wide">
         Descripcion
         <input value={draft.description} onChange={(event) => update("description", event.target.value)} placeholder="Ej: Chat GPT" required />
       </label>
-      <label>
+      <label className="full-on-mobile">
         {draft.installment_mode === "total" ? "Valor total" : draft.installment_mode === "fixed" ? "Valor cuota mensual" : "Monto"}
         <div className="amount-input-row">
           <input
@@ -203,7 +234,53 @@ export function MovementForm({ accounts, cardPaymentTotals, responsibles, curren
           )}
         </fieldset>
       )}
-      <label>
+      {canUseRecurring && (
+        <fieldset className="installment-box">
+          <legend>Repeticion</legend>
+          <div className="installment-grid">
+            <label>
+              Frecuencia
+              <select value={draft.recurring_frequency} onChange={(event) => update("recurring_frequency", event.target.value)}>
+                <option value="none">No repetir</option>
+                <option value="monthly">Mensual</option>
+                <option value="bimonthly">Cada 2 meses</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="yearly">Anual</option>
+              </select>
+            </label>
+            {draft.recurring_frequency !== "none" && (
+              <label>
+                Veces
+                <input type="number" min="2" max="120" step="1" value={draft.recurring_count} onChange={(event) => update("recurring_count", event.target.value)} />
+              </label>
+            )}
+          </div>
+          {draft.recurring_frequency !== "none" && (
+            <p>
+              Se crearan {recurringCount} movimientos proyectados {recurringFrequencyLabel} desde este periodo.
+            </p>
+          )}
+        </fieldset>
+      )}
+      {editingId && draft.recurring_id && (
+        <fieldset className="installment-box">
+          <legend>Aplicar cambios</legend>
+          <label>
+            Alcance
+            <select value={draft.recurring_edit_scope || "one"} onChange={(event) => update("recurring_edit_scope", event.target.value)}>
+              <option value="one">Solo este movimiento</option>
+              <option value="following">Este y los siguientes</option>
+              <option value="all">Toda la serie</option>
+            </select>
+          </label>
+          {draft.recurring_edit_scope !== "one" && (
+            <p>
+              Se actualizaran los datos comunes de la serie. Cada movimiento conservara su mes y año.
+            </p>
+          )}
+        </fieldset>
+      )}
+      <label className="full-on-mobile">
         Estado
         <select className={`status-select form-status-select ${getStatusClass(draft.status)}`} value={draft.status} onChange={(event) => update("status", event.target.value)}>
           <option>Confirmado</option>

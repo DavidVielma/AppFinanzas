@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ClipboardCopy, ClipboardPaste, Download, FileText, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, User, UploadCloud, X, Zap } from "lucide-react";
+import { Camera, ChevronDown, ChevronUp, ClipboardCopy, ClipboardPaste, CreditCard, FileText, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, User, UploadCloud, X, Zap } from "lucide-react";
 import { AccountBalances } from "./components/AccountBalances";
 import { AccountEvolutionChart } from "./components/AccountEvolutionChart";
 import { AccountLedgerSections } from "./components/AccountLedgerSections";
@@ -9,6 +9,7 @@ import { AuthPanel } from "./components/AuthPanel";
 import { CategoryBreakdown } from "./components/CategoryBreakdown";
 import { CategoryPieChart } from "./components/CategoryPieChart";
 import { ColorPicker } from "./components/ColorPicker";
+import { CreditCardAnalysis } from "./components/CreditCardAnalysis";
 import { CreditCardManager } from "./components/CreditCardManager";
 import { CreditCardMonthlyChart } from "./components/CreditCardMonthlyChart";
 import { MonthlyGrid } from "./components/MonthlyGrid";
@@ -33,10 +34,12 @@ import {
   expenseCategories,
   resolveDynamicPayments
 } from "./lib/finance";
+import { getAccountColorStyle } from "./lib/colors";
 import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 
 const initialPeriod = getCurrentPeriod();
+const quickMovementShortcutUrl = "https://www.icloud.com/shortcuts/45efc6dc3d8847c09c0ccb223d4abf03";
 
 const emptyDraft = {
   flow: "Movimiento",
@@ -49,7 +52,12 @@ const emptyDraft = {
   status: "Proyectado",
   responsible: "",
   installment_mode: "none",
-  installment_count: "1"
+  installment_count: "1",
+  recurring_frequency: "none",
+  recurring_count: "12",
+  recurring_edit_scope: "one",
+  year: initialPeriod.year,
+  month: initialPeriod.month
 };
 
 const movementStatuses = ["Confirmado", "Proyectado", "Pendiente"];
@@ -115,6 +123,45 @@ function isBaseAccount(account) {
   return account.name === "Principal" || account.name === "Ahorro";
 }
 
+function getAccountSortValue(account, fallback = 0) {
+  const value = Number(account?.sort_order);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function getDefaultAccountSortValue(account, index = 0) {
+  if (account?.name === "Principal") return 0;
+  if (account?.name === "Ahorro") return 1;
+  if (account?.type === "tarjeta_credito") return 100 + index;
+  return 10 + index;
+}
+
+function sortAccounts(accounts) {
+  const values = accounts.map((account) => Number(account?.sort_order)).filter(Number.isFinite);
+  const hasDistinctSortValues = new Set(values).size > 1;
+
+  return accounts
+    .map((account, index) => ({ account, index }))
+    .sort((a, b) => {
+      const sortA = hasDistinctSortValues ? getAccountSortValue(a.account, getDefaultAccountSortValue(a.account, a.index)) : getDefaultAccountSortValue(a.account, a.index);
+      const sortB = hasDistinctSortValues ? getAccountSortValue(b.account, getDefaultAccountSortValue(b.account, b.index)) : getDefaultAccountSortValue(b.account, b.index);
+      return sortA - sortB || getDefaultAccountSortValue(a.account, a.index) - getDefaultAccountSortValue(b.account, b.index) || a.index - b.index;
+    })
+    .map(({ account }, index) => ({ ...account, sort_order: hasDistinctSortValues ? getAccountSortValue(account, index) : index }));
+}
+
+function hydrateAccounts(accounts) {
+  return sortAccounts(accounts).map((account) => ({
+    ...account,
+    archived: Boolean(account.archived),
+    locked: isBaseAccount(account)
+  }));
+}
+
+function getNextAccountSortValue(accounts) {
+  if (!accounts.length) return 0;
+  return Math.max(...accounts.map((account, index) => getAccountSortValue(account, index))) + 1;
+}
+
 function addMonthsToPeriod(year, month, offset) {
   const zeroBased = Number(month) - 1 + offset;
   const normalizedMonth = ((zeroBased % 12) + 12) % 12;
@@ -122,6 +169,24 @@ function addMonthsToPeriod(year, month, offset) {
     year: Number(year) + Math.floor(zeroBased / 12),
     month: normalizedMonth + 1
   };
+}
+
+function getRecurringMonthStep(frequency) {
+  if (frequency === "bimonthly") return 2;
+  if (frequency === "quarterly") return 3;
+  if (frequency === "yearly") return 12;
+  return 1;
+}
+
+function getRecurringFrequencyLabel(frequency) {
+  if (frequency === "bimonthly") return "cada 2 meses";
+  if (frequency === "quarterly") return "trimestral";
+  if (frequency === "yearly") return "anual";
+  return "mensual";
+}
+
+function comparePeriods(aYear, aMonth, bYear, bMonth) {
+  return Number(aYear) * 12 + Number(aMonth) - (Number(bYear) * 12 + Number(bMonth));
 }
 
 function getDefaultResponsible(session) {
@@ -201,6 +266,15 @@ function getQuickMovementParams() {
   };
 }
 
+function clearQuickMovementParamsFromUrl() {
+  const url = new URL(window.location.href);
+  ["monto", "amount", "descripcion", "description", "year", "month", "status", "estado"].forEach((param) => {
+    url.searchParams.delete(param);
+  });
+
+  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -254,6 +328,7 @@ export function App() {
   const [accountDraft, setAccountDraft] = useState({ name: "", type: "principal", color: "#e2e8f0" });
   const [cardDraft, setCardDraft] = useState({ name: "", color: "#cfe9d8" });
   const [movements, setMovements] = useState([]);
+  const [recurringMovements, setRecurringMovements] = useState([]);
   const [selectedYear, setSelectedYear] = useState(initialPeriod.year);
   const [selectedMonth, setSelectedMonth] = useState(initialPeriod.month);
   const [activeView, setActiveView] = useState("movements");
@@ -261,6 +336,8 @@ export function App() {
   const [draft, setDraft] = useState(emptyDraft);
   const [editingId, setEditingId] = useState(null);
   const [movementModalOpen, setMovementModalOpen] = useState(false);
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [copyModalOpen, setCopyModalOpen] = useState(false);
   const [copiedMonth, setCopiedMonth] = useState(null);
   const [copyAccountSelection, setCopyAccountSelection] = useState({});
@@ -314,9 +391,11 @@ export function App() {
       const localAccounts = localStorage.getItem("finance-demo-accounts");
       const localResponsibles = localStorage.getItem("finance-demo-responsibles");
       const localCategories = localStorage.getItem("finance-demo-categories");
-      setAccounts((localAccounts ? JSON.parse(localAccounts) : defaultAccounts).map((account) => ({ ...account, archived: Boolean(account.archived), locked: isBaseAccount(account) })));
+      const localRecurring = localStorage.getItem("finance-demo-recurring-movements");
+      setAccounts(hydrateAccounts(localAccounts ? JSON.parse(localAccounts) : defaultAccounts));
       setResponsibles(localResponsibles ? JSON.parse(localResponsibles) : [{ name: getDefaultResponsible(session) }]);
       setCustomCategories(localCategories ? JSON.parse(localCategories) : []);
+      setRecurringMovements(localRecurring ? JSON.parse(localRecurring) : []);
       setMovements(local ? JSON.parse(local) : seedMovements.map((item) => ({ ...item, id: buildLocalId() })));
       return;
     }
@@ -326,6 +405,7 @@ export function App() {
       loadAccounts();
       loadResponsibles();
       loadCategories();
+      loadRecurringMovements();
       loadProfile();
     }
   }, [session, demoMode]);
@@ -336,8 +416,9 @@ export function App() {
       localStorage.setItem("finance-demo-accounts", JSON.stringify(accounts));
       localStorage.setItem("finance-demo-responsibles", JSON.stringify(responsibles));
       localStorage.setItem("finance-demo-categories", JSON.stringify(customCategories));
+      localStorage.setItem("finance-demo-recurring-movements", JSON.stringify(recurringMovements));
     }
-  }, [accounts, customCategories, movements, responsibles, demoMode]);
+  }, [accounts, customCategories, movements, recurringMovements, responsibles, demoMode]);
 
   useEffect(() => {
     if (hasSupabaseConfig && session && !demoMode) {
@@ -370,16 +451,19 @@ export function App() {
     openNewMovementModal({
       amount: quickParams.amount,
       description: quickParams.description,
-      status: quickParams.status
+      status: quickParams.status,
+      year: quickParams.year || selectedYear,
+      month: quickParams.month || selectedMonth
     });
     setActiveView("movements");
+    clearQuickMovementParamsFromUrl();
     setQuickLinkHandled(true);
   }, [demoMode, loading, passwordRecoveryMode, quickLinkHandled, session]);
 
   useEffect(() => {
     if (!notice) return undefined;
 
-    if (notice !== "Movimiento eliminado.") {
+    if (!notice.includes("eliminado")) {
       setNoticeAction(null);
     }
 
@@ -419,22 +503,39 @@ export function App() {
     setMovements(data || []);
   }
 
+  async function loadRecurringMovements() {
+    const { data, error } = await supabase
+      .from("recurring_movements")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      if (error.code !== "42P01") {
+        setNotice(error.message);
+      }
+      setRecurringMovements([]);
+      return;
+    }
+
+    setRecurringMovements(data || []);
+  }
+
   async function loadAccounts() {
     const { data, error } = await supabase.from("accounts").select("*").order("created_at", { ascending: true });
 
     if (error) {
       setNotice(error.message);
-      setAccounts(defaultAccounts);
+      setAccounts(hydrateAccounts(defaultAccounts));
       return;
     }
 
     if (!data?.length) {
-      await supabase.from("accounts").insert(defaultAccounts.map(({ locked, ...account }) => ({ ...account, archived: false })));
-      setAccounts(defaultAccounts);
+      await supabase.from("accounts").insert(defaultAccounts.map(({ locked, ...account }, index) => ({ ...account, sort_order: index, archived: false })));
+      setAccounts(hydrateAccounts(defaultAccounts));
       return;
     }
 
-    setAccounts(data.map((account) => ({ ...account, archived: Boolean(account.archived), locked: isBaseAccount(account) })));
+    setAccounts(hydrateAccounts(data));
   }
 
   async function loadResponsibles() {
@@ -494,7 +595,11 @@ export function App() {
     const dynamicPaymentAmount = draft.flow === "Pago Tarjeta" ? cardPaymentTotals[draft.target_account] || 0 : null;
     const fallbackAmount = Number(draft.amount) || 0;
     const isInstallmentPurchase = !editingId && draft.flow === "Movimiento" && draft.installment_mode !== "none";
+    const isRecurringMovement = !editingId && !isInstallmentPurchase && draft.flow !== "Pago Tarjeta" && draft.recurring_frequency !== "none";
+    const recurringEditScope = draft.recurring_edit_scope || "one";
+    const isRecurringSeriesEdit = Boolean(editingId && draft.recurring_id && recurringEditScope !== "one");
     const installmentCount = Math.max(1, Number.parseInt(draft.installment_count, 10) || 1);
+    const recurringCount = Math.max(1, Math.min(120, Number.parseInt(draft.recurring_count, 10) || 1));
     const installmentAmount = isInstallmentPurchase && draft.installment_mode === "total"
       ? Math.abs(fallbackAmount) / installmentCount
       : Math.abs(fallbackAmount);
@@ -514,6 +619,19 @@ export function App() {
       return;
     }
 
+    if (isRecurringMovement && (!fallbackAmount || recurringCount < 2)) {
+      setNotice("Ingresa un monto y al menos 2 repeticiones.");
+      return;
+    }
+
+    const draftYear = Number(draft.year) || Number(selectedYear);
+    const draftMonth = Number(draft.month) || Number(selectedMonth);
+
+    if (draftYear < 2000 || draftYear > 2100 || draftMonth < 1 || draftMonth > 12) {
+      setNotice("Selecciona un mes y año validos.");
+      return;
+    }
+
     const type = getTypeFromAmount(signedAmount);
     const basePayload = {
       flow: draft.flow,
@@ -523,18 +641,24 @@ export function App() {
       category: normalizeCategory(draft.category, type, categoryOptionsByType[type]),
       amount: signedAmount,
       status: draft.status,
-      responsible: serializeResponsibleNames(draft.responsible, responsibles[0]?.name || getDefaultResponsible(session))
+      responsible: serializeResponsibleNames(draft.responsible, responsibles[0]?.name || getDefaultResponsible(session)),
+      recurring_modified: Boolean(editingId && draft.recurring_id)
     };
     const payload = {
       ...basePayload,
       description: draft.description,
       sort_order: editingId ? draft.sort_order : Date.now(),
-      year: Number(selectedYear),
-      month: Number(selectedMonth)
+      year: draftYear,
+      month: draftMonth
+    };
+    const seriesPayload = {
+      ...basePayload,
+      description: draft.description,
+      recurring_modified: true
     };
     const payloads = isInstallmentPurchase
       ? Array.from({ length: installmentCount }, (_, index) => {
-          const period = addMonthsToPeriod(selectedYear, selectedMonth, index);
+          const period = addMonthsToPeriod(draftYear, draftMonth, index);
           return {
             ...basePayload,
             description: `${draft.description} (${index + 1}/${installmentCount})`,
@@ -543,12 +667,79 @@ export function App() {
             month: period.month
           };
         })
+      : isRecurringMovement
+      ? Array.from({ length: recurringCount }, (_, index) => {
+          const period = addMonthsToPeriod(draftYear, draftMonth, index * getRecurringMonthStep(draft.recurring_frequency));
+          return {
+            ...payload,
+            sort_order: Date.now() + index,
+            year: period.year,
+            month: period.month,
+            recurring_occurrence: index + 1
+          };
+        })
       : [payload];
+    const seriesTargetRows = isRecurringSeriesEdit
+      ? movements.filter((movement) => {
+          if (movement.recurring_id !== draft.recurring_id) return false;
+          if (recurringEditScope === "all") return true;
+
+          const draftOccurrence = Number(draft.original_recurring_occurrence || draft.recurring_occurrence);
+          const movementOccurrence = Number(movement.recurring_occurrence);
+
+          if (Number.isFinite(draftOccurrence) && draftOccurrence > 0 && Number.isFinite(movementOccurrence) && movementOccurrence > 0) {
+            return movementOccurrence >= draftOccurrence;
+          }
+
+          return comparePeriods(movement.year, movement.month, draft.original_year || draft.year, draft.original_month || draft.month) >= 0;
+        })
+      : [];
+    const seriesTargetIds = seriesTargetRows.map((movement) => movement.id);
+
+    if (isRecurringSeriesEdit && !seriesTargetIds.length) {
+      setNotice("No se encontraron movimientos de esta serie para actualizar.");
+      return;
+    }
 
     if (isRemote) {
-      const request = editingId
+      let recurringRule = null;
+
+      if (isRecurringMovement) {
+        const rulePayload = {
+          flow: basePayload.flow,
+          type: basePayload.type,
+          account: basePayload.account,
+          target_account: basePayload.target_account,
+          category: basePayload.category,
+          amount: basePayload.amount,
+          status: basePayload.status,
+          responsible: basePayload.responsible,
+          description: draft.description,
+          start_year: draftYear,
+          start_month: draftMonth,
+          frequency: draft.recurring_frequency,
+          occurrence_count: recurringCount,
+          active: true
+        };
+        const { data: createdRule, error: recurringError } = await supabase.from("recurring_movements").insert(rulePayload).select().single();
+
+        if (recurringError) {
+          setNotice(recurringError.message);
+          return;
+        }
+
+        recurringRule = createdRule;
+        setRecurringMovements((current) => [createdRule, ...current]);
+      }
+
+      const rowsToSave = recurringRule
+        ? payloads.map((item) => ({ ...item, recurring_id: recurringRule.id }))
+        : payloads;
+      const request = isRecurringSeriesEdit
+        ? supabase.from("movements").update(seriesPayload).in("id", seriesTargetIds).select()
+        : editingId
         ? supabase.from("movements").update(payload).eq("id", editingId).select().single()
-        : supabase.from("movements").insert(payloads).select();
+        : supabase.from("movements").insert(rowsToSave).select();
       const { data, error } = await request;
 
       if (error) {
@@ -556,19 +747,78 @@ export function App() {
         return;
       }
 
-      setMovements((current) => (editingId ? current.map((item) => (item.id === editingId ? data : item)) : [...current, ...(data || [])]));
-    } else {
       setMovements((current) => {
-        const now = new Date().toISOString();
-        const nextRows = payloads.map((item) => ({ ...item, id: editingId || buildLocalId(), created_at: now, updated_at: now }));
+        if (isRecurringSeriesEdit) {
+          const updatedRows = new Map((data || []).map((item) => [item.id, item]));
+          return current.map((item) => updatedRows.get(item.id) || item);
+        }
+
+        return editingId ? current.map((item) => (item.id === editingId ? data : item)) : [...current, ...(data || [])];
+      });
+    } else {
+      const now = new Date().toISOString();
+      const recurringId = isRecurringMovement ? buildLocalId() : null;
+      const nextRows = payloads.map((item) => ({
+        ...item,
+        id: editingId || buildLocalId(),
+        recurring_id: recurringId || item.recurring_id,
+        created_at: now,
+        updated_at: now
+      }));
+
+      if (isRecurringMovement) {
+        setRecurringMovements((currentRecurring) => [
+          {
+            flow: basePayload.flow,
+            type: basePayload.type,
+            account: basePayload.account,
+            target_account: basePayload.target_account,
+            category: basePayload.category,
+            amount: basePayload.amount,
+            status: basePayload.status,
+            responsible: basePayload.responsible,
+            id: recurringId,
+            description: draft.description,
+            start_year: draftYear,
+            start_month: draftMonth,
+            frequency: draft.recurring_frequency,
+            occurrence_count: recurringCount,
+            active: true,
+            created_at: now,
+            updated_at: now
+          },
+          ...currentRecurring
+        ]);
+      }
+
+      setMovements((current) => {
+        if (isRecurringSeriesEdit) {
+          const targetIds = new Set(seriesTargetIds);
+          return current.map((item) => (targetIds.has(item.id) ? { ...item, ...seriesPayload, updated_at: now } : item));
+        }
+
         return editingId ? current.map((item) => (item.id === editingId ? nextRows[0] : item)) : [...current, ...nextRows];
       });
     }
 
+    setSelectedYear(draftYear);
+    setSelectedMonth(draftMonth);
     setDraft(emptyDraft);
     setEditingId(null);
     setMovementModalOpen(false);
-    setNotice(editingId ? "Movimiento actualizado." : isInstallmentPurchase ? `Compra dividida en ${installmentCount} cuotas.` : "Movimiento agregado.");
+    setNotice(
+      editingId
+        ? isRecurringSeriesEdit
+          ? recurringEditScope === "all"
+            ? "Serie recurrente actualizada."
+            : "Movimientos recurrentes futuros actualizados."
+          : "Movimiento actualizado."
+        : isInstallmentPurchase
+        ? `Compra dividida en ${installmentCount} cuotas.`
+        : isRecurringMovement
+        ? `Movimiento recurrente creado ${getRecurringFrequencyLabel(draft.recurring_frequency)} por ${recurringCount} periodos.`
+        : "Movimiento agregado."
+    );
   }
 
   function editMovement(movement) {
@@ -586,10 +836,40 @@ export function App() {
       status: movement.status,
       responsible: movement.responsible || responsibles[0]?.name || getDefaultResponsible(session),
       sort_order: movement.sort_order,
+      recurring_id: movement.recurring_id,
+      recurring_occurrence: movement.recurring_occurrence,
+      original_recurring_occurrence: movement.recurring_occurrence,
+      original_year: movement.year,
+      original_month: movement.month,
       installment_mode: "none",
-      installment_count: "1"
+      installment_count: "1",
+      recurring_frequency: "none",
+      recurring_count: "12",
+      recurring_edit_scope: "one",
+      year: movement.year,
+      month: movement.month
     });
     setMovementModalOpen(true);
+  }
+
+  function getRecurringMovementScopeRows(movement, scope) {
+    if (!movement?.recurring_id || scope === "one") {
+      return movement ? [movement] : [];
+    }
+
+    return movements.filter((item) => {
+      if (item.recurring_id !== movement.recurring_id) return false;
+      if (scope === "all") return true;
+
+      const baseOccurrence = Number(movement.recurring_occurrence);
+      const itemOccurrence = Number(item.recurring_occurrence);
+
+      if (Number.isFinite(baseOccurrence) && baseOccurrence > 0 && Number.isFinite(itemOccurrence) && itemOccurrence > 0) {
+        return itemOccurrence >= baseOccurrence;
+      }
+
+      return comparePeriods(item.year, item.month, movement.year, movement.month) >= 0;
+    });
   }
 
   async function deleteMovement(id) {
@@ -599,40 +879,65 @@ export function App() {
       return;
     }
 
+    if (deletedMovement.recurring_id) {
+      setDeleteCandidate(deletedMovement);
+      return;
+    }
+
+    await deleteMovementScope(deletedMovement, "one");
+  }
+
+  async function deleteMovementScope(movement, scope) {
+    const rowsToDelete = getRecurringMovementScopeRows(movement, scope);
+    const idsToDelete = rowsToDelete.map((item) => item.id);
+
+    if (!idsToDelete.length) {
+      setNotice("No se encontraron movimientos para eliminar.");
+      setDeleteCandidate(null);
+      return;
+    }
+
     if (isRemote) {
-      const { error } = await supabase.from("movements").delete().eq("id", id);
+      const { error } = await supabase.from("movements").delete().in("id", idsToDelete);
       if (error) {
         setNotice(error.message);
         return;
       }
     }
 
-    setMovements((current) => current.filter((item) => item.id !== id));
-    setNotice("Movimiento eliminado.");
+    setMovements((current) => current.filter((item) => !idsToDelete.includes(item.id)));
+    setDeleteCandidate(null);
+    setNotice(idsToDelete.length === 1 ? "Movimiento eliminado." : `${idsToDelete.length} movimientos eliminados.`);
     setNoticeAction({
       label: "Deshacer",
-      run: () => undoDeleteMovement(deletedMovement)
+      run: () => undoDeleteMovements(rowsToDelete)
     });
   }
 
   async function undoDeleteMovement(movement) {
+    await undoDeleteMovements([movement]);
+  }
+
+  async function undoDeleteMovements(deletedRows) {
     setNoticeAction(null);
-    const restoredMovement = { ...movement };
+    const restoredRows = deletedRows.map((movement) => ({ ...movement }));
 
     if (isRemote) {
-      const { data, error } = await supabase.from("movements").insert(restoredMovement).select().single();
+      const { data, error } = await supabase.from("movements").insert(restoredRows).select();
       if (error) {
         setNotice(error.message);
         setNoticeAction(null);
         return;
       }
 
-      setMovements((current) => [...current.filter((item) => item.id !== data.id), data]);
+      const restoredIds = new Set((data || []).map((item) => item.id));
+      setMovements((current) => [...current.filter((item) => !restoredIds.has(item.id)), ...(data || [])]);
     } else {
-      setMovements((current) => [...current.filter((item) => item.id !== restoredMovement.id), restoredMovement]);
+      const restoredIds = new Set(restoredRows.map((item) => item.id));
+      setMovements((current) => [...current.filter((item) => !restoredIds.has(item.id)), ...restoredRows]);
     }
 
-    setNotice("Movimiento restaurado.");
+    setNotice(restoredRows.length === 1 ? "Movimiento restaurado." : "Movimientos restaurados.");
     setNoticeAction(null);
   }
 
@@ -821,7 +1126,9 @@ export function App() {
       account: account.name,
       responsible: responsibles[0]?.name || getDefaultResponsible(session),
       category: "Sin definir",
-      description: account.type === "tarjeta_credito" ? `Compra ${account.name}` : ""
+      description: account.type === "tarjeta_credito" ? `Compra ${account.name}` : "",
+      year: Number(selectedYear),
+      month: Number(selectedMonth)
     });
     setMovementModalOpen(true);
   }
@@ -844,7 +1151,9 @@ export function App() {
       description: `Pago total ${account.name}`,
       amount: -amount,
       status: "Confirmado",
-      responsible: responsibles[0]?.name || getDefaultResponsible(session)
+      responsible: responsibles[0]?.name || getDefaultResponsible(session),
+      year: Number(selectedYear),
+      month: Number(selectedMonth)
     });
     setMovementModalOpen(true);
   }
@@ -856,7 +1165,9 @@ export function App() {
       amount: prefill.amount ?? "",
       description: prefill.description ?? "",
       status: prefill.status || emptyDraft.status,
-      responsible: responsibles[0]?.name || currentResponsible || getDefaultResponsible(session)
+      responsible: responsibles[0]?.name || currentResponsible || getDefaultResponsible(session),
+      year: prefill.year || Number(selectedYear),
+      month: prefill.month || Number(selectedMonth)
     });
     setMovementModalOpen(true);
   }
@@ -891,7 +1202,7 @@ export function App() {
       return;
     }
 
-    const nextAccount = { name, type: accountDraft.type, color: accountDraft.color, archived: false };
+    const nextAccount = { name, type: accountDraft.type, color: accountDraft.color, archived: false, sort_order: getNextAccountSortValue(accounts) };
 
     if (isRemote) {
       const { data, error } = await supabase.from("accounts").insert(nextAccount).select().single();
@@ -899,9 +1210,9 @@ export function App() {
         setNotice(error.message);
         return;
       }
-      setAccounts((current) => [...current, data]);
+      setAccounts((current) => hydrateAccounts([...current, data]));
     } else {
-      setAccounts((current) => [...current, nextAccount]);
+      setAccounts((current) => hydrateAccounts([...current, nextAccount]));
     }
 
     setAccountDraft({ name: "", type: "principal", color: "#e2e8f0" });
@@ -940,9 +1251,9 @@ export function App() {
         }
       }
 
-      setAccounts((current) => current.map((item) => (item.name === account.name ? { ...item, ...data, archived: Boolean(data.archived) } : item)));
+      setAccounts((current) => hydrateAccounts(current.map((item) => (item.name === account.name ? { ...item, ...data, archived: Boolean(data.archived) } : item))));
     } else {
-      setAccounts((current) => current.map((item) => (item.name === account.name ? { ...item, ...payload } : item)));
+      setAccounts((current) => hydrateAccounts(current.map((item) => (item.name === account.name ? { ...item, ...payload } : item))));
     }
 
     if (renamed) {
@@ -956,6 +1267,44 @@ export function App() {
     }
 
     setNotice("Cuenta actualizada.");
+  }
+
+  async function moveAccount(accountName, direction) {
+    const orderedAccounts = sortAccounts(accounts);
+    const currentIndex = orderedAccounts.findIndex((account) => account.name === accountName);
+    const nextIndex = currentIndex + direction;
+
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= orderedAccounts.length) {
+      return;
+    }
+
+    const currentAccount = orderedAccounts[currentIndex];
+    const targetAccount = orderedAccounts[nextIndex];
+    const nextCurrent = { ...currentAccount, sort_order: getAccountSortValue(targetAccount, nextIndex) };
+    const nextTarget = { ...targetAccount, sort_order: getAccountSortValue(currentAccount, currentIndex) };
+
+    setAccounts((current) =>
+      hydrateAccounts(current.map((account) => {
+        if (account.name === nextCurrent.name) return nextCurrent;
+        if (account.name === nextTarget.name) return nextTarget;
+        return account;
+      }))
+    );
+
+    if (isRemote && currentAccount.id && targetAccount.id) {
+      const [currentUpdate, targetUpdate] = await Promise.all([
+        supabase.from("accounts").update({ sort_order: nextCurrent.sort_order }).eq("id", currentAccount.id),
+        supabase.from("accounts").update({ sort_order: nextTarget.sort_order }).eq("id", targetAccount.id)
+      ]);
+      const error = currentUpdate.error || targetUpdate.error;
+      if (error) {
+        setNotice(error.message);
+        loadAccounts();
+        return;
+      }
+    }
+
+    setNotice("Orden de cuentas actualizado.");
   }
 
   async function deleteAccount(account) {
@@ -995,7 +1344,7 @@ export function App() {
       return;
     }
 
-    const nextCard = { name, type: "tarjeta_credito", color: cardDraft.color, archived: false };
+    const nextCard = { name, type: "tarjeta_credito", color: cardDraft.color, archived: false, sort_order: getNextAccountSortValue(accounts) };
 
     if (isRemote) {
       const { data, error } = await supabase.from("accounts").insert(nextCard).select().single();
@@ -1003,9 +1352,9 @@ export function App() {
         setNotice(error.message);
         return;
       }
-      setAccounts((current) => [...current, data]);
+      setAccounts((current) => hydrateAccounts([...current, data]));
     } else {
-      setAccounts((current) => [...current, nextCard]);
+      setAccounts((current) => hydrateAccounts([...current, nextCard]));
     }
 
     setCardDraft({ name: "", color: "#cfe9d8" });
@@ -1211,22 +1560,15 @@ export function App() {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-  function exportCsv() {
-    const headers = ["year", "month", "description", "flow", "account", "target_account", "type", "category", "status", "responsible", "amount"];
-    const rows = movements.map((item) => headers.map((key) => JSON.stringify(item[key] ?? "")).join(","));
-    const csv = [headers.join(","), ...rows].join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `finanzas-${selectedYear}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
   function exportPdf() {
+    if (activeView !== "movements" && activeView !== "annual-summary") {
+      return;
+    }
+
     const monthName = monthLabels[selectedMonth - 1];
     const ledger = calculateAccountLedger(resolvedMovements, Number(selectedYear), Number(selectedMonth), accounts);
     const monthSummary = summary.monthly.find((item) => item.month === Number(selectedMonth));
+    const yearMovements = resolvedMovements.filter((movement) => Number(movement.year) === Number(selectedYear));
     const accountRows = accounts
       .map((account) => `
         <tr>
@@ -1238,59 +1580,126 @@ export function App() {
         </tr>
       `)
       .join("");
-    const movementRows = monthMovements
-      .map((movement) => `
+    const movementsByAccount = accounts
+      .map((account) => ({
+        account,
+        rows: monthMovements.filter((movement) => (movement.account || "Principal") === account.name)
+      }))
+      .filter(({ rows }) => rows.length);
+    const movementSections = movementsByAccount
+      .map(({ account, rows }) => {
+        const total = rows.reduce((sum, movement) => sum + Number(movement.amount || 0), 0);
+        const rowsHtml = rows
+          .map((movement) => `
+            <tr>
+              <td>${escapeHtml(movement.description)}</td>
+              <td>${escapeHtml(movement.flow || "Movimiento")}${movement.target_account ? ` -> ${escapeHtml(movement.target_account)}` : ""}</td>
+              <td>${escapeHtml(movement.responsible || "Yo")}</td>
+              <td>${escapeHtml(movement.category)}</td>
+              <td>${escapeHtml(movement.status)}</td>
+              <td class="${Number(movement.amount) >= 0 ? "positive" : "negative"}">${formatCurrency(movement.amount)}</td>
+            </tr>
+          `)
+          .join("");
+
+        return `
+          <section class="account-movement-group">
+            <div class="account-movement-title">
+              <h3>${escapeHtml(account.name)}</h3>
+              <span class="${total >= 0 ? "positive" : "negative"}">${formatCurrency(total)}</span>
+            </div>
+            <table class="movements money-table">
+              <thead>
+                <tr>
+                  <th>Descripcion</th>
+                  <th>Operacion</th>
+                  <th>Responsable</th>
+                  <th>Categoria</th>
+                  <th>Estado</th>
+                  <th>Monto</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </section>
+        `;
+      })
+      .join("");
+    const annualRows = summary.monthly
+      .map((item) => `
         <tr>
-          <td>${escapeHtml(movement.description)}</td>
-          <td>${escapeHtml(movement.account || "Principal")}${movement.target_account ? ` -> ${escapeHtml(movement.target_account)}` : ""}</td>
-          <td>${escapeHtml(movement.flow || "Movimiento")}</td>
-          <td>${escapeHtml(movement.responsible || "Yo")}</td>
-          <td>${escapeHtml(movement.category)}</td>
-          <td>${escapeHtml(movement.status)}</td>
-          <td>${formatCurrency(movement.amount)}</td>
+          <td>${escapeHtml(monthLabels[item.month - 1])}</td>
+          <td>${formatCurrency(item.income || 0)}</td>
+          <td>${formatCurrency(item.expenses || 0)}</td>
+          <td class="${(item.balance || 0) >= 0 ? "positive" : "negative"}">${formatCurrency(item.balance || 0)}</td>
+          <td>${formatCurrency(item.projected || 0)}</td>
+        </tr>
+      `)
+      .join("");
+    const annualCategoryRows = Object.entries(
+      yearMovements
+        .filter(isCategoryChartMovement)
+        .reduce((groups, movement) => {
+          const key = movement.category || "Sin categoria";
+          groups[key] = (groups[key] || 0) + Number(movement.amount || 0);
+          return groups;
+        }, {})
+    )
+      .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+      .slice(0, 12)
+      .map(([category, amount]) => `
+        <tr>
+          <td>${escapeHtml(category)}</td>
+          <td class="${amount >= 0 ? "positive" : "negative"}">${formatCurrency(amount)}</td>
         </tr>
       `)
       .join("");
 
-    const html = `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>Resumen ${escapeHtml(monthName)} ${selectedYear}</title>
-          <style>
-            body { font-family: Arial, sans-serif; color: #172033; margin: 32px; }
-            h1 { margin: 0 0 6px; font-size: 24px; }
-            h2 { margin: 24px 0 10px; font-size: 16px; }
-            .muted { color: #697789; margin: 0 0 18px; }
-            .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
-            .box { border: 1px solid #dce3ec; border-radius: 8px; padding: 12px; }
-            .box span { display: block; color: #697789; font-size: 12px; font-weight: 700; }
-            .box strong { display: block; margin-top: 6px; font-size: 18px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-            th, td { border-bottom: 1px solid #edf1f5; padding: 10px 8px; text-align: left; }
-            th { color: #5a6b80; font-size: 12px; }
-            .balances td:nth-child(n+3), .balances th:nth-child(n+3) { text-align: right; }
-            .movements td:last-child, .movements th:last-child { text-align: right; }
-            .print-actions { margin: 0 0 18px; }
-            button { border: 1px solid #d4dde8; border-radius: 6px; background: #173d6d; color: #fff; font-weight: 700; padding: 10px 14px; }
-            @media print { body { margin: 18mm; } .print-actions { display: none; } }
-          </style>
-        </head>
-        <body>
-          <div class="print-actions">
-            <button type="button" onclick="window.print()">Imprimir / guardar PDF</button>
-          </div>
-          <h1>Resumen financiero mensual</h1>
-          <p class="muted">${escapeHtml(monthName)} ${selectedYear}</p>
+    const reportTitle = activeView === "annual-summary" ? `Resumen anual ${selectedYear}` : `Movimientos ${monthName} ${selectedYear}`;
+    const reportSubtitle = activeView === "annual-summary"
+      ? "Balance mensual, flujo anual y principales categorias."
+      : "Balance de cuentas y detalle de movimientos del mes.";
+    const reportContent = activeView === "annual-summary"
+      ? `
           <section class="summary">
-            <div class="box"><span>Ingresos</span><strong>${formatCurrency(monthSummary?.income || 0)}</strong></div>
-            <div class="box"><span>Egresos</span><strong>${formatCurrency(monthSummary?.expenses || 0)}</strong></div>
-            <div class="box"><span>Balance</span><strong>${formatCurrency(monthSummary?.balance || 0)}</strong></div>
+            <div class="box accent"><span>Ingresos</span><strong>${formatCurrency(summary.annualIncome)}</strong></div>
+            <div class="box warm"><span>Egresos</span><strong>${formatCurrency(summary.annualExpenses)}</strong></div>
+            <div class="box deep"><span>Balance anual</span><strong>${formatCurrency(summary.annualBalance)}</strong></div>
+            <div class="box"><span>Movimientos</span><strong>${yearMovements.length}</strong></div>
+          </section>
+          <h2>Flujo por mes</h2>
+          <table class="annual-flow money-table">
+            <thead>
+              <tr>
+                <th>Mes</th>
+                <th>Ingresos</th>
+                <th>Egresos</th>
+                <th>Balance</th>
+                <th>Proyectado</th>
+              </tr>
+            </thead>
+            <tbody>${annualRows}</tbody>
+          </table>
+          <h2>Principales categorias</h2>
+          <table class="category-totals money-table compact">
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>${annualCategoryRows || `<tr><td colspan="2">Sin movimientos categorizados.</td></tr>`}</tbody>
+          </table>
+        `
+      : `
+          <section class="summary">
+            <div class="box accent"><span>Ingresos</span><strong>${formatCurrency(monthSummary?.income || 0)}</strong></div>
+            <div class="box warm"><span>Egresos</span><strong>${formatCurrency(monthSummary?.expenses || 0)}</strong></div>
+            <div class="box deep"><span>Balance</span><strong>${formatCurrency(monthSummary?.balance || 0)}</strong></div>
             <div class="box"><span>Proyectado</span><strong>${formatCurrency(monthSummary?.projected || 0)}</strong></div>
           </section>
           <h2>Balances de cuentas</h2>
-          <table class="balances">
+          <table class="balances money-table">
             <thead>
               <tr>
                 <th>Cuenta</th>
@@ -1303,20 +1712,93 @@ export function App() {
             <tbody>${accountRows}</tbody>
           </table>
           <h2>Detalle de movimientos</h2>
-          <table class="movements">
-            <thead>
-              <tr>
-                <th>Descripcion</th>
-                <th>Cuenta</th>
-                <th>Operacion</th>
-                <th>Responsable</th>
-                <th>Categoria</th>
-                <th>Estado</th>
-                <th>Monto</th>
-              </tr>
-            </thead>
-            <tbody>${movementRows || `<tr><td colspan="7">Sin movimientos para este mes.</td></tr>`}</tbody>
-          </table>
+          ${movementSections || `<div class="empty-state">Sin movimientos para este mes.</div>`}
+        `;
+
+    const html = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${escapeHtml(reportTitle)}</title>
+          <style>
+            * { box-sizing: border-box; }
+            body { font-family: Inter, Arial, sans-serif; color: #123033; margin: 0; background: #f4f7f4; font-size: 13px; line-height: 1.35; }
+            .page { max-width: 1120px; margin: 0 auto; padding: 28px; }
+            .hero { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; padding: 22px; border-radius: 8px; color: #ffffff; background: linear-gradient(135deg, #0d3b3e, #168264 58%, #f0b64d); }
+            .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-weight: 900; letter-spacing: 0; }
+            .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); }
+            h1 { margin: 0 0 8px; font-size: 25px; }
+            h2 { margin: 24px 0 9px; font-size: 15px; color: #0d3b3e; }
+            .muted { color: rgba(255,255,255,0.82); margin: 0; font-weight: 700; }
+            .stamp { text-align: right; font-size: 12px; font-weight: 900; color: rgba(255,255,255,0.82); }
+            .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+            .box { border: 1px solid #dce8df; border-radius: 8px; padding: 12px; background: #ffffff; box-shadow: 0 10px 24px rgba(18,48,51,0.06); }
+            .box.accent { border-top: 5px solid #168264; }
+            .box.warm { border-top: 5px solid #d9834d; }
+            .box.deep { border-top: 5px solid #0d3b3e; }
+            .box span { display: block; color: #657873; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+            .box strong { display: block; margin-top: 6px; font-size: 16px; color: #123033; }
+            .money-table { width: 100%; border-collapse: collapse; margin-top: 8px; overflow: hidden; border-radius: 8px; background: #ffffff; }
+            th, td { border-bottom: 1px solid #e7eee9; padding: 8px 7px; text-align: left; vertical-align: top; }
+            th { color: #0d3b3e; font-size: 10px; background: #eaf4ef; text-transform: uppercase; }
+            tr:nth-child(even) td { background: #fbfdfb; }
+            .balances td:nth-child(n+3), .balances th:nth-child(n+3),
+            .movements td:last-child, .movements th:last-child,
+            .annual-flow td:nth-child(n+2), .annual-flow th:nth-child(n+2),
+            .category-totals td:last-child, .category-totals th:last-child { text-align: right; }
+            .account-movement-group { margin-top: 14px; break-inside: avoid; page-break-inside: avoid; }
+            .account-movement-title { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 9px 10px; border-radius: 8px 8px 0 0; background: #0d3b3e; color: #ffffff; }
+            .account-movement-title h3 { margin: 0; font-size: 13px; }
+            .account-movement-title span { font-weight: 900; }
+            .account-movement-group .money-table { margin-top: 0; border-radius: 0 0 8px 8px; }
+            .empty-state { padding: 14px; border: 1px solid #dce8df; border-radius: 8px; background: #ffffff; color: #657873; font-weight: 800; }
+            .compact { max-width: 680px; }
+            .positive { color: #168264; font-weight: 900; }
+            .negative { color: #c4663b; font-weight: 900; }
+            .print-actions { margin: 0 0 14px; text-align: right; }
+            button { border: 1px solid #0d3b3e; border-radius: 8px; background: #0d3b3e; color: #fff; font-weight: 900; padding: 10px 14px; }
+            @page { margin: 18mm 16mm; }
+            @media print {
+              body { background: #ffffff; font-size: 10.5px; line-height: 1.25; }
+              .page { max-width: none; padding: 0; }
+              .print-actions { display: none; }
+              .hero, .box { box-shadow: none; }
+              .hero { padding: 14px 16px; }
+              .brand { margin-bottom: 10px; }
+              .brand-mark { width: 24px; height: 24px; border-radius: 6px; }
+              h1 { font-size: 20px; }
+              h2 { margin: 16px 0 6px; font-size: 12px; }
+              .summary { gap: 7px; margin: 12px 0; }
+              .box { padding: 8px; border-top-width: 4px; }
+              .box span { font-size: 8.5px; }
+              .box strong { font-size: 12px; }
+              th, td { padding: 5px 5px; }
+              th { font-size: 8px; }
+              .account-movement-group { margin-top: 10px; }
+              .account-movement-title { padding: 6px 8px; }
+              .account-movement-title h3 { font-size: 10.5px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="page">
+            <div class="print-actions">
+              <button type="button" onclick="window.print()">Imprimir / guardar PDF</button>
+            </div>
+            <header class="hero">
+              <div>
+                <div class="brand"><span class="brand-mark">F</span><span>Fluxa</span></div>
+                <h1>${escapeHtml(reportTitle)}</h1>
+                <p class="muted">${escapeHtml(reportSubtitle)}</p>
+              </div>
+              <div class="stamp">
+                <div>${new Date().toLocaleDateString("es-CL")}</div>
+                <div>${escapeHtml(currentResponsible)}</div>
+              </div>
+            </header>
+            ${reportContent}
+          </div>
         </body>
       </html>
     `;
@@ -1376,9 +1858,14 @@ export function App() {
     [accounts, categoryOptionsByType, movements]
   );
   const summary = useMemo(() => calculateSummary(resolvedMovements, Number(selectedYear), accounts), [accounts, resolvedMovements, selectedYear]);
+  const accountOrderMap = useMemo(() => new Map(accounts.map((account, index) => [account.name, index])), [accounts]);
   const monthMovements = resolvedMovements
     .filter((item) => item.year === Number(selectedYear) && item.month === Number(selectedMonth))
-    .sort(sortMovementsByAccountOrder);
+    .sort(
+      (a, b) =>
+        (accountOrderMap.get(a.account || "Principal") ?? 999) - (accountOrderMap.get(b.account || "Principal") ?? 999) ||
+        sortMovementsByAccountOrder(a, b)
+    );
   const visibleAccounts = useMemo(
     () => getVisibleAccountsForPeriod(accounts, resolvedMovements, Number(selectedYear), Number(selectedMonth)),
     [accounts, resolvedMovements, selectedMonth, selectedYear]
@@ -1444,6 +1931,7 @@ export function App() {
   const navItems = [
     { id: "movements", label: "Movimientos", icon: ListChecks },
     { id: "annual-summary", label: "Resumen Anual", icon: FileText },
+    { id: "tc-analysis", label: "Análisis TC", icon: CreditCard },
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "profile", label: "Perfil", icon: User },
     { id: "signout", label: "Salir", icon: LogOut, action: signOut }
@@ -1518,21 +2006,19 @@ export function App() {
       <section className="app-shell">
       <header className="topbar">
         <div className="topbar-title">
-          <img src="/Fluxa_Verde.png" alt="" />
+          <img src={darkMode ? "/Fluxa_Blanco.png" : "/Fluxa_Verde.png"} alt="" />
           <div>
             <span className="eyebrow">Panel financiero</span>
             <h1>Fluxa</h1>
           </div>
         </div>
         <div className="topbar-actions">
-          <button type="button" className="icon-text" onClick={exportCsv}>
-            <Download size={18} />
-            CSV
-          </button>
-          <button type="button" className="icon-text" onClick={exportPdf}>
-            <FileText size={18} />
-            PDF
-          </button>
+          {(activeView === "movements" || activeView === "annual-summary") && (
+            <button type="button" className="icon-text" onClick={exportPdf}>
+              <FileText size={18} />
+              PDF
+            </button>
+          )}
           <button type="button" className="icon-text" onClick={copyAutomationLink}>
             <Link size={18} />
             Link rapido
@@ -1547,7 +2033,7 @@ export function App() {
         </section>
       )}
 
-      {activeView !== "profile" && activeView !== "annual-summary" && (
+      {activeView !== "profile" && activeView !== "annual-summary" && activeView !== "tc-analysis" && (
         <>
       <section className="controls-row">
         <label>
@@ -1711,6 +2197,8 @@ export function App() {
         </>
       )}
 
+      {activeView === "tc-analysis" && <CreditCardAnalysis />}
+
       {activeView === "dashboard" && (
         <section className="dashboard-view">
           <section className={`filter-panel ${dashboardFiltersOpen ? "open" : ""}`}>
@@ -1834,7 +2322,6 @@ export function App() {
               </label>
               <div>
                 <strong>{currentResponsible}</strong>
-                <span>Foto guardada en tu perfil de Supabase como base64.</span>
               </div>
             </div>
             <div className="profile-grid">
@@ -1842,6 +2329,22 @@ export function App() {
               <span>Email</span><strong>{session?.user?.email || "Sin sesion remota"}</strong>
               <span>Usuario</span><strong>{profile?.username || session?.user?.user_metadata?.username || "No definido"}</strong>
               <span>Link rapido</span><strong>{`${window.location.origin}${window.location.pathname}?monto=10000`}</strong>
+            </div>
+            <div className="profile-action-grid">
+              <button type="button" className="profile-action-card" onClick={() => setPasswordModalOpen(true)}>
+                <KeyRound size={20} />
+                <span>
+                  <strong>Cambiar contraseña</strong>
+                  <small>Actualiza tu acceso de forma segura.</small>
+                </span>
+              </button>
+              <a className="profile-action-card" href={quickMovementShortcutUrl} target="_blank" rel="noreferrer">
+                <Zap size={20} />
+                <span>
+                  <strong>Importar atajo rapido</strong>
+                  <small>Agrega movimientos desde Atajos de iCloud.</small>
+                </span>
+              </a>
             </div>
             <div className="theme-setting-row">
               <div>
@@ -1853,7 +2356,6 @@ export function App() {
                 {darkMode ? "Oscuro" : "Claro"}
               </button>
             </div>
-            <PasswordChangeForm session={session} isRemote={isRemote} />
           </div>
           <div className="dashboard-panel profile-panel">
             <h2>Cuentas y tarjetas</h2>
@@ -1879,13 +2381,13 @@ export function App() {
               </button>
             </form>
             <div className="account-admin-list">
-              {accounts.map((account) => {
+              {accounts.map((account, index) => {
                 const hasMovements = accountHasMovements(account.name, movements);
                 return (
                   <form
                     className="account-admin-row"
                     key={account.name}
-                    style={{ backgroundColor: account.color || "#ffffff" }}
+                    style={getAccountColorStyle(account.color, "#ffffff")}
                     onSubmit={(event) => {
                       event.preventDefault();
                       const form = new FormData(event.currentTarget);
@@ -1896,6 +2398,14 @@ export function App() {
                       });
                     }}
                   >
+                    <div className="account-order-controls" aria-label={`Ordenar ${account.name}`}>
+                      <button type="button" className="icon-button" onClick={() => moveAccount(account.name, -1)} disabled={index === 0} aria-label={`Subir ${account.name}`}>
+                        <ChevronUp size={15} />
+                      </button>
+                      <button type="button" className="icon-button" onClick={() => moveAccount(account.name, 1)} disabled={index === accounts.length - 1} aria-label={`Bajar ${account.name}`}>
+                        <ChevronDown size={15} />
+                      </button>
+                    </div>
                     <input name="name" defaultValue={account.name} />
                     <select name="type" defaultValue={account.type === "ahorro" ? "principal" : account.type}>
                       <option value="principal">Principal</option>
@@ -1986,19 +2496,66 @@ export function App() {
         </section>
       )}
 
+      {passwordModalOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel password-modal-panel" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+            <header className="modal-header">
+              <div>
+                <h2 id="password-modal-title">Cambiar contraseña</h2>
+                <p>Confirma tu contraseña actual antes de guardar una nueva.</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setPasswordModalOpen(false)} aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </header>
+            <PasswordChangeForm session={session} isRemote={isRemote} showTitle={false} />
+          </section>
+        </div>
+      )}
+
       {movementModalOpen && (
         <div className="modal-backdrop" role="presentation">
           <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="movement-modal-title">
             <header className="modal-header">
               <div>
                 <h2 id="movement-modal-title">{editingId ? "Editar movimiento" : "Agregar movimiento"}</h2>
-                <p>{monthLabels[selectedMonth - 1]} {selectedYear}</p>
+                <p>{monthLabels[(Number(draft.month) || Number(selectedMonth)) - 1]} {Number(draft.year) || Number(selectedYear)}</p>
               </div>
               <button type="button" className="icon-button" onClick={closeMovementModal} aria-label="Cerrar">
                 <X size={18} />
               </button>
             </header>
             <MovementForm accounts={selectableAccounts} cardPaymentTotals={cardPaymentTotals} responsibles={responsibles} currentResponsible={currentResponsible} categoryOptionsByType={categoryOptionsByType} draft={draft} onChange={setDraft} onSubmit={handleSubmit} editingId={editingId} />
+          </section>
+        </div>
+      )}
+
+      {deleteCandidate && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel delete-scope-modal" role="dialog" aria-modal="true" aria-labelledby="delete-scope-title">
+            <header className="modal-header">
+              <div>
+                <h2 id="delete-scope-title">Eliminar movimiento recurrente</h2>
+                <p>{deleteCandidate.description}</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setDeleteCandidate(null)} aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </header>
+            <div className="delete-scope-actions">
+              <button type="button" className="ghost-action" onClick={() => deleteMovementScope(deleteCandidate, "one")}>
+                Solo este movimiento
+                <small>Elimina 1 movimiento.</small>
+              </button>
+              <button type="button" className="ghost-action" onClick={() => deleteMovementScope(deleteCandidate, "following")}>
+                Este y los siguientes
+                <small>Elimina {getRecurringMovementScopeRows(deleteCandidate, "following").length} movimientos.</small>
+              </button>
+              <button type="button" className="ghost-action danger" onClick={() => deleteMovementScope(deleteCandidate, "all")}>
+                Toda la serie
+                <small>Elimina {getRecurringMovementScopeRows(deleteCandidate, "all").length} movimientos.</small>
+              </button>
+            </div>
           </section>
         </div>
       )}

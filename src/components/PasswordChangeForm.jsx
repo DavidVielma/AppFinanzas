@@ -2,7 +2,7 @@ import { useState } from "react";
 import { KeyRound } from "lucide-react";
 import { hasSupabaseConfig, supabase } from "../lib/supabase";
 
-export function PasswordChangeForm({ session, isRemote }) {
+export function PasswordChangeForm({ session, isRemote, showTitle = true }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [nextPassword, setNextPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -14,7 +14,7 @@ export function PasswordChangeForm({ session, isRemote }) {
     setMessage("");
 
     if (!hasSupabaseConfig || !isRemote || !session?.user?.email) {
-      setMessage("Debes iniciar sesion con Supabase para modificar la contraseña.");
+      setMessage("Debes iniciar sesión para modificar la contraseña.");
       return;
     }
 
@@ -24,7 +24,7 @@ export function PasswordChangeForm({ session, isRemote }) {
     }
 
     if (nextPassword !== confirmation) {
-      setMessage("La nueva contraseña y su confirmacion no coinciden.");
+      setMessage("La nueva contraseña y su confirmación no coinciden.");
       return;
     }
 
@@ -49,7 +49,7 @@ export function PasswordChangeForm({ session, isRemote }) {
     setLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage("No pudimos actualizar la contraseña. Inténtalo nuevamente.");
       return;
     }
 
@@ -60,7 +60,7 @@ export function PasswordChangeForm({ session, isRemote }) {
   }
 
   return (
-    <form className="password-form" onSubmit={handleSubmit}>
+    <form className={`password-form ${showTitle ? "" : "password-form-compact"}`} onSubmit={handleSubmit}>
       <div className="password-form-title">
         <KeyRound size={18} />
         <strong>Cambiar contraseña</strong>

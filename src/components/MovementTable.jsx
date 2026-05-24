@@ -48,7 +48,10 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
         <tbody>
           {movements.map((movement) => (
             <tr key={movement.row_key || movement.id}>
-              <td data-label="Descripcion" className="description-cell" title={movement.description}>{movement.description}</td>
+              <td data-label="Descripcion" className="description-cell" title={movement.description}>
+                {movement.description}
+                {movement.recurring_id && <span className="recurring-badge">Recurrente</span>}
+              </td>
               <td data-label="Cuenta" className="account-cell" title={`${movement.account || "Principal"}${movement.target_account ? ` -> ${movement.target_account}` : ""}`}>
                 {movement.account || "Principal"}
                 {movement.target_account ? ` -> ${movement.target_account}` : ""}
@@ -104,6 +107,7 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
               <header>
                 <div>
                   <strong>{movement.description}</strong>
+                  {movement.recurring_id && <span className="recurring-badge">Recurrente</span>}
                   <span>{accountText}</span>
                 </div>
                 <b className={movement.amount >= 0 ? "income-text" : "expense-text"}>{formatCurrency(movement.amount)}</b>

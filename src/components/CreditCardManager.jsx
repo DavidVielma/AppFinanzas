@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { ColorPicker } from "./ColorPicker";
 import { formatCurrency } from "../lib/finance";
+import { getAccountColorStyle } from "../lib/colors";
 
 const colorOptions = [
   { label: "Verde", value: "#cfe9d8" },
@@ -40,7 +41,7 @@ export function CreditCardManager({ accounts, cardPaymentTotals, draft, onDraftC
       </form>
       <div className="card-list">
         {cards.map((card) => (
-          <article className="credit-card-row" key={card.name} style={{ backgroundColor: card.color || "#f8fafc" }}>
+          <article className="credit-card-row" key={card.name} style={getAccountColorStyle(card.color)}>
             <div>
               <strong>{card.name}</strong>
               <span>{formatCurrency(-(cardPaymentTotals[card.name] || 0))}</span>

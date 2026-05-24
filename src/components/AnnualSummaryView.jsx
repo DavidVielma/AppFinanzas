@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { calculateAccountLedger, formatCurrency, monthLabels } from "../lib/finance";
+import { getAccountColorStyle } from "../lib/colors";
 
 function getVisibleSortValue(movement) {
   return Number(movement.visible_sort_order ?? movement.sort_order) || Date.parse(movement.created_at || "") || 0;
@@ -103,7 +104,7 @@ export function AnnualSummaryView({ accounts, movements, year, summary }) {
 
                   return (
                     <div className={`annual-account-box ${account.type === "tarjeta_credito" ? "card" : ""}`} key={account.name}>
-                      <h4 style={{ backgroundColor: account.color || "#f8fafc" }}>
+                      <h4 style={getAccountColorStyle(account.color)}>
                         <span>{account.name}</span>
                         <strong className={accountMovementTotal >= 0 ? "income-text" : "expense-text"}>
                           {formatCurrency(accountMovementTotal)}

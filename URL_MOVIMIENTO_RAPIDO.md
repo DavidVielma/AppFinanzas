@@ -23,6 +23,26 @@ https://tu-app/?monto=50000&status=Confirmado
 https://tu-app/?amount=-10000&description=Gasto&status=Pendiente
 ```
 
+URL real de produccion:
+
+```text
+https://app-financiera-lovat.vercel.app/?monto=-5000&descripcion=Bebida&status=Confirmado
+```
+
+## Automatizaciones y PWA
+
+La app esta configurada como PWA con `scope: "/"`, `start_url: "/"` y service worker. Para que una automatizacion abra Fluxa como app instalada:
+
+1. Abre `https://app-financiera-lovat.vercel.app/` en Chrome/Android.
+2. Instala Fluxa con **Agregar a pantalla de inicio** o **Instalar app**.
+3. En tu automatizacion usa una URL dentro del mismo dominio, por ejemplo:
+
+```text
+https://app-financiera-lovat.vercel.app/?monto=-12000&descripcion=Uber&status=Confirmado
+```
+
+En Android/Chrome, al estar instalada, las URLs dentro del alcance de la PWA pueden abrirse en la app instalada. En iOS, Safari normalmente abre URLs desde automatizaciones en Safari; la PWA se abre de forma confiable desde el icono de inicio.
+
 ## Notas
 
 - `monto` acepta numeros con punto o coma, por ejemplo `2300`, `2.300` o `2300,50`.

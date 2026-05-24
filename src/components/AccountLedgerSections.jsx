@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { formatCurrency } from "../lib/finance";
+import { getMutedTextColor, getReadableTextColor } from "../lib/colors";
 import { MovementTable } from "./MovementTable";
 
 function getVisibleSortValue(movement) {
@@ -93,9 +94,11 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, 
     const colorToken = getAccountColorToken(account);
     const accountAccent = isPrincipal ? "#155e63" : colorToken.accent;
     const accountFill = isPrincipal ? "#d8efed" : colorToken.fill;
+    const accountInk = getReadableTextColor(accountFill);
+    const accountMutedInk = getMutedTextColor(accountFill);
 
     return (
-      <section className={`account-section ${isPrincipal ? "principal-account-section" : ""}`} key={account.name} style={{ "--account-accent": accountAccent, "--account-fill": accountFill }}>
+      <section className={`account-section ${isPrincipal ? "principal-account-section" : ""}`} key={account.name} style={{ "--account-accent": accountAccent, "--account-fill": accountFill, "--account-ink": accountInk, "--account-muted-ink": accountMutedInk }}>
         <header className="account-section-header">
           <div>
             <h3>{account.name}</h3>

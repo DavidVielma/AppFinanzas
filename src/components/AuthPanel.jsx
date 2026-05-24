@@ -1,5 +1,39 @@
 import { useState } from "react";
-import { hasSupabaseConfig, supabase } from "../lib/supabase";
+import { getAuthRedirectUrl, hasSupabaseConfig, supabase } from "../lib/supabase";
+
+function getFriendlyAuthError(error, mode) {
+  const message = error?.message?.toLowerCase() || "";
+
+  if (message.includes("invalid login credentials")) {
+    return "El correo o la contraseña no son correctos.";
+  }
+
+  if (message.includes("email not confirmed")) {
+    return "Debes confirmar tu correo antes de ingresar.";
+  }
+
+  if (message.includes("password should be at least") || message.includes("weak password")) {
+    return "La contraseña debe tener al menos 6 caracteres.";
+  }
+
+  if (message.includes("already registered")) {
+    return "Ese correo ya está registrado. Ingresa o recupera tu contraseña.";
+  }
+
+  if (message.includes("rate limit") || message.includes("too many")) {
+    return "Hiciste demasiados intentos. Espera unos minutos y vuelve a probar.";
+  }
+
+  if (mode === "reset") {
+    return "No pudimos enviar el correo de recuperación. Inténtalo nuevamente en unos minutos.";
+  }
+
+  if (mode === "register") {
+    return "No pudimos crear la cuenta. Revisa los datos e inténtalo nuevamente.";
+  }
+
+  return "No pudimos iniciar sesión. Revisa tus datos e inténtalo nuevamente.";
+}
 
 export function AuthPanel() {
   const [mode, setMode] = useState("login");
@@ -14,7 +48,7 @@ export function AuthPanel() {
     setMessage("");
 
     if (!hasSupabaseConfig) {
-      setMessage("Configura .env con Supabase para ingresar.");
+      setMessage("El acceso no está disponible en este momento. Inténtalo nuevamente más tarde.");
       return;
     }
 
@@ -25,7 +59,7 @@ export function AuthPanel() {
 
     if (mode === "reset") {
       const response = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: `${window.location.origin}${window.location.pathname}?reset-password=1`
+        redirectTo: getAuthRedirectUrl("?reset-password=1")
       });
       error = response.error;
     } else if (mode === "register") {
@@ -38,13 +72,16 @@ export function AuthPanel() {
         const response = await supabase.auth.signUp({
           email: normalizedEmail,
           password,
-          options: { data: { username: cleanUsername } }
+          options: {
+            data: { username: cleanUsername },
+            emailRedirectTo: getAuthRedirectUrl()
+          }
         });
         data = response.data;
         error = response.error;
 
         if (!error && data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-          error = { message: "Ese correo ya esta registrado. Ingresa o recupera tu contraseña." };
+          error = { message: "already registered" };
         }
       }
     } else {
@@ -55,16 +92,16 @@ export function AuthPanel() {
     setLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getFriendlyAuthError(error, mode));
       return;
     }
 
     setMessage(
       mode === "reset"
-        ? "Te enviamos un correo para recuperar tu contraseña. Si al abrirlo ves localhost rechazado, revisa la URL pública configurada en Supabase."
+        ? "Si el correo está registrado, recibirás un enlace para recuperar tu contraseña."
         : mode === "register"
-          ? "Usuario creado. Revisa la confirmacion si esta activa."
-          : "Sesion iniciada."
+          ? "Cuenta creada. Revisa tu correo para continuar."
+          : "Sesión iniciada."
     );
   }
 
