@@ -282,6 +282,12 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
     updateImport(activeImport.id, { houseExpenseIds: nextIds });
   }
 
+  function selectFilteredHouseExpenses() {
+    const selectedIds = new Set(houseExpenseIds);
+    filteredMovements.forEach((movement) => selectedIds.add(movement.id));
+    setActiveHouseExpenseIds(Array.from(selectedIds));
+  }
+
   async function syncUserSummariesToMovements() {
     if (!activeImport || !onCreateUserSummaryMovements) return;
     const account = syncDraft.account || creditCardAccounts[0]?.name || "";
@@ -625,9 +631,14 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
                 <strong>{formatCurrency(houseTotal)}</strong>
                 <small>{houseMovements.length} movimientos seleccionados</small>
               </div>
-              <button type="button" className="ghost-action" onClick={() => setActiveHouseExpenseIds([])} disabled={!houseExpenseIds.length}>
-                Limpiar seleccion
-              </button>
+              <div className="tc-house-actions">
+                <button type="button" className="ghost-action" onClick={selectFilteredHouseExpenses} disabled={!filteredMovements.length}>
+                  Seleccionar todos
+                </button>
+                <button type="button" className="ghost-action" onClick={() => setActiveHouseExpenseIds([])} disabled={!houseExpenseIds.length}>
+                  Limpiar seleccion
+                </button>
+              </div>
             </div>
             <div className="table-wrap tc-movement-table">
               <table>
