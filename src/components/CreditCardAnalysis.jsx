@@ -468,10 +468,6 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
                 <strong>{formatCurrency(analysis.reconciliation.operationsTotal)}</strong>
               </div>
               <div>
-                <span>Movimientos</span>
-                <strong>{analysis.movements.length}</strong>
-              </div>
-              <div>
                 <span>Cargos / abonos 2.3</span>
                 <strong className={analysis.reconciliation.adjustmentsTotal < 0 ? "income-text" : "expense-text"}>{formatCurrency(analysis.reconciliation.adjustmentsTotal)}</strong>
               </div>
@@ -486,6 +482,10 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
               <div>
                 <span>Diferencia</span>
                 <strong className={Math.abs(analysis.reconciliation.difference) <= 10 ? "income-text" : "expense-text"}>{formatCurrency(analysis.reconciliation.difference)}</strong>
+              </div>
+              <div>
+                <span>Movimientos</span>
+                <strong>{analysis.movements.length}</strong>
               </div>
             </div>
             {analysis.adjustments.length > 0 && (
@@ -619,6 +619,15 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
             </div>
             <div className="table-wrap tc-movement-table">
               <table>
+                <colgroup>
+                  <col className="tc-col-house" />
+                  <col className="tc-col-date" />
+                  <col className="tc-col-user" />
+                  <col className="tc-col-section" />
+                  <col className="tc-col-commerce" />
+                  <col className="tc-col-location" />
+                  <col className="tc-col-amount" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th className="tc-check-col">Casa</th>

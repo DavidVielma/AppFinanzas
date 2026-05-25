@@ -2726,50 +2726,105 @@ td:nth-child(8) {
 }
 
 .tc-movement-table table {
-  min-width: 1040px;
+  width: 100%;
+  min-width: 1120px;
   table-layout: fixed;
 }
 
+.tc-col-house {
+  width: 2.5%;
+}
+
+.tc-col-date {
+  width: 8%;
+}
+
+.tc-col-user {
+  width: 18%;
+}
+
+.tc-col-section {
+  width: 18%;
+}
+
+.tc-col-commerce {
+  width: 34.5%;
+}
+
+.tc-col-location {
+  width: 7%;
+}
+
+.tc-col-amount {
+  width: 12%;
+}
+
 .tc-check-col {
-  width: 42px;
   text-align: center;
 }
 
+.tc-movement-table th:nth-child(1),
+.tc-movement-table td:nth-child(1) {
+  width: 2.5% !important;
+}
+
+.tc-movement-table th:nth-child(2),
+.tc-movement-table td:nth-child(2) {
+  width: 8% !important;
+}
+
+.tc-movement-table th:nth-child(3),
+.tc-movement-table td:nth-child(3) {
+  width: 18% !important;
+}
+
+.tc-movement-table th:nth-child(4),
+.tc-movement-table td:nth-child(4) {
+  width: 18% !important;
+}
+
+.tc-movement-table th:nth-child(5),
+.tc-movement-table td:nth-child(5) {
+  width: 34.5% !important;
+}
+
+.tc-movement-table th:nth-child(6),
+.tc-movement-table td:nth-child(6) {
+  width: 7% !important;
+}
+
+.tc-movement-table th:nth-child(7),
+.tc-movement-table td:nth-child(7) {
+  width: 12% !important;
+}
+
 .tc-check-col input {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   margin: 0;
   accent-color: var(--brand);
 }
 
 .tc-movement-table th:nth-child(2),
-.tc-movement-table td:nth-child(2) {
-  width: 86px;
+.tc-movement-table td:nth-child(2),
+.tc-movement-table th:nth-child(6),
+.tc-movement-table td:nth-child(6),
+.tc-movement-table th:last-child,
+.tc-movement-table td:last-child {
   white-space: nowrap;
 }
 
-.tc-movement-table th:nth-child(3),
-.tc-movement-table td:nth-child(3) {
-  width: 160px;
-}
-
-.tc-movement-table th:nth-child(4),
-.tc-movement-table td:nth-child(4) {
-  width: 160px;
-}
-
-.tc-movement-table th:nth-child(6),
-.tc-movement-table td:nth-child(6) {
-  width: 64px;
+.tc-movement-table th:nth-child(5),
+.tc-movement-table td:nth-child(5) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tc-movement-table th:last-child,
-.tc-movement-table td:last-child {
-  width: 110px;
-  white-space: nowrap;
+.tc-movement-table th:nth-child(6),
+.tc-movement-table td:nth-child(6) {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tc-mobile-movement-list {

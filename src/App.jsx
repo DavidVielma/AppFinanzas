@@ -2026,6 +2026,8 @@ export function App() {
     { id: "profile", label: "Perfil", icon: User },
     { id: "signout", label: "Salir", icon: LogOut, action: signOut }
   ];
+  const navOrder = ["movements", "annual-summary", "dashboard", "tc-analysis", "profile", "signout"];
+  const orderedNavItems = navOrder.map((id) => navItems.find((item) => item.id === id)).filter(Boolean);
 
   return (
     <main className="app-layout">
@@ -2038,10 +2040,10 @@ export function App() {
           </div>
         </div>
         <nav className="sidebar-nav">
-          {navItems.map((item) => {
+          {orderedNavItems.map((item) => {
             const Icon = item.icon;
             return (
-              <button type="button" className={`${activeView === item.id ? "active" : ""} ${item.action ? "mobile-only-nav" : ""}`} key={item.id} onClick={() => (item.action ? item.action() : setActiveView(item.id))}>
+              <button type="button" className={activeView === item.id ? "active" : ""} key={item.id} onClick={() => (item.action ? item.action() : setActiveView(item.id))}>
                 <Icon size={18} />
                 {item.label}
               </button>
@@ -2060,10 +2062,6 @@ export function App() {
             <strong>{currentResponsible}</strong>
             <small>{session?.user?.email || "Sesion local"}</small>
           </div>
-          <button type="button" className="sidebar-signout" onClick={signOut}>
-            <LogOut size={16} />
-            Salir
-          </button>
         </div>
       </aside>
 
