@@ -2662,6 +2662,43 @@ td:nth-child(8) {
   font-size: 1.1rem;
 }
 
+.tc-sync-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.tc-sync-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 170px 120px auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.tc-sync-grid .primary-action {
+  min-height: 42px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.tc-sync-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tc-sync-preview span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border: 1px solid #dbe4e5;
+  border-radius: 999px;
+  background: #f8fbfa;
+  color: var(--brand-strong);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
 .tc-movement-table {
   overflow-x: auto;
 }
@@ -2889,6 +2926,7 @@ td:nth-child(8) {
 :root[data-theme="dark"] .tc-section-summary button,
 :root[data-theme="dark"] .tc-import-list article,
 :root[data-theme="dark"] .tc-house-summary,
+:root[data-theme="dark"] .tc-sync-preview span,
 :root[data-theme="dark"] .tc-mobile-movement-card,
 :root[data-theme="dark"] .tc-house-check {
   background: #0a1d21;
@@ -3647,12 +3685,17 @@ td:nth-child(8) {
 
   .tc-import-list article,
   .tc-import-fields,
-  .tc-import-actions {
+  .tc-import-actions,
+  .tc-sync-grid {
     grid-template-columns: 1fr;
   }
 
   .tc-import-actions {
     display: grid;
+  }
+
+  .tc-sync-grid .primary-action {
+    width: 100%;
   }
 
   .tc-detail-toolbar {

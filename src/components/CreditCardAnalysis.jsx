@@ -119,7 +119,7 @@ function summarizeMovements(movements, key, getLabel) {
   return Array.from(groups.values()).sort((a, b) => b.total - a.total);
 }
 
-export function CreditCardAnalysis() {
+export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, onCreateUserSummaryMovements, focusRequest }) {
   const savedState = useMemo(() => loadSavedImports(), []);
   const [imports, setImports] = useState(() => savedState?.imports || []);
   const [activeImportId, setActiveImportId] = useState("");
@@ -135,6 +135,12 @@ export function CreditCardAnalysis() {
   );
   const analysis = activeImport?.analysis || null;
   const houseExpenseIds = activeImport?.houseExpenseIds || [];
+  const creditCardAccounts = accounts.filter((account) => account.type === "tarjeta_credito");
+  const [syncDraft, setSyncDraft] = useState(() => ({
+    account: "",
+    month: defaultMonth || new Date().getMonth() + 1,
+    year: defaultYear || new Date().getFullYear()
+  }));
   const yearOptions = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const years = new Set([currentYear - 1, currentYear, currentYear + 1]);
@@ -163,6 +169,11 @@ export function CreditCardAnalysis() {
     return summarizeMovements(sectionMovements, "userCode", (key, movement) => movement.userLabel || key);
   }, [analysis, searchQuery, selectedSection]);
 
+  const fullUserSummary = useMemo(() => {
+    if (!analysis?.movements) return [];
+    return summarizeMovements(analysis.movements, "userCode", (key, movement) => movement.userLabel || key);
+  }, [analysis]);
+
   const sectionSummary = useMemo(() => {
     if (!analysis?.movements) return [];
     const userMovements = analysis.movements.filter((movement) => {
@@ -179,6 +190,38 @@ export function CreditCardAnalysis() {
     return analysis.movements.filter((movement) => selectedIds.has(movement.id));
   }, [analysis, houseExpenseIds]);
   const houseTotal = houseMovements.reduce((sum, movement) => sum + movement.amount, 0);
+
+  useEffect(() => {
+    if (!focusRequest || !imports.length) return;
+    const requestedImportName = normalizeSearchText(focusRequest.importName);
+    const requestedUser = normalizeSearchText(focusRequest.userLabel);
+    const matchedImport = imports.find((item) => {
+      const names = [item.name, item.fileName, item.analysis?.importMeta?.fileName].map(normalizeSearchText);
+      return names.includes(requestedImportName);
+    });
+
+    if (!matchedImport) {
+      setMessage(`No encontre la importacion TC "${focusRequest.importName}".`);
+      return;
+    }
+
+    const matchedUser = (matchedImport.analysis?.movements || []).find((movement) =>
+      normalizeSearchText(movement.userLabel) === requestedUser ||
+      normalizeSearchText(movement.userCode) === requestedUser
+    );
+
+    setActiveImportId(matchedImport.id);
+    setSelectedSection("");
+    setSearchTerm("");
+    setSelectedUser(matchedUser?.userCode || "");
+    setMessage(`Detalle TC abierto para ${focusRequest.userLabel}.`);
+  }, [focusRequest, imports]);
+
+  useEffect(() => {
+    if (!syncDraft.account && creditCardAccounts[0]?.name) {
+      setSyncDraft((current) => ({ ...current, account: creditCardAccounts[0].name }));
+    }
+  }, [creditCardAccounts, syncDraft.account]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -231,6 +274,36 @@ export function CreditCardAnalysis() {
   function setActiveHouseExpenseIds(nextIds) {
     if (!activeImport) return;
     updateImport(activeImport.id, { houseExpenseIds: nextIds });
+  }
+
+  async function syncUserSummariesToMovements() {
+    if (!activeImport || !onCreateUserSummaryMovements) return;
+    const account = syncDraft.account || creditCardAccounts[0]?.name || "";
+    if (!account) {
+      setMessage("Crea o selecciona una tarjeta de credito para sincronizar el resumen.");
+      return;
+    }
+
+    try {
+      const result = await onCreateUserSummaryMovements({
+        importRecord: activeImport,
+        account,
+        year: Number(syncDraft.year),
+        month: Number(syncDraft.month),
+        userSummaries: fullUserSummary
+      });
+      updateImport(activeImport.id, {
+        syncMeta: {
+          account,
+          year: Number(syncDraft.year),
+          month: Number(syncDraft.month),
+          syncedAt: new Date().toISOString()
+        }
+      });
+      setMessage(`Resumen sincronizado: ${result.created} creados, ${result.updated} actualizados.`);
+    } catch (error) {
+      setMessage(error?.message || "No fue posible sincronizar el resumen con movimientos.");
+    }
   }
 
   function toggleHouseExpense(movementId) {
@@ -456,6 +529,50 @@ export function CreditCardAnalysis() {
               ))}
               {!userSummary.length && <p className="empty-row">Sin usuarios para la sección seleccionada.</p>}
             </div>
+          </div>
+
+          <div className="dashboard-panel tc-sync-panel">
+            <div className="section-heading compact-heading">
+              <div>
+                <h2>Enviar resumen a movimientos</h2>
+                <p>Crea un egreso en la tarjeta seleccionada por cada usuario del estado de cuenta.</p>
+              </div>
+            </div>
+            <div className="tc-sync-grid">
+              <label>
+                Tarjeta
+                <select value={syncDraft.account} onChange={(event) => setSyncDraft((current) => ({ ...current, account: event.target.value }))}>
+                  {creditCardAccounts.map((account) => (
+                    <option key={account.name} value={account.name}>{account.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Mes
+                <select value={syncDraft.month} onChange={(event) => setSyncDraft((current) => ({ ...current, month: Number(event.target.value) }))}>
+                  {monthLabels.map((label, index) => (
+                    <option key={label} value={index + 1}>{label}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                A&ntilde;o
+                <input type="number" min="2000" max="2100" step="1" value={syncDraft.year} onChange={(event) => setSyncDraft((current) => ({ ...current, year: Number(event.target.value) }))} />
+              </label>
+              <button type="button" className="primary-action" onClick={syncUserSummariesToMovements} disabled={!fullUserSummary.length || !creditCardAccounts.length}>
+                Sincronizar resumen
+              </button>
+            </div>
+            <div className="tc-sync-preview">
+              {fullUserSummary.map((user) => (
+                <span key={user.key}>{user.key} - {formatCurrency(-Math.abs(user.total))}</span>
+              ))}
+            </div>
+            {activeImport?.syncMeta && (
+              <small className="tc-import-meta">
+                Ultima sincronizacion: {activeImport.syncMeta.account} - {monthLabels[(Number(activeImport.syncMeta.month) || 1) - 1]} {activeImport.syncMeta.year}
+              </small>
+            )}
           </div>
 
           <div className="dashboard-panel">

@@ -33,7 +33,7 @@ function getAccountColorToken(account) {
   return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
 }
 
-export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, allMovements = movements, currentResponsible, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onMove, onQuickAdd, onQuickPay }) {
+export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, allMovements = movements, currentResponsible, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onMove, onQuickAdd, onQuickPay, onOpenTcDetail }) {
   const visibleAccounts = accounts.filter((account) => account.name !== "Otros");
   const accountsByName = Object.fromEntries(visibleAccounts.map((account) => [account.name, account]));
   const grouped = visibleAccounts.reduce((acc, account) => {
@@ -135,7 +135,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, 
             </div>
           </div>
         )}
-        <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onMove={onMove} />
+        <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onMove={onMove} onOpenTcDetail={onOpenTcDetail} />
       </section>
     );
   }

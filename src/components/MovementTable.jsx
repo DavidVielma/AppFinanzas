@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, FileSearch, Pencil, Trash2 } from "lucide-react";
 import { formatCurrency } from "../lib/finance";
 
 function getStatusClass(status) {
@@ -29,7 +29,18 @@ function formatResponsibles(value, currentResponsible) {
   return raw.split(",").map((name) => displayName(name.trim())).join(", ");
 }
 
-export function MovementTable({ movements, currentResponsible, onEdit, onDelete, onStatusChange, onMove }) {
+function getTcSummaryLink(movement) {
+  const description = String(movement?.source_movement?.description || movement?.description || "");
+  if (!description.startsWith("TC ")) return null;
+  const separator = description.lastIndexOf(" - ");
+  if (separator <= 3) return null;
+  return {
+    importName: description.slice(3, separator).trim(),
+    userLabel: description.slice(separator + 3).trim()
+  };
+}
+
+export function MovementTable({ movements, currentResponsible, onEdit, onDelete, onStatusChange, onMove, onOpenTcDetail }) {
   return (
     <div className="table-wrap">
       <table>
@@ -46,7 +57,9 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
           </tr>
         </thead>
         <tbody>
-          {movements.map((movement) => (
+          {movements.map((movement) => {
+            const tcLink = getTcSummaryLink(movement);
+            return (
             <tr key={movement.row_key || movement.id}>
               <td data-label="Descripcion" className="description-cell" title={movement.description}>
                 {movement.description}
@@ -84,12 +97,18 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
                 <button type="button" className="icon-button" onClick={() => onEdit(movement.source_movement || movement)} aria-label="Editar movimiento">
                   <Pencil size={16} />
                 </button>
+                {tcLink && onOpenTcDetail && (
+                  <button type="button" className="icon-button" onClick={() => onOpenTcDetail(tcLink)} aria-label="Ver detalle TC">
+                    <FileSearch size={16} />
+                  </button>
+                )}
                 <button type="button" className="icon-button danger" onClick={() => onDelete(movement.source_movement?.id || movement.id)} aria-label="Eliminar movimiento">
                   <Trash2 size={16} />
                 </button>
               </td>
             </tr>
-          ))}
+            );
+          })}
           {movements.length === 0 && (
             <tr>
               <td colSpan="8" className="empty-row">
@@ -102,6 +121,7 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
       <div className="mobile-movement-list">
         {movements.map((movement) => {
           const accountText = `${movement.account || "Principal"}${movement.target_account ? ` -> ${movement.target_account}` : ""}`;
+          const tcLink = getTcSummaryLink(movement);
           return (
             <article className="mobile-movement-card" key={movement.row_key ? `${movement.row_key}-mobile` : `${movement.id}-mobile`}>
               <header>
@@ -138,6 +158,11 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
                   <button type="button" className="icon-button" onClick={() => onEdit(movement.source_movement || movement)} aria-label="Editar movimiento">
                     <Pencil size={16} />
                   </button>
+                  {tcLink && onOpenTcDetail && (
+                    <button type="button" className="icon-button" onClick={() => onOpenTcDetail(tcLink)} aria-label="Ver detalle TC">
+                      <FileSearch size={16} />
+                    </button>
+                  )}
                   <button type="button" className="icon-button danger" onClick={() => onDelete(movement.source_movement?.id || movement.id)} aria-label="Eliminar movimiento">
                     <Trash2 size={16} />
                   </button>

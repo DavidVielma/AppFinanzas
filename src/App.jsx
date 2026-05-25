@@ -343,6 +343,7 @@ export function App() {
   const [copyAccountSelection, setCopyAccountSelection] = useState({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(false);
+  const [tcAnalysisFocus, setTcAnalysisFocus] = useState(null);
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(hasPasswordRecoveryParams);
   const [quickLinkHandled, setQuickLinkHandled] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -1156,6 +1157,95 @@ export function App() {
       month: Number(selectedMonth)
     });
     setMovementModalOpen(true);
+  }
+
+  function openTcDetailFromMovement(link) {
+    setTcAnalysisFocus({ ...link, requestedAt: Date.now() });
+    setActiveView("tc-analysis");
+  }
+
+  async function createTcUserSummaryMovements({ importRecord, account, year, month, userSummaries }) {
+    const targetYear = Number(year);
+    const targetMonth = Number(month);
+    const targetAccount = String(account || "").trim();
+    const summaries = (userSummaries || []).filter((user) => Number(user.total) !== 0);
+
+    if (!targetAccount || targetYear < 2000 || targetYear > 2100 || targetMonth < 1 || targetMonth > 12) {
+      throw new Error("Selecciona tarjeta, mes y ano validos.");
+    }
+
+    if (!summaries.length) {
+      throw new Error("No hay resumenes por usuario para sincronizar.");
+    }
+
+    const now = new Date().toISOString();
+    const importName = importRecord?.name || importRecord?.fileName || "Estado de cuenta TC";
+    const rows = summaries.map((user, index) => {
+      const amount = -Math.abs(Number(user.total) || 0);
+      const type = getTypeFromAmount(amount);
+      const description = `TC ${importName} - ${user.label || user.key}`;
+      return {
+        flow: "Movimiento",
+        type,
+        account: targetAccount,
+        target_account: null,
+        category: normalizeCategory("Tarjeta de Credito", type, categoryOptionsByType[type]),
+        amount,
+        status: "Confirmado",
+        responsible: serializeResponsibleNames(user.label || user.key, currentResponsible),
+        description,
+        sort_order: Date.now() + index,
+        year: targetYear,
+        month: targetMonth,
+        recurring_modified: false
+      };
+    });
+
+    const existingByDescription = new Map(
+      movements
+        .filter((movement) =>
+          movement.flow === "Movimiento" &&
+          movement.account === targetAccount &&
+          Number(movement.year) === targetYear &&
+          Number(movement.month) === targetMonth
+        )
+        .map((movement) => [movement.description, movement])
+    );
+    const rowsToUpdate = rows
+      .map((row) => ({ row, existing: existingByDescription.get(row.description) }))
+      .filter((item) => item.existing);
+    const rowsToInsert = rows.filter((row) => !existingByDescription.has(row.description));
+
+    if (isRemote) {
+      const updatedRows = [];
+      for (const item of rowsToUpdate) {
+        const { data, error } = await supabase.from("movements").update(item.row).eq("id", item.existing.id).select().single();
+        if (error) throw new Error(error.message);
+        updatedRows.push(data);
+      }
+
+      let insertedRows = [];
+      if (rowsToInsert.length) {
+        const { data, error } = await supabase.from("movements").insert(rowsToInsert).select();
+        if (error) throw new Error(error.message);
+        insertedRows = data || [];
+      }
+
+      setMovements((current) => {
+        const updatedMap = new Map(updatedRows.map((row) => [row.id, row]));
+        return [...current.map((movement) => updatedMap.get(movement.id) || movement), ...insertedRows];
+      });
+    } else {
+      const updatedRows = rowsToUpdate.map((item) => ({ ...item.existing, ...item.row, updated_at: now }));
+      const insertedRows = rowsToInsert.map((row) => ({ ...row, id: buildLocalId(), created_at: now, updated_at: now }));
+      const updatedMap = new Map(updatedRows.map((row) => [row.id, row]));
+      setMovements((current) => [...current.map((movement) => updatedMap.get(movement.id) || movement), ...insertedRows]);
+    }
+
+    setSelectedYear(targetYear);
+    setSelectedMonth(targetMonth);
+    setNotice(`Resumen TC sincronizado en ${targetAccount}: ${rowsToInsert.length} creados, ${rowsToUpdate.length} actualizados.`);
+    return { created: rowsToInsert.length, updated: rowsToUpdate.length };
   }
 
   function openNewMovementModal(prefill = {}) {
@@ -2162,7 +2252,7 @@ export function App() {
               </label>
             </div>
           </section>
-          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} movements={monthMovements} allMovements={monthMovements} currentResponsible={currentResponsible} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onMove={moveMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} />
+          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} movements={monthMovements} allMovements={monthMovements} currentResponsible={currentResponsible} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onMove={moveMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
         </div>
 
         <aside className="side-panel">
@@ -2197,7 +2287,15 @@ export function App() {
         </>
       )}
 
-      {activeView === "tc-analysis" && <CreditCardAnalysis />}
+      {activeView === "tc-analysis" && (
+        <CreditCardAnalysis
+          accounts={accounts}
+          defaultYear={Number(selectedYear)}
+          defaultMonth={Number(selectedMonth)}
+          onCreateUserSummaryMovements={createTcUserSummaryMovements}
+          focusRequest={tcAnalysisFocus}
+        />
+      )}
 
       {activeView === "dashboard" && (
         <section className="dashboard-view">
