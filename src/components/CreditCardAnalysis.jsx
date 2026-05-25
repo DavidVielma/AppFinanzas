@@ -192,6 +192,12 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
   const houseTotal = houseMovements.reduce((sum, movement) => sum + movement.amount, 0);
 
   useEffect(() => {
+    if (!message) return undefined;
+    const timer = window.setTimeout(() => setMessage(""), 4200);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
+  useEffect(() => {
     if (!focusRequest || !imports.length) return;
     const requestedImportName = normalizeSearchText(focusRequest.importName);
     const requestedUser = normalizeSearchText(focusRequest.userLabel);
@@ -371,8 +377,14 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
             )}
           </div>
         </div>
-        {message && <div className={`inline-message ${status === "done" ? "success" : ""}`}>{message}</div>}
       </div>
+
+      {message && (
+        <div className={`tc-toast-notice ${status === "done" ? "success" : ""}`} role="status" aria-live="polite">
+          <span>{message}</span>
+          <button type="button" onClick={() => setMessage("")} aria-label="Cerrar mensaje">×</button>
+        </div>
+      )}
 
       {imports.length > 0 && !analysis && (
         <div className="dashboard-panel tc-import-manager">

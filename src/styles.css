@@ -2349,6 +2349,43 @@ td:nth-child(8) {
   font-weight: 800;
 }
 
+.tc-toast-notice {
+  position: fixed;
+  top: 22px;
+  right: 24px;
+  z-index: 31;
+  width: min(480px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid #cce8d8;
+  border-left: 4px solid var(--leaf);
+  border-radius: 8px;
+  background: #f0fbf5;
+  color: #125333;
+  box-shadow: 0 18px 44px rgba(23, 32, 51, 0.18);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.tc-toast-notice button {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid #bfe0cc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #125333;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
 .tc-import-manager {
   display: grid;
   gap: 12px;
@@ -3023,6 +3060,19 @@ td:nth-child(8) {
 :root[data-theme="dark"] .tc-reconciliation-grid .featured {
   background: #102a30;
   border-color: #46b8a8;
+}
+
+:root[data-theme="dark"] .tc-toast-notice {
+  background: #0a1d21;
+  border-color: #2d4d55;
+  border-left-color: #5bd089;
+  color: #d6fbf4;
+}
+
+:root[data-theme="dark"] .tc-toast-notice button {
+  background: #102a30;
+  border-color: #2d4d55;
+  color: #d6fbf4;
 }
 
 :root[data-theme="dark"] .tc-empty-panel strong {
@@ -3759,6 +3809,15 @@ td:nth-child(8) {
   .tc-analysis-view {
     gap: 10px;
     padding-bottom: 112px;
+  }
+
+  .tc-toast-notice {
+    top: 12px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+    padding: 10px 10px 10px 12px;
+    font-size: 0.8rem;
   }
 
   .tc-upload-button {
