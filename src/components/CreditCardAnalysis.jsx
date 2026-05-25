@@ -358,11 +358,18 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
               </small>
             )}
           </div>
-          <label className="primary-action tc-upload-button">
-            {status === "loading" ? <Loader2 size={18} className="spin-icon" /> : <UploadCloud size={18} />}
-            Cargar PDF
-            <input type="file" accept="application/pdf" onChange={analyzeFile} disabled={status === "loading"} />
-          </label>
+          <div className="tc-upload-actions">
+            <label className="primary-action tc-upload-button">
+              {status === "loading" ? <Loader2 size={18} className="spin-icon" /> : <UploadCloud size={18} />}
+              Cargar PDF
+              <input type="file" accept="application/pdf" onChange={analyzeFile} disabled={status === "loading"} />
+            </label>
+            {analysis && (
+              <button type="button" className="ghost-action" onClick={() => setActiveImportId("")}>
+                Volver a importaciones
+              </button>
+            )}
+          </div>
         </div>
         {message && <div className={`inline-message ${status === "done" ? "success" : ""}`}>{message}</div>}
       </div>
@@ -429,17 +436,6 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
 
       {analysis && (
         <>
-          <div className="dashboard-panel tc-detail-toolbar">
-            <div>
-              <span>Detalle de importacion</span>
-              <strong>{activeImport?.name}</strong>
-              <small>{monthLabels[(Number(activeImport?.month) || 1) - 1]} {activeImport?.year}</small>
-            </div>
-            <button type="button" className="ghost-action" onClick={() => setActiveImportId("")}>
-              Volver a importaciones
-            </button>
-          </div>
-
           <div className="tc-summary-grid">
             <article className="summary-card">
               <span>Banco</span>
@@ -472,14 +468,18 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
                 <strong>{formatCurrency(analysis.reconciliation.operationsTotal)}</strong>
               </div>
               <div>
+                <span>Movimientos</span>
+                <strong>{analysis.movements.length}</strong>
+              </div>
+              <div>
                 <span>Cargos / abonos 2.3</span>
                 <strong className={analysis.reconciliation.adjustmentsTotal < 0 ? "income-text" : "expense-text"}>{formatCurrency(analysis.reconciliation.adjustmentsTotal)}</strong>
               </div>
-              <div>
+              <div className="featured">
                 <span>Total conciliado</span>
                 <strong>{formatCurrency(analysis.reconciliation.reconciledTotal)}</strong>
               </div>
-              <div>
+              <div className="featured">
                 <span>Total facturado PDF</span>
                 <strong>{formatCurrency(analysis.reconciliation.statementTotal)}</strong>
               </div>
@@ -500,15 +500,6 @@ export function CreditCardAnalysis({ accounts = [], defaultYear, defaultMonth, o
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="dashboard-panel tc-insights-panel">
-            <h2>Lectura IA</h2>
-            <div className="tc-insight-list">
-              {analysis.insights.map((insight) => (
-                <span key={insight}>{insight}</span>
-              ))}
-            </div>
           </div>
 
           <div className="dashboard-panel">
