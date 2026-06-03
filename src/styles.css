@@ -4835,6 +4835,21 @@ td:nth-child(8) {
     font-weight: 800;
   }
 
+  .mobile-movement-meta > .category-badge {
+    min-height: 20px;
+    max-width: 100%;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--category-color);
+    font-size: 0.72rem;
+    font-weight: 900;
+  }
+
+  .mobile-movement-meta > .category-badge .category-name {
+    color: var(--category-color);
+  }
+
   .mobile-movement-card footer {
     display: grid;
     grid-template-columns: minmax(116px, 1fr) auto;
