@@ -21,6 +21,7 @@ create table if not exists public.movements (
   category text not null,
   description text not null,
   amount numeric(14, 2) not null,
+  card_payment_mode text check (card_payment_mode in ('auto', 'manual')),
   status text not null default 'Proyectado' check (status in ('Confirmado', 'Proyectado', 'Pendiente')),
   responsible text,
   sort_order bigint,
@@ -80,11 +81,36 @@ create table if not exists public.responsibles (
 
 create table if not exists public.categories (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  name text not null,
-  type text not null check (type in ('Ingreso', 'Egreso')),
-  created_at timestamptz not null default now(),
+    user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+    name text not null,
+    type text not null check (type in ('Ingreso', 'Egreso')),
+    icon text,
+    color text,
+    created_at timestamptz not null default now(),
   unique (user_id, type, name)
+);
+
+create table if not exists public.whatsapp_message_logs (
+  id uuid primary key default gen_random_uuid(),
+  external_message_id text not null unique,
+  from_phone text not null,
+  body text not null,
+  status text not null default 'received' check (status in ('received', 'created', 'ignored', 'failed')),
+  movement_id uuid references public.movements(id) on delete set null,
+  error_message text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.whatsapp_user_links (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null unique,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  default_account text not null default 'Principal',
+  responsible text,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create index if not exists movements_user_period_idx on public.movements(user_id, year, month);
@@ -93,6 +119,8 @@ create index if not exists movements_user_account_idx on public.movements(user_i
 create index if not exists movements_user_recurring_idx on public.movements(user_id, recurring_id);
 create index if not exists categories_user_type_idx on public.categories(user_id, type);
 create index if not exists recurring_movements_user_active_idx on public.recurring_movements(user_id, active);
+create index if not exists whatsapp_message_logs_created_at_idx on public.whatsapp_message_logs(created_at);
+create index if not exists whatsapp_user_links_user_id_idx on public.whatsapp_user_links(user_id);
 
 alter table public.profiles enable row level security;
 alter table public.movements enable row level security;
@@ -100,6 +128,8 @@ alter table public.recurring_movements enable row level security;
 alter table public.accounts enable row level security;
 alter table public.responsibles enable row level security;
 alter table public.categories enable row level security;
+alter table public.whatsapp_message_logs enable row level security;
+alter table public.whatsapp_user_links enable row level security;
 
 create policy "profiles_select_own"
 on public.profiles for select
@@ -213,6 +243,16 @@ for each row execute function public.set_updated_at();
 drop trigger if exists set_recurring_movements_updated_at on public.recurring_movements;
 create trigger set_recurring_movements_updated_at
 before update on public.recurring_movements
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_whatsapp_message_logs_updated_at on public.whatsapp_message_logs;
+create trigger set_whatsapp_message_logs_updated_at
+before update on public.whatsapp_message_logs
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_whatsapp_user_links_updated_at on public.whatsapp_user_links;
+create trigger set_whatsapp_user_links_updated_at
+before update on public.whatsapp_user_links
 for each row execute function public.set_updated_at();
 
 create or replace function public.create_profile_for_new_user()

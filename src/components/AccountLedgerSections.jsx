@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { formatCurrency } from "../lib/finance";
+import { formatCurrency, getCreditCardPaymentCoverage } from "../lib/finance";
 import { getMutedTextColor, getReadableTextColor } from "../lib/colors";
 import { MovementTable } from "./MovementTable";
 
@@ -33,7 +33,7 @@ function getAccountColorToken(account) {
   return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
 }
 
-export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, allMovements = movements, currentResponsible, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onMove, onQuickAdd, onQuickPay, onOpenTcDetail }) {
+export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onMove, onQuickAdd, onQuickPay, onOpenTcDetail }) {
   const visibleAccounts = accounts.filter((account) => account.name !== "Otros");
   const accountsByName = Object.fromEntries(visibleAccounts.map((account) => [account.name, account]));
   const grouped = visibleAccounts.reduce((acc, account) => {
@@ -71,7 +71,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, 
   const mainAccounts = visibleAccounts.filter((account) => account.type !== "tarjeta_credito");
   const creditCards = visibleAccounts.filter((account) => account.type === "tarjeta_credito");
   const paymentByCard = Object.fromEntries(
-    allMovements
+    movements
       .filter((movement) => movement.flow === "Pago Tarjeta" && movement.target_account)
       .map((movement) => [movement.target_account, movement])
   );
@@ -80,16 +80,21 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, 
     const rows = [...(grouped[account.name] || [])].filter((movement) => !filterMovement || filterMovement(movement)).sort(sortVisibleRows);
     const rowsWithMoveState = rows.map((movement) => {
       const visibleIndex = rows.findIndex((item) => (item.row_key || item.id) === (movement.row_key || movement.id));
+      const paymentCoverage = getCreditCardPaymentCoverage(movement.source_movement || movement, allMovements, accounts);
       return {
         ...movement,
         display_account: movement.display_account || account.name,
         canMoveUp: visibleIndex > 0,
-        canMoveDown: visibleIndex >= 0 && visibleIndex < rows.length - 1
+        canMoveDown: visibleIndex >= 0 && visibleIndex < rows.length - 1,
+        payment_badge: paymentCoverage?.label || null,
+        payment_badge_mode: paymentCoverage?.mode || null
       };
     });
     const total = rows.reduce((sum, movement) => sum + Number(movement.amount || 0), 0);
     const isCard = account.type === "tarjeta_credito";
-    const displayTotal = isCard && !hasActiveFilters ? -(cardPaymentTotals[account.name] || 0) : total;
+    const cardStats = cardPaymentStats[account.name];
+    const displayTotal = isCard && !hasActiveFilters ? -(cardStats?.monthCharges || 0) : total;
+    const registeredPayment = paymentByCard[account.name];
     const isPrincipal = account.name === "Principal";
     const colorToken = getAccountColorToken(account);
     const accountAccent = isPrincipal ? "#155e63" : colorToken.accent;
@@ -107,8 +112,8 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, 
           <div className="account-section-actions">
             <strong className={displayTotal >= 0 ? "income-text" : "expense-text"}>{formatCurrency(displayTotal)}</strong>
             {isCard && (
-              <button type="button" className="icon-text" onClick={() => onQuickPay(account, cardPaymentTotals[account.name] || 0)} disabled={!cardPaymentTotals[account.name] || Boolean(paymentByCard[account.name])}>
-                Pagar
+              <button type="button" className="icon-text" onClick={() => registeredPayment ? onEdit(registeredPayment) : onQuickPay(account, cardFullPaymentTotals[account.name] || cardPaymentTotals[account.name] || 0)} disabled={!cardFullPaymentTotals[account.name] && !cardPaymentTotals[account.name] && !registeredPayment}>
+                {registeredPayment ? "Editar pago" : "Pagar"}
               </button>
             )}
             {!account.archived && (
@@ -119,16 +124,24 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, movements, 
             )}
           </div>
         </header>
+        {isCard && cardStats && !hasActiveFilters && (
+          <div className="credit-card-payment-summary">
+            <span>Total consumos: <strong>{formatCurrency(-cardStats.monthCharges)}</strong></span>
+            <span>Saldo anterior: <strong>{formatCurrency(-cardStats.openingDebt)}</strong></span>
+            <span>Pagado: <strong>{formatCurrency(cardStats.payments)}</strong></span>
+            <span>Pendiente: <strong>{formatCurrency(-cardStats.pending)}</strong></span>
+          </div>
+        )}
         {account.name === "Principal" && (
           <div className="principal-payment-strip">
-            <strong>Pagos dinamicos de tarjeta</strong>
+            <strong>Pagos de tarjeta</strong>
             <div>
               {creditCards.map((card) => {
-                const amount = cardPaymentTotals[card.name] || 0;
-                const hasPayment = Boolean(paymentByCard[card.name]);
+                const amount = cardFullPaymentTotals[card.name] || cardPaymentTotals[card.name] || 0;
+                const payment = paymentByCard[card.name];
                 return (
-                  <button type="button" className="icon-text" key={card.name} onClick={() => onQuickPay(card, amount)} disabled={!amount || hasPayment}>
-                    {card.name}: {formatCurrency(amount)}{hasPayment ? " registrado" : ""}
+                  <button type="button" className="icon-text" key={card.name} onClick={() => payment ? onEdit(payment) : onQuickPay(card, amount)} disabled={!amount && !payment}>
+                    {card.name}: {payment ? `pago ${formatCurrency(Math.abs(Number(payment.amount) || 0))}` : formatCurrency(amount)}
                   </button>
                 );
               })}

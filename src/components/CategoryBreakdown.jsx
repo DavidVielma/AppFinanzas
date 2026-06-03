@@ -1,3 +1,4 @@
+import { CategoryBadge } from "./CategoryVisuals";
 import { formatCurrency, groupByCategory } from "../lib/finance";
 
 export function CategoryBreakdown({ movements }) {
@@ -10,7 +11,7 @@ export function CategoryBreakdown({ movements }) {
       {groups.map(([category, value]) => (
         <div className="bar-row" key={category}>
           <div className="bar-label">
-            <span>{category}</span>
+            <CategoryBadge category={category} />
             <strong>{formatCurrency(value)}</strong>
           </div>
           <div className="bar-track">

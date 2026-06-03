@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ChevronDown, ChevronUp, ClipboardCopy, ClipboardPaste, CreditCard, FileText, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, User, UploadCloud, X, Zap } from "lucide-react";
+import { Camera, ChevronDown, ChevronUp, ClipboardCopy, ClipboardPaste, CreditCard, FileText, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
 import { AccountBalances } from "./components/AccountBalances";
 import { AccountEvolutionChart } from "./components/AccountEvolutionChart";
 import { AccountLedgerSections } from "./components/AccountLedgerSections";
@@ -7,24 +7,27 @@ import { AnnualFlowChart } from "./components/AnnualFlowChart";
 import { AnnualSummaryView } from "./components/AnnualSummaryView";
 import { AuthPanel } from "./components/AuthPanel";
 import { CategoryBreakdown } from "./components/CategoryBreakdown";
+import { CategoryBadge, CategoryIconPicker, getCategoryStyle, setCustomCategoryVisuals } from "./components/CategoryVisuals";
 import { CategoryPieChart } from "./components/CategoryPieChart";
 import { ColorPicker } from "./components/ColorPicker";
 import { CreditCardAnalysis } from "./components/CreditCardAnalysis";
 import { CreditCardManager } from "./components/CreditCardManager";
 import { CreditCardMonthlyChart } from "./components/CreditCardMonthlyChart";
 import { MonthlyGrid } from "./components/MonthlyGrid";
-import { MovementForm } from "./components/MovementForm";
+import { MovementForm, PeriodSelector } from "./components/MovementForm";
 import { PasswordChangeForm } from "./components/PasswordChangeForm";
 import { PasswordResetPanel } from "./components/PasswordResetPanel";
 import { SummaryCards } from "./components/SummaryCards";
 import {
   calculateAccountBalances,
   calculateAccountLedger,
-  calculateCreditCardPaymentTotals,
+  calculateCreditCardFullPaymentAmounts,
+  calculateCreditCardPeriodStats,
   calculateSummary,
   defaultAccounts,
   formatCurrency,
   getCurrentPeriod,
+  getCreditCardPaymentCoverage,
   getTypeFromAmount,
   incomeCategories,
   isCreditCardAccount,
@@ -35,6 +38,7 @@ import {
   resolveDynamicPayments
 } from "./lib/finance";
 import { getAccountColorStyle } from "./lib/colors";
+import { parseQuickAmount, parseQuickTextMovement } from "./lib/quickMovement";
 import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 
@@ -56,6 +60,7 @@ const emptyDraft = {
   recurring_frequency: "none",
   recurring_count: "12",
   recurring_edit_scope: "one",
+  card_payment_mode: "auto",
   year: initialPeriod.year,
   month: initialPeriod.month
 };
@@ -71,6 +76,17 @@ const accountColorOptions = [
   { label: "Morado", value: "#e9d5ff" },
   { label: "Cian", value: "#cceff2" },
   { label: "Naranja", value: "#fed7aa" }
+];
+
+const categoryColorOptions = [
+  { label: "Verde", value: "#187246" },
+  { label: "Azul", value: "#2563eb" },
+  { label: "Turquesa", value: "#0f766e" },
+  { label: "Naranja", value: "#d97745" },
+  { label: "Rojo", value: "#be123c" },
+  { label: "Morado", value: "#7c3aed" },
+  { label: "Celeste", value: "#0284c7" },
+  { label: "Gris", value: "#475569" }
 ];
 
 function buildLocalId() {
@@ -193,6 +209,27 @@ function getDefaultResponsible(session) {
   return session?.user?.user_metadata?.username || session?.user?.email?.split("@")[0] || "Yo";
 }
 
+function encodeCategoryVisuals(icon = "circle-help", color = "") {
+  return JSON.stringify({ icon: icon || "circle-help", color: color || "" });
+}
+
+function decodeCategoryVisuals(category) {
+  if (!category) return category;
+  const rawIcon = category.icon || "";
+  if (!rawIcon.trim().startsWith("{")) return category;
+
+  try {
+    const parsed = JSON.parse(rawIcon);
+    return {
+      ...category,
+      icon: parsed.icon || "circle-help",
+      color: category.color || parsed.color || ""
+    };
+  } catch {
+    return category;
+  }
+}
+
 function normalizeResponsibleName(name, defaultResponsible) {
   const value = String(name || "").trim();
   if (!value || value.toLowerCase() === "yo") {
@@ -243,14 +280,16 @@ function hasPasswordRecoveryParams() {
 
 function getQuickMovementParams() {
   const search = new URLSearchParams(window.location.search);
+  const quickText = search.get("texto") ?? search.get("text") ?? search.get("wsp") ?? search.get("whatsapp") ?? search.get("q");
+  const parsedText = parseQuickTextMovement(quickText);
   const amount = search.get("monto") ?? search.get("amount");
 
-  if (amount === null || amount === "") {
+  if (!parsedText && (amount === null || amount === "")) {
     return null;
   }
 
-  const parsedAmount = Number(String(amount).replace(/\./g, "").replace(",", "."));
-  if (!Number.isFinite(parsedAmount)) {
+  const parsedAmount = parsedText?.amount ?? parseQuickAmount(amount);
+  if (parsedAmount === null) {
     return null;
   }
 
@@ -259,7 +298,8 @@ function getQuickMovementParams() {
 
   return {
     amount: parsedAmount,
-    description: search.get("descripcion") || search.get("description") || "",
+    description: search.get("descripcion") || search.get("description") || parsedText?.description || "",
+    category: search.get("categoria") || search.get("category") || parsedText?.category || "",
     year: Number(search.get("year")) || null,
     month: Number(search.get("month")) || null,
     status: normalizedStatus
@@ -268,7 +308,7 @@ function getQuickMovementParams() {
 
 function clearQuickMovementParamsFromUrl() {
   const url = new URL(window.location.href);
-  ["monto", "amount", "descripcion", "description", "year", "month", "status", "estado"].forEach((param) => {
+  ["monto", "amount", "descripcion", "description", "categoria", "category", "texto", "text", "wsp", "whatsapp", "q", "title", "url", "share", "year", "month", "status", "estado"].forEach((param) => {
     url.searchParams.delete(param);
   });
 
@@ -323,7 +363,7 @@ export function App() {
   const [responsibles, setResponsibles] = useState([]);
   const [responsibleDraft, setResponsibleDraft] = useState("");
   const [customCategories, setCustomCategories] = useState([]);
-  const [categoryDraft, setCategoryDraft] = useState({ name: "", type: "Egreso" });
+  const [categoryDraft, setCategoryDraft] = useState({ name: "", type: "Egreso", icon: "circle-help", color: "#475569" });
   const [filters, setFilters] = useState({ search: "", account: "", responsible: "", type: "", category: "", status: "", flow: "" });
   const [accountDraft, setAccountDraft] = useState({ name: "", type: "principal", color: "#e2e8f0" });
   const [cardDraft, setCardDraft] = useState({ name: "", color: "#cfe9d8" });
@@ -338,6 +378,10 @@ export function App() {
   const [movementModalOpen, setMovementModalOpen] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState(null);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [responsibleModalOpen, setResponsibleModalOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [categoryIconModal, setCategoryIconModal] = useState(null);
   const [copyModalOpen, setCopyModalOpen] = useState(false);
   const [copiedMonth, setCopiedMonth] = useState(null);
   const [copyAccountSelection, setCopyAccountSelection] = useState({});
@@ -355,10 +399,56 @@ export function App() {
   const movementSwipeRef = useRef(null);
 
   const isRemote = hasSupabaseConfig && session && !demoMode;
+  const hasOpenModal = Boolean(
+    movementModalOpen ||
+    deleteCandidate ||
+    passwordModalOpen ||
+    accountModalOpen ||
+    responsibleModalOpen ||
+    categoryModalOpen ||
+    categoryIconModal ||
+    copyModalOpen
+  );
+
+  setCustomCategoryVisuals(customCategories);
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? "dark" : "light";
   }, [darkMode]);
+
+  useEffect(() => {
+    if (!hasOpenModal) return undefined;
+
+    const scrollY = window.scrollY;
+    const shouldFreezeDocumentPosition = window.matchMedia("(max-width: 720px)").matches;
+
+    if (!shouldFreezeDocumentPosition) {
+      return undefined;
+    }
+
+    const previousBodyStyles = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width
+    };
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyStyles.overflow;
+      document.body.style.position = previousBodyStyles.position;
+      document.body.style.top = previousBodyStyles.top;
+      document.body.style.width = previousBodyStyles.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, [hasOpenModal]);
 
   useEffect(() => {
     if (!hasSupabaseConfig) {
@@ -395,7 +485,7 @@ export function App() {
       const localRecurring = localStorage.getItem("finance-demo-recurring-movements");
       setAccounts(hydrateAccounts(localAccounts ? JSON.parse(localAccounts) : defaultAccounts));
       setResponsibles(localResponsibles ? JSON.parse(localResponsibles) : [{ name: getDefaultResponsible(session) }]);
-      setCustomCategories(localCategories ? JSON.parse(localCategories) : []);
+      setCustomCategories(localCategories ? JSON.parse(localCategories).map(decodeCategoryVisuals) : []);
       setRecurringMovements(localRecurring ? JSON.parse(localRecurring) : []);
       setMovements(local ? JSON.parse(local) : seedMovements.map((item) => ({ ...item, id: buildLocalId() })));
       return;
@@ -452,6 +542,7 @@ export function App() {
     openNewMovementModal({
       amount: quickParams.amount,
       description: quickParams.description,
+      category: quickParams.category,
       status: quickParams.status,
       year: quickParams.year || selectedYear,
       month: quickParams.month || selectedMonth
@@ -569,7 +660,7 @@ export function App() {
       return;
     }
 
-    setCustomCategories(data || []);
+    setCustomCategories((data || []).map(decodeCategoryVisuals));
   }
 
   async function loadProfile() {
@@ -593,7 +684,6 @@ export function App() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    const dynamicPaymentAmount = draft.flow === "Pago Tarjeta" ? cardPaymentTotals[draft.target_account] || 0 : null;
     const fallbackAmount = Number(draft.amount) || 0;
     const isInstallmentPurchase = !editingId && draft.flow === "Movimiento" && draft.installment_mode !== "none";
     const isRecurringMovement = !editingId && !isInstallmentPurchase && draft.flow !== "Pago Tarjeta" && draft.recurring_frequency !== "none";
@@ -601,6 +691,16 @@ export function App() {
     const isRecurringSeriesEdit = Boolean(editingId && draft.recurring_id && recurringEditScope !== "one");
     const installmentCount = Math.max(1, Number.parseInt(draft.installment_count, 10) || 1);
     const recurringCount = Math.max(1, Math.min(120, Number.parseInt(draft.recurring_count, 10) || 1));
+    const draftYear = Number(draft.year) || Number(selectedYear);
+    const draftMonth = Number(draft.month) || Number(selectedMonth);
+    const cardPaymentMode = draft.flow === "Pago Tarjeta" && draft.card_payment_mode === "manual" ? "manual" : "auto";
+    const fullPaymentTotalsForDraft = draft.flow === "Pago Tarjeta"
+      ? calculateCreditCardFullPaymentAmounts(resolvedMovements, draftYear, draftMonth, accounts, { excludePaymentId: editingId })
+      : {};
+    const suggestedPaymentAmount = draft.flow === "Pago Tarjeta" && draft.target_account
+      ? fullPaymentTotalsForDraft[draft.target_account] || 0
+      : 0;
+    const paymentAmount = cardPaymentMode === "auto" ? suggestedPaymentAmount || Math.abs(fallbackAmount) : Math.abs(fallbackAmount);
     const installmentAmount = isInstallmentPurchase && draft.installment_mode === "total"
       ? Math.abs(fallbackAmount) / installmentCount
       : Math.abs(fallbackAmount);
@@ -608,10 +708,10 @@ export function App() {
       ? -installmentAmount
       : draft.flow === "Movimiento"
       ? fallbackAmount
-      : -Math.abs(dynamicPaymentAmount ?? fallbackAmount);
+      : -Math.abs(paymentAmount);
 
-    if (draft.flow === "Pago Tarjeta" && !dynamicPaymentAmount) {
-      setNotice("La tarjeta seleccionada no tiene saldo pendiente para pagar.");
+    if (draft.flow === "Pago Tarjeta" && (!draft.target_account || !Math.abs(paymentAmount))) {
+      setNotice("Selecciona una tarjeta e ingresa el monto a pagar.");
       return;
     }
 
@@ -624,9 +724,6 @@ export function App() {
       setNotice("Ingresa un monto y al menos 2 repeticiones.");
       return;
     }
-
-    const draftYear = Number(draft.year) || Number(selectedYear);
-    const draftMonth = Number(draft.month) || Number(selectedMonth);
 
     if (draftYear < 2000 || draftYear > 2100 || draftMonth < 1 || draftMonth > 12) {
       setNotice("Selecciona un mes y año validos.");
@@ -641,6 +738,7 @@ export function App() {
       target_account: draft.target_account || null,
       category: normalizeCategory(draft.category, type, categoryOptionsByType[type]),
       amount: signedAmount,
+      card_payment_mode: draft.flow === "Pago Tarjeta" ? cardPaymentMode : null,
       status: draft.status,
       responsible: serializeResponsibleNames(draft.responsible, responsibles[0]?.name || getDefaultResponsible(session)),
       recurring_modified: Boolean(editingId && draft.recurring_id)
@@ -756,6 +854,7 @@ export function App() {
 
         return editingId ? current.map((item) => (item.id === editingId ? data : item)) : [...current, ...(data || [])];
       });
+      await loadMovements();
     } else {
       const now = new Date().toISOString();
       const recurringId = isRecurringMovement ? buildLocalId() : null;
@@ -823,6 +922,7 @@ export function App() {
   }
 
   function editMovement(movement) {
+    const paymentCoverage = getCreditCardPaymentCoverage(movement, resolvedMovements, accounts);
     setEditingId(movement.id);
     setSelectedYear(movement.year);
     setSelectedMonth(movement.month);
@@ -840,6 +940,7 @@ export function App() {
       recurring_id: movement.recurring_id,
       recurring_occurrence: movement.recurring_occurrence,
       original_recurring_occurrence: movement.recurring_occurrence,
+      original_amount: movement.amount,
       original_year: movement.year,
       original_month: movement.month,
       installment_mode: "none",
@@ -847,6 +948,7 @@ export function App() {
       recurring_frequency: "none",
       recurring_count: "12",
       recurring_edit_scope: "one",
+      card_payment_mode: movement.flow === "Pago Tarjeta" ? movement.card_payment_mode || paymentCoverage?.mode || "manual" : "auto",
       year: movement.year,
       month: movement.month
     });
@@ -958,8 +1060,14 @@ export function App() {
   async function syncRemoteData() {
     if (!isRemote) return;
 
-    await loadMovements();
-    await Promise.all([loadAccounts(), loadResponsibles(), loadProfile()]);
+    await Promise.all([
+      loadMovements(),
+      loadAccounts(),
+      loadResponsibles(),
+      loadCategories(),
+      loadRecurringMovements(),
+      loadProfile()
+    ]);
     setNotice("Datos sincronizados.");
   }
 
@@ -1151,6 +1259,7 @@ export function App() {
       category: "Pago Tarjeta",
       description: `Pago total ${account.name}`,
       amount: -amount,
+      card_payment_mode: "auto",
       status: "Confirmado",
       responsible: responsibles[0]?.name || getDefaultResponsible(session),
       year: Number(selectedYear),
@@ -1254,6 +1363,7 @@ export function App() {
       ...emptyDraft,
       amount: prefill.amount ?? "",
       description: prefill.description ?? "",
+      category: prefill.category || emptyDraft.category,
       status: prefill.status || emptyDraft.status,
       responsible: responsibles[0]?.name || currentResponsible || getDefaultResponsible(session),
       year: prefill.year || Number(selectedYear),
@@ -1263,13 +1373,13 @@ export function App() {
   }
 
   function copyAutomationLink() {
-    const url = `${window.location.origin}${window.location.pathname}?monto=10000`;
+    const url = `${window.location.origin}${window.location.pathname}?monto=-20000&descripcion=farmacia&categoria=Salud&status=Confirmado`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url);
     }
 
-    setNotice("Link de automatizacion copiado. Cambia el monto en la URL segun necesites.");
+    setNotice("Link rapido copiado. Ajusta monto, descripcion, categoria o estado en la URL.");
   }
 
   function closeMovementModal() {
@@ -1488,21 +1598,63 @@ export function App() {
       return;
     }
 
-    const nextCategory = { name, type };
+    const nextCategory = { name, type, icon: categoryDraft.icon || "circle-help", color: categoryDraft.color || "#475569" };
 
     if (isRemote) {
-      const { data, error } = await supabase.from("categories").insert(nextCategory).select().single();
+      let { data, error } = await supabase.from("categories").insert(nextCategory).select().single();
+      if (error && error.code === "PGRST204") {
+        const retry = await supabase.from("categories").insert({ name, type, icon: encodeCategoryVisuals(nextCategory.icon, nextCategory.color) }).select().single();
+        data = retry.data;
+        error = retry.error;
+      }
+      if (error && error.code === "PGRST204") {
+        const retry = await supabase.from("categories").insert({ name, type }).select().single();
+        data = retry.data;
+        error = retry.error;
+      }
       if (error) {
         setNotice(error.message);
         return;
       }
-      setCustomCategories((current) => [...current, data]);
+      const normalizedCategory = decodeCategoryVisuals(data);
+      setCustomCategories((current) => [...current, { ...normalizedCategory, icon: normalizedCategory.icon || nextCategory.icon, color: normalizedCategory.color || nextCategory.color }]);
     } else {
       setCustomCategories((current) => [...current, { ...nextCategory, id: buildLocalId() }]);
     }
 
-    setCategoryDraft({ name: "", type });
+    setCategoryDraft({ name: "", type, icon: "circle-help", color: "#475569" });
     setNotice("Categoria agregada.");
+  }
+
+  async function updateCategoryVisuals(category, patch) {
+    if (!category?.id) return;
+    const nextPatch = Object.fromEntries(Object.entries(patch).filter(([, value]) => value));
+    const nextCategory = { ...category, ...nextPatch };
+    const remotePatch = { ...nextPatch };
+
+    if (isRemote) {
+      const { error } = await supabase.from("categories").update(remotePatch).eq("id", category.id);
+      if (error) {
+        if (error.code === "PGRST204") {
+          const fallback = await supabase
+            .from("categories")
+            .update({ icon: encodeCategoryVisuals(nextCategory.icon, nextCategory.color) })
+            .eq("id", category.id);
+          if (fallback.error) {
+            setNotice(fallback.error.message);
+            return;
+          }
+          setCustomCategories((current) => current.map((item) => (item.id === category.id ? { ...item, ...nextPatch } : item)));
+          setNotice("Categoria actualizada.");
+        } else {
+          setNotice(error.message);
+        }
+        return;
+      }
+    }
+
+    setCustomCategories((current) => current.map((item) => (item.id === category.id ? { ...item, ...nextPatch } : item)));
+    setNotice("Categoria actualizada.");
   }
 
   async function deleteCategory(category) {
@@ -1983,6 +2135,7 @@ export function App() {
     .filter((item) => Number(item.year) === Number(selectedYear))
     .filter(matchesMovementFilters);
   const dashboardCategoryMovements = (dashboardCategoryScope === "year" ? filteredYearMovements : filteredMonthMovements).filter(isCategoryChartMovement);
+  const movementModalType = draft.installment_mode && draft.installment_mode !== "none" ? "Egreso" : draft.flow === "Movimiento" ? getTypeFromAmount(draft.amount) : "Egreso";
   const filterOptions = {
     accounts: visibleAccounts.map((account) => account.name),
     responsibles: Array.from(new Set([currentResponsible, ...responsibles.map((responsible) => normalizeResponsibleName(responsible.name, currentResponsible)), ...monthMovements.flatMap((movement) => parseResponsibleNames(movement.responsible, currentResponsible))])).sort(),
@@ -1995,15 +2148,22 @@ export function App() {
   const selectedMonthSummary = summary.monthly.find((item) => item.month === Number(selectedMonth));
   const accountBalances = useMemo(() => calculateAccountBalances(resolvedMovements, accounts), [accounts, resolvedMovements]);
   const cardPaymentTotals = useMemo(() => {
-    const totalsByPeriod = calculateCreditCardPaymentTotals(movements, accounts);
-    const totals = {};
+    const stats = calculateCreditCardPeriodStats(resolvedMovements, Number(selectedYear), Number(selectedMonth), accounts);
 
-    accounts.filter((account) => isCreditCardAccount(account.name, accounts)).forEach((account) => {
-      totals[account.name] = totalsByPeriod[`${Number(selectedYear)}-${Number(selectedMonth)}-${account.name}`] || 0;
-    });
-
-    return totals;
-  }, [accounts, movements, selectedMonth, selectedYear]);
+    return Object.fromEntries(Object.entries(stats).map(([cardName, item]) => [cardName, item.pending]));
+  }, [accounts, resolvedMovements, selectedMonth, selectedYear]);
+  const cardPaymentStats = useMemo(
+    () => calculateCreditCardPeriodStats(resolvedMovements, Number(selectedYear), Number(selectedMonth), accounts),
+    [accounts, resolvedMovements, selectedMonth, selectedYear]
+  );
+  const cardFullPaymentTotals = useMemo(
+    () => calculateCreditCardFullPaymentAmounts(resolvedMovements, Number(selectedYear), Number(selectedMonth), accounts),
+    [accounts, resolvedMovements, selectedMonth, selectedYear]
+  );
+  const draftCardFullPaymentTotals = useMemo(
+    () => calculateCreditCardFullPaymentAmounts(resolvedMovements, Number(draft.year) || Number(selectedYear), Number(draft.month) || Number(selectedMonth), accounts, { excludePaymentId: editingId }),
+    [accounts, draft.month, draft.year, editingId, resolvedMovements, selectedMonth, selectedYear]
+  );
   const selectableAccounts = accounts.filter((account) => !account.archived);
 
   if (loading) {
@@ -2023,10 +2183,9 @@ export function App() {
     { id: "annual-summary", label: "Resumen Anual", icon: FileText },
     { id: "tc-analysis", label: "Análisis TC", icon: CreditCard },
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "profile", label: "Perfil", icon: User },
-    { id: "signout", label: "Salir", icon: LogOut, action: signOut }
+    { id: "profile", label: "Perfil", icon: User }
   ];
-  const navOrder = ["movements", "annual-summary", "dashboard", "tc-analysis", "profile", "signout"];
+  const navOrder = ["movements", "annual-summary", "dashboard", "tc-analysis", "profile"];
   const orderedNavItems = navOrder.map((id) => navItems.find((item) => item.id === id)).filter(Boolean);
 
   return (
@@ -2050,6 +2209,10 @@ export function App() {
             );
           })}
         </nav>
+        <button type="button" className="sidebar-signout" onClick={signOut}>
+          <LogOut size={17} />
+          Salir
+        </button>
         <div className="sidebar-user">
           <label className="avatar-picker" title="Agregar foto">
             {avatarUrl ? <img src={avatarUrl} alt={currentResponsible} /> : <User size={22} />}
@@ -2124,6 +2287,7 @@ export function App() {
       {activeView !== "profile" && activeView !== "annual-summary" && activeView !== "tc-analysis" && (
         <>
       <section className="controls-row">
+        <PeriodSelector month={selectedMonth} year={selectedYear} onChange={({ month, year }) => { setSelectedMonth(Number(month)); setSelectedYear(Number(year)); }} />
         <label>
           Año
           <select value={selectedYear} onChange={(event) => setSelectedYear(Number(event.target.value))}>
@@ -2250,12 +2414,12 @@ export function App() {
               </label>
             </div>
           </section>
-          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} movements={monthMovements} allMovements={monthMovements} currentResponsible={currentResponsible} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onMove={moveMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
+          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} cardPaymentStats={cardPaymentStats} movements={monthMovements} allMovements={resolvedMovements} currentResponsible={currentResponsible} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onMove={moveMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
         </div>
 
         <aside className="side-panel">
           <AccountBalances accounts={visibleAccounts} movements={resolvedMovements} year={Number(selectedYear)} month={Number(selectedMonth)} />
-          <CreditCardManager accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} draft={cardDraft} onDraftChange={setCardDraft} onCreate={createCreditCard} onDelete={deleteCreditCard} />
+          <CreditCardManager accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardPaymentStats={cardPaymentStats} draft={cardDraft} onDraftChange={setCardDraft} onCreate={createCreditCard} onDelete={deleteCreditCard} />
           <CategoryBreakdown movements={monthCategoryMovements} />
           <section className="balance-list">
             <h2>Resumen anual</h2>
@@ -2424,7 +2588,6 @@ export function App() {
               <span>Estado</span><strong>{isRemote ? "Sincronizado en la nube" : "Demo local"}</strong>
               <span>Email</span><strong>{session?.user?.email || "Sin sesion remota"}</strong>
               <span>Usuario</span><strong>{profile?.username || session?.user?.user_metadata?.username || "No definido"}</strong>
-              <span>Link rapido</span><strong>{`${window.location.origin}${window.location.pathname}?monto=10000`}</strong>
             </div>
             <div className="profile-action-grid">
               <button type="button" className="profile-action-card" onClick={() => setPasswordModalOpen(true)}>
@@ -2432,6 +2595,13 @@ export function App() {
                 <span>
                   <strong>Cambiar contraseña</strong>
                   <small>Actualiza tu acceso de forma segura.</small>
+                </span>
+              </button>
+              <button type="button" className="profile-action-card mobile-profile-signout" onClick={signOut}>
+                <LogOut size={20} />
+                <span>
+                  <strong>Salir</strong>
+                  <small>Cierra tu sesion en este dispositivo.</small>
                 </span>
               </button>
               <a className="profile-action-card" href={quickMovementShortcutUrl} target="_blank" rel="noreferrer">
@@ -2454,7 +2624,67 @@ export function App() {
             </div>
           </div>
           <div className="dashboard-panel profile-panel">
-            <h2>Cuentas y tarjetas</h2>
+            <h2>Administracion</h2>
+            <div className="profile-action-grid">
+              <button type="button" className="profile-action-card" onClick={() => setAccountModalOpen(true)}>
+                <CreditCard size={20} />
+                <span>
+                  <strong>Cuentas y tarjetas</strong>
+                  <small>{accounts.length} cuentas configuradas.</small>
+                </span>
+              </button>
+              <button type="button" className="profile-action-card" onClick={() => setResponsibleModalOpen(true)}>
+                <Users size={20} />
+                <span>
+                  <strong>Responsables</strong>
+                  <small>{responsibles.length} responsables disponibles.</small>
+                </span>
+              </button>
+              <button type="button" className="profile-action-card" onClick={() => setCategoryModalOpen(true)}>
+                <Tags size={20} />
+                <span>
+                  <strong>Categorias</strong>
+                  <small>{customCategories.length} categorias personalizadas.</small>
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {passwordModalOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel password-modal-panel" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+            <header className="modal-header">
+              <div>
+                <h2 id="password-modal-title">Cambiar contraseña</h2>
+                <p>Confirma tu contraseña actual antes de guardar una nueva.</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setPasswordModalOpen(false)} aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </header>
+            <PasswordChangeForm session={session} isRemote={isRemote} showTitle={false} />
+          </section>
+        </div>
+      )}
+
+      {accountModalOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel account-admin-modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
+            <header className="modal-header">
+              <div>
+                <h2 id="account-modal-title">Cuentas y tarjetas</h2>
+                <p>Administra dónde se registran tus movimientos y cómo se ordenan en la vista mensual.</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setAccountModalOpen(false)} aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </header>
+            <div className="account-help-panel">
+              <strong>Cómo funciona</strong>
+              <p>Las cuentas principales suman ingresos, egresos y transferencias. Las tarjetas registran compras y se pagan con el flujo Pago Tarjeta. Si una tarjeta ya tiene movimientos, se archiva en vez de eliminarse para conservar el historial.</p>
+            </div>
             <form className="account-admin-form" onSubmit={createAccount}>
               <label>
                 Nombre
@@ -2509,14 +2739,14 @@ export function App() {
                     </select>
                     <ColorPicker defaultValue={account.color || "#e2e8f0"} compact />
                     <span className="account-status">{account.archived ? "Archivada" : hasMovements ? "Con movimientos" : "Sin movimientos"}</span>
-                    <button type="submit" className="ghost-action">Guardar</button>
+                    <button type="submit" className="ghost-action account-save-action">Guardar</button>
                     {account.type === "tarjeta_credito" && (
-                      <button type="button" className="ghost-action" onClick={() => updateAccount(account, { archived: !account.archived })}>
+                      <button type="button" className="ghost-action account-archive-action" onClick={() => updateAccount(account, { archived: !account.archived })}>
                         {account.archived ? "Restaurar" : "Archivar"}
                       </button>
                     )}
                     {!account.locked && !hasMovements && (
-                      <button type="button" className="icon-button danger" onClick={() => deleteAccount(account)} aria-label={`Eliminar ${account.name}`}>
+                      <button type="button" className="icon-button danger account-delete-action" onClick={() => deleteAccount(account)} aria-label={`Eliminar ${account.name}`}>
                         <X size={16} />
                       </button>
                     )}
@@ -2524,9 +2754,22 @@ export function App() {
                 );
               })}
             </div>
-          </div>
-          <div className="dashboard-panel profile-panel">
-            <h2>Responsables</h2>
+          </section>
+        </div>
+      )}
+
+      {responsibleModalOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel responsible-admin-modal" role="dialog" aria-modal="true" aria-labelledby="responsible-modal-title">
+            <header className="modal-header">
+              <div>
+                <h2 id="responsible-modal-title">Responsables</h2>
+                <p>Administra las personas o grupos disponibles para asignar movimientos.</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setResponsibleModalOpen(false)} aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </header>
             <form className="responsible-form" onSubmit={createResponsible}>
               <input value={responsibleDraft} onChange={(event) => setResponsibleDraft(event.target.value)} placeholder="Ej: David, Krish, Casa" />
               <button type="submit" className="primary-action">
@@ -2544,20 +2787,45 @@ export function App() {
                 </div>
               ))}
             </div>
-          </div>
-          <div className="dashboard-panel profile-panel">
-            <h2>Categorias</h2>
+          </section>
+        </div>
+      )}
+
+      {categoryModalOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel category-admin-modal" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
+            <header className="modal-header">
+              <div>
+                <h2 id="category-modal-title">Categorias</h2>
+                <p>Crea categorias personalizadas y ajusta sus iconos.</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setCategoryModalOpen(false)} aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </header>
             <form className="category-admin-form" onSubmit={createCategory}>
               <label>
                 Nombre
                 <input value={categoryDraft.name} onChange={(event) => setCategoryDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Ej: Mascotas, Dividendos" required />
               </label>
-              <label>
-                Tipo
-                <select value={categoryDraft.type} onChange={(event) => setCategoryDraft((current) => ({ ...current, type: event.target.value }))}>
-                  <option>Ingreso</option>
-                  <option>Egreso</option>
-                </select>
+              <div className="category-type-icon-row">
+                <label>
+                  Tipo
+                  <select value={categoryDraft.type} onChange={(event) => setCategoryDraft((current) => ({ ...current, type: event.target.value }))}>
+                    <option>Ingreso</option>
+                    <option>Egreso</option>
+                  </select>
+                </label>
+                <label className="category-icon-field">
+                  Icono
+                  <button type="button" className="category-draft-icon-button" onClick={() => setCategoryIconModal({ name: categoryDraft.name.trim() || "Nueva categoria", type: categoryDraft.type, icon: categoryDraft.icon, color: categoryDraft.color, draft: true })} aria-label="Seleccionar icono para nueva categoria">
+                    <CategoryBadge category={categoryDraft.name.trim() || "Nueva categoria"} iconKey={categoryDraft.icon} compact iconOnly />
+                  </button>
+                </label>
+              </div>
+              <label className="category-color-field">
+                Color
+                <ColorPicker value={categoryDraft.color} onChange={(color) => setCategoryDraft((current) => ({ ...current, color }))} presets={categoryColorOptions} compact />
               </label>
               <button type="submit" className="primary-action">
                 <Plus size={18} />
@@ -2573,11 +2841,13 @@ export function App() {
                     <h3>{type}</h3>
                     <div className="category-chip-list">
                       {defaultList.map((category) => (
-                        <span className="category-chip default" key={category}>{category}</span>
+                        <span className="category-chip default" key={category} style={getCategoryStyle(category)}><CategoryBadge category={category} compact /></span>
                       ))}
                       {customList.map((category) => (
-                        <span className="category-chip custom" key={category.id || `${category.type}-${category.name}`}>
-                          {category.name}
+                        <span className="category-chip custom" key={category.id || `${category.type}-${category.name}`} style={getCategoryStyle(category.name, category.icon, category.color)}>
+                          <button type="button" className="category-chip-config" onClick={() => setCategoryIconModal(category)} aria-label={`Configurar categoria ${category.name}`}>
+                            <CategoryBadge category={category.name} iconKey={category.icon} color={category.color} compact />
+                          </button>
                           <button type="button" onClick={() => deleteCategory(category)} aria-label={`Eliminar categoria ${category.name}`}>
                             <X size={14} />
                           </button>
@@ -2588,40 +2858,78 @@ export function App() {
                 );
               })}
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       )}
 
-      {passwordModalOpen && (
+      {categoryIconModal && (
         <div className="modal-backdrop" role="presentation">
-          <section className="modal-panel password-modal-panel" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+          <section className="modal-panel category-icon-modal" role="dialog" aria-modal="true" aria-labelledby="category-icon-modal-title">
             <header className="modal-header">
               <div>
-                <h2 id="password-modal-title">Cambiar contraseña</h2>
-                <p>Confirma tu contraseña actual antes de guardar una nueva.</p>
+                <h2 id="category-icon-modal-title">Configurar categoria</h2>
+                <div className="movement-modal-meta">
+                  <CategoryBadge category={categoryIconModal.name} iconKey={categoryIconModal.icon} color={categoryIconModal.color} />
+                </div>
               </div>
-              <button type="button" className="icon-button" onClick={() => setPasswordModalOpen(false)} aria-label="Cerrar">
+              <button type="button" className="icon-button" onClick={() => setCategoryIconModal(null)} aria-label="Cerrar">
                 <X size={18} />
               </button>
             </header>
-            <PasswordChangeForm session={session} isRemote={isRemote} showTitle={false} />
+            <div className="category-visual-config">
+              <label>
+                Color
+                <ColorPicker
+                  value={categoryIconModal.color || "#475569"}
+                  onChange={(color) => {
+                    setCategoryIconModal((current) => ({ ...current, color }));
+                    if (categoryIconModal.draft) {
+                      setCategoryDraft((current) => ({ ...current, color }));
+                    } else {
+                      updateCategoryVisuals(categoryIconModal, { color });
+                    }
+                  }}
+                  presets={categoryColorOptions}
+                />
+              </label>
+              <div>
+                <span className="category-config-label">Icono</span>
+                <CategoryIconPicker
+                  value={categoryIconModal.icon}
+                  variant="grid"
+                  onChange={(icon) => {
+                    setCategoryIconModal((current) => ({ ...current, icon }));
+                    if (categoryIconModal.draft) {
+                      setCategoryDraft((current) => ({ ...current, icon }));
+                    } else {
+                      updateCategoryVisuals(categoryIconModal, { icon });
+                    }
+                  }}
+                />
+              </div>
+            </div>
           </section>
         </div>
       )}
 
       {movementModalOpen && (
         <div className="modal-backdrop" role="presentation">
-          <section className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="movement-modal-title">
+          <section className="modal-panel movement-modal-panel" role="dialog" aria-modal="true" aria-labelledby="movement-modal-title">
             <header className="modal-header">
-              <div>
-                <h2 id="movement-modal-title">{editingId ? "Editar movimiento" : "Agregar movimiento"}</h2>
-                <p>{monthLabels[(Number(draft.month) || Number(selectedMonth)) - 1]} {Number(draft.year) || Number(selectedYear)}</p>
+              <div className="movement-modal-title-block">
+                <div className="movement-modal-title-row">
+                  <h2 id="movement-modal-title">{editingId ? "Editar movimiento" : "Agregar movimiento"}</h2>
+                  <strong className={`pill ${movementModalType === "Ingreso" ? "income" : "expense"}`}>{movementModalType}</strong>
+                </div>
+                <div className="movement-modal-meta">
+                  <p>{monthLabels[(Number(draft.month) || Number(selectedMonth)) - 1]} {Number(draft.year) || Number(selectedYear)}</p>
+                </div>
               </div>
               <button type="button" className="icon-button" onClick={closeMovementModal} aria-label="Cerrar">
                 <X size={18} />
               </button>
             </header>
-            <MovementForm accounts={selectableAccounts} cardPaymentTotals={cardPaymentTotals} responsibles={responsibles} currentResponsible={currentResponsible} categoryOptionsByType={categoryOptionsByType} draft={draft} onChange={setDraft} onSubmit={handleSubmit} editingId={editingId} />
+            <MovementForm accounts={selectableAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={draftCardFullPaymentTotals} responsibles={responsibles} currentResponsible={currentResponsible} categoryOptionsByType={categoryOptionsByType} draft={draft} onChange={setDraft} onSubmit={handleSubmit} editingId={editingId} showTypeSummary={false} />
           </section>
         </div>
       )}

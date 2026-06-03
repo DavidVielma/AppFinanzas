@@ -6,9 +6,15 @@ create table if not exists public.categories (
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   name text not null,
   type text not null check (type in ('Ingreso', 'Egreso')),
+  icon text,
+  color text,
   created_at timestamptz not null default now(),
   unique (user_id, type, name)
 );
+
+alter table public.categories
+add column if not exists icon text,
+add column if not exists color text;
 
 create index if not exists categories_user_type_idx on public.categories(user_id, type);
 
@@ -64,6 +70,10 @@ end $$;
 `;
 
 async function main() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is required to apply the categories migration.");
+  }
+
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }

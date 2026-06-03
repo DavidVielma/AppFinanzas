@@ -213,22 +213,52 @@ export function calculateCreditCardPaymentTotals(movements, accounts = defaultAc
 }
 
 export function resolveDynamicPayments(movements, accounts = defaultAccounts) {
-  const paymentTotals = calculateCreditCardPaymentTotals(movements, accounts);
+  const resolved = movements.map((movement) => ({ ...movement }));
+  const autoPaymentIndexes = resolved
+    .map((movement, index) => ({ movement, index }))
+    .filter(({ movement }) => movement.flow === "Pago Tarjeta" && movement.target_account && movement.card_payment_mode === "auto")
+    .sort((a, b) => {
+      const aMovement = a.movement;
+      const bMovement = b.movement;
+      return (
+        Number(aMovement.year) - Number(bMovement.year) ||
+        Number(aMovement.month) - Number(bMovement.month) ||
+        Number(aMovement.sort_order || 0) - Number(bMovement.sort_order || 0) ||
+        Date.parse(aMovement.created_at || "") - Date.parse(bMovement.created_at || "") ||
+        String(aMovement.id || "").localeCompare(String(bMovement.id || ""))
+      );
+    });
 
-  return movements.map((movement) => {
-    if (movement.flow !== "Pago Tarjeta" || !movement.target_account) {
-      return movement;
-    }
+  autoPaymentIndexes.forEach(({ movement, index }) => {
+    const amount = -Math.abs(calculateCreditCardFullPaymentAmounts(resolved, movement.year, movement.month, accounts, { excludePaymentId: movement.id })?.[movement.target_account] || 0);
 
-    const key = getPeriodKey(movement.year, movement.month, movement.target_account);
-    const amount = -(paymentTotals[key] || 0);
-
-    return {
+    resolved[index] = {
       ...movement,
       amount,
-      type: getTypeFromAmount(amount)
+      type: getTypeFromAmount(amount),
+      card_payment_mode: "auto"
     };
   });
+
+  return resolved;
+}
+
+export function getCreditCardPaymentCoverage(movement, movements, accounts = defaultAccounts) {
+  if (movement?.flow !== "Pago Tarjeta" || !movement.target_account) {
+    return null;
+  }
+
+  const amountPaid = Math.abs(Number(movement.amount || 0));
+  const totalDue = Math.abs(Number(calculateCreditCardFullPaymentAmounts(movements, movement.year, movement.month, accounts, { excludePaymentId: movement.id })[movement.target_account] || 0));
+  const isTotal = totalDue > 0 && amountPaid >= totalDue - 1;
+
+  return {
+    amountPaid,
+    totalDue,
+    isTotal,
+    mode: isTotal ? "auto" : "manual",
+    label: isTotal ? "Total" : "Parcial"
+  };
 }
 
 function applyMovementToBalances(balances, movement) {
@@ -284,6 +314,64 @@ export function calculateAccountLedger(movements, year, month, accounts = defaul
   });
 
   return { opening, monthNet, closing };
+}
+
+export function calculateCreditCardPeriodStats(movements, year, month, accounts = defaultAccounts) {
+  const ledger = calculateAccountLedger(movements, year, month, accounts);
+  const cardAccounts = accounts.filter((account) => account.type === "tarjeta_credito");
+  const stats = {};
+
+  cardAccounts.forEach((account) => {
+    const cardName = account.name;
+    const openingBalance = Number(ledger.opening[cardName] || 0);
+    const closingBalance = Number(ledger.closing[cardName] || 0);
+    const monthCardMovements = movements.filter(
+      (movement) =>
+        Number(movement.year) === Number(year) &&
+        Number(movement.month) === Number(month) &&
+        (movement.account || "Principal") === cardName &&
+        !isInternalFlow(movement)
+    );
+    const monthNetCharges = monthCardMovements.reduce((sum, movement) => sum + Number(movement.amount || 0), 0);
+    const payments = movements
+      .filter(
+        (movement) =>
+          Number(movement.year) === Number(year) &&
+          Number(movement.month) === Number(month) &&
+          movement.flow === "Pago Tarjeta" &&
+          movement.target_account === cardName
+      )
+      .reduce((sum, movement) => sum + Math.abs(Number(movement.amount || 0)), 0);
+
+    stats[cardName] = {
+      openingDebt: Math.abs(Math.min(openingBalance, 0)),
+      monthCharges: Math.abs(Math.min(monthNetCharges, 0)),
+      payments,
+      pending: Math.abs(Math.min(closingBalance, 0)),
+      closingBalance
+    };
+  });
+
+  return stats;
+}
+
+export function calculateCreditCardFullPaymentAmounts(movements, year, month, accounts = defaultAccounts, options = {}) {
+  const excludePaymentId = options.excludePaymentId;
+  const adjustedMovements = excludePaymentId
+    ? movements.map((movement) =>
+        movement.id === excludePaymentId && movement.flow === "Pago Tarjeta"
+          ? { ...movement, amount: 0 }
+          : movement
+      )
+    : movements;
+  const stats = calculateCreditCardPeriodStats(adjustedMovements, year, month, accounts);
+
+  return Object.fromEntries(
+    Object.entries(stats).map(([cardName, item]) => {
+      const fullPaymentAmount = Math.max(0, item.openingDebt + item.monthCharges - item.payments);
+      return [cardName, fullPaymentAmount];
+    })
+  );
 }
 
 export function calculateSummary(movements, year, accounts = defaultAccounts) {

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CategoryBadge } from "./CategoryVisuals";
 import { formatCurrency, groupByCategory } from "../lib/finance";
 
 const palette = ["#155e63", "#d97745", "#2f8f5b", "#2f6fb0", "#c2410c", "#7c3aed", "#0f766e", "#b45309", "#be123c", "#475569", "#94a3b8"];
@@ -29,13 +30,20 @@ function describeDonutSlice(cx, cy, outerRadius, innerRadius, startAngle, endAng
 
 export function CategoryPieChart({ movements, scopeLabel = "Mes actual" }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const movementsByCategory = movements.reduce((acc, movement) => {
+  const [showAllMovements, setShowAllMovements] = useState(false);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const filteredMovements = movements.filter((movement) => {
+    if (typeFilter === "income") return Number(movement.amount) > 0;
+    if (typeFilter === "expense") return Number(movement.amount) < 0;
+    return true;
+  });
+  const movementsByCategory = filteredMovements.reduce((acc, movement) => {
     const category = movement.category || "Sin categoria";
     acc[category] = acc[category] || [];
     acc[category].push(movement);
     return acc;
   }, {});
-  const groups = Object.entries(groupByCategory(movements))
+  const groups = Object.entries(groupByCategory(filteredMovements))
     .map(([category, value]) => ({ category, value, size: Math.abs(Number(value) || 0), movements: movementsByCategory[category] || [] }))
     .filter((item) => item.size > 0)
     .sort((a, b) => b.size - a.size);
@@ -50,8 +58,24 @@ export function CategoryPieChart({ movements, scopeLabel = "Mes actual" }) {
     { category: "Otras", value: 0, size: 0, movements: [] }
   );
   const slices = other.size ? [...top, other] : top;
-  const selectedSlice = slices.find((item) => item.category === selectedCategory) || slices[0];
+  const selectedSlice = slices.find((item) => item.category === selectedCategory) || null;
   const total = slices.reduce((sum, item) => sum + item.size, 0);
+  const selectedPercent = selectedSlice && total ? (selectedSlice.size / total) * 100 : 0;
+  const selectedMovements = selectedSlice?.movements || [];
+  const visibleMovements = showAllMovements ? selectedMovements : selectedMovements.slice(0, 8);
+
+  useEffect(() => {
+    setShowAllMovements(false);
+  }, [selectedCategory, typeFilter]);
+
+  useEffect(() => {
+    setSelectedCategory(null);
+  }, [typeFilter]);
+
+  function selectSlice(category) {
+    setSelectedCategory((current) => (current === category ? null : category));
+  }
+
   let cursorAngle = 0;
   const sliceGeometry = slices.map((item, index) => {
     const angle = total ? (item.size / total) * 360 : 0;
@@ -89,6 +113,17 @@ export function CategoryPieChart({ movements, scopeLabel = "Mes actual" }) {
           <h2>Categorias principales</h2>
           <p>Top 10 categorias y acumulado en Otras · {scopeLabel}</p>
         </div>
+        <div className="pie-type-filter segmented compact-segmented" role="group" aria-label="Filtrar categorias por tipo">
+          <button type="button" className={typeFilter === "all" ? "active" : ""} onClick={() => setTypeFilter("all")}>
+            Todos
+          </button>
+          <button type="button" className={typeFilter === "income" ? "active" : ""} onClick={() => setTypeFilter("income")}>
+            Ingresos
+          </button>
+          <button type="button" className={typeFilter === "expense" ? "active" : ""} onClick={() => setTypeFilter("expense")}>
+            Egresos
+          </button>
+        </div>
       </div>
       <div className="pie-layout">
         <svg className="pie-chart" viewBox="0 0 420 420" role="img" aria-label="Grafica de torta por categorias">
@@ -97,12 +132,12 @@ export function CategoryPieChart({ movements, scopeLabel = "Mes actual" }) {
             <g
               className={`pie-slice ${selectedSlice?.category === item.category ? "active" : ""}`}
               key={item.category}
-              onClick={() => setSelectedCategory(item.category)}
+              onClick={() => selectSlice(item.category)}
               role="button"
               tabIndex="0"
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
-                  setSelectedCategory(item.category);
+                  selectSlice(item.category);
                 }
               }}
             >
@@ -124,41 +159,61 @@ export function CategoryPieChart({ movements, scopeLabel = "Mes actual" }) {
           ))}
           <circle cx="210" cy="210" r="66" fill="#fff" stroke="#dbe4e5" />
           <text className="pie-center-label" x="210" y="204" textAnchor="middle">
-            {sliceGeometry.length}
+            {selectedSlice ? `${selectedPercent.toFixed(0)}%` : sliceGeometry.length}
           </text>
           <text className="pie-center-subtitle" x="210" y="226" textAnchor="middle">
-            categorias
+            {selectedSlice ? "seleccionado" : "categorias"}
           </text>
         </svg>
         <div className="pie-legend">
           {sliceGeometry.map((item) => (
-            <div key={item.category}>
+            <button
+              type="button"
+              className={selectedSlice?.category === item.category ? "active" : ""}
+              key={item.category}
+              onClick={() => selectSlice(item.category)}
+              aria-pressed={selectedSlice?.category === item.category}
+            >
               <i style={{ backgroundColor: item.color }} />
-              <span>{item.category}</span>
+              <CategoryBadge category={item.category} compact />
               <em>{`${item.percent.toFixed(1)}%`}</em>
               <strong>{formatCurrency(item.value)}</strong>
-            </div>
+            </button>
           ))}
-          {!sliceGeometry.length && <p className="muted">Agrega movimientos para ver la torta por categoria.</p>}
+          {!sliceGeometry.length && <p className="muted">No hay movimientos para este filtro.</p>}
         </div>
         {selectedSlice && (
           <div className="pie-detail">
             <div>
               <span>Categoria seleccionada</span>
-              <strong>{selectedSlice.category}</strong>
+              <button type="button" className="pie-clear-selection" onClick={() => setSelectedCategory(null)}>
+                Limpiar
+              </button>
+            </div>
+            <div>
+              <span>Categoria</span>
+              <CategoryBadge category={selectedSlice.category} />
             </div>
             <div>
               <span>Total</span>
               <strong>{formatCurrency(selectedSlice.value)}</strong>
             </div>
+            <div>
+              <span>Movimientos</span>
+              <strong>{selectedMovements.length}</strong>
+            </div>
             <div className="pie-detail-list">
-              {selectedSlice.movements.slice(0, 8).map((movement) => (
+              {visibleMovements.map((movement) => (
                 <p key={movement.id}>
                   <span>{movement.description}</span>
                   <strong className={Number(movement.amount) >= 0 ? "income-text" : "expense-text"}>{formatCurrency(movement.amount)}</strong>
                 </p>
               ))}
-              {selectedSlice.movements.length > 8 && <small>+ {selectedSlice.movements.length - 8} movimientos mas</small>}
+              {selectedMovements.length > 8 && (
+                <button type="button" className="pie-more-button" onClick={() => setShowAllMovements((current) => !current)}>
+                  {showAllMovements ? "Ver menos" : `+ ${selectedMovements.length - 8} movimientos mas`}
+                </button>
+              )}
             </div>
           </div>
         )}

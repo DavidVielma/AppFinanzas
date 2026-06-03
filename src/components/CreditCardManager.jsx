@@ -14,7 +14,7 @@ const colorOptions = [
   { label: "Naranja", value: "#fed7aa" }
 ];
 
-export function CreditCardManager({ accounts, cardPaymentTotals, draft, onDraftChange, onCreate, onDelete }) {
+export function CreditCardManager({ accounts, cardPaymentTotals, cardPaymentStats = {}, draft, onDraftChange, onCreate, onDelete }) {
   const cards = accounts.filter((account) => account.type === "tarjeta_credito");
 
   return (
@@ -32,7 +32,7 @@ export function CreditCardManager({ accounts, cardPaymentTotals, draft, onDraftC
         </label>
         <label>
           Color
-          <ColorPicker value={draft.color} onChange={(color) => onDraftChange({ ...draft, color })} presets={colorOptions} compact />
+          <ColorPicker value={draft.color} onChange={(color) => onDraftChange({ ...draft, color })} presets={colorOptions} compact showHex={false} />
         </label>
         <button type="submit" className="primary-action">
           <Plus size={16} />
@@ -40,17 +40,21 @@ export function CreditCardManager({ accounts, cardPaymentTotals, draft, onDraftC
         </button>
       </form>
       <div className="card-list">
-        {cards.map((card) => (
-          <article className="credit-card-row" key={card.name} style={getAccountColorStyle(card.color)}>
-            <div>
-              <strong>{card.name}</strong>
-              <span>{formatCurrency(-(cardPaymentTotals[card.name] || 0))}</span>
-            </div>
-            <button type="button" className="icon-button danger" onClick={() => onDelete(card)} aria-label={`Eliminar ${card.name}`}>
-              <Trash2 size={16} />
-            </button>
-          </article>
-        ))}
+        {cards.map((card) => {
+          const stats = cardPaymentStats[card.name] || {};
+          return (
+            <article className="credit-card-row" key={card.name} style={getAccountColorStyle(card.color)}>
+              <div>
+                <strong>{card.name}</strong>
+                <span>Pendiente {formatCurrency(-(cardPaymentTotals[card.name] || 0))}</span>
+                {stats.payments > 0 && <small>Pagado este mes {formatCurrency(stats.payments)}</small>}
+              </div>
+              <button type="button" className="icon-button danger" onClick={() => onDelete(card)} aria-label={`Eliminar ${card.name}`}>
+                <Trash2 size={16} />
+              </button>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

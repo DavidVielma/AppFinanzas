@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, FileSearch, Pencil, Trash2 } from "lucide-react";
+import { CategoryBadge } from "./CategoryVisuals";
 import { formatCurrency } from "../lib/finance";
 
 function getStatusClass(status) {
@@ -40,6 +41,16 @@ function getTcSummaryLink(movement) {
   };
 }
 
+function getPaymentBadge(movement) {
+  if (movement.flow !== "Pago Tarjeta") return null;
+  return movement.payment_badge || (movement.card_payment_mode === "manual" ? "Parcial" : "Total");
+}
+
+function getPaymentBadgeMode(movement) {
+  if (movement.flow !== "Pago Tarjeta") return null;
+  return movement.payment_badge_mode || (movement.card_payment_mode === "manual" ? "manual" : "auto");
+}
+
 export function MovementTable({ movements, currentResponsible, onEdit, onDelete, onStatusChange, onMove, onOpenTcDetail }) {
   return (
     <div className="table-wrap">
@@ -59,11 +70,18 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
         <tbody>
           {movements.map((movement) => {
             const tcLink = getTcSummaryLink(movement);
+            const paymentBadge = getPaymentBadge(movement);
+            const paymentBadgeMode = getPaymentBadgeMode(movement);
             return (
             <tr key={movement.row_key || movement.id}>
               <td data-label="Descripcion" className="description-cell" title={movement.description}>
-                {movement.description}
-                {movement.recurring_id && <span className="recurring-badge">Recurrente</span>}
+                <span className="description-content">
+                  <span className="description-text">{movement.description}</span>
+                  <span className="movement-badges">
+                    {movement.recurring_id && <span className="recurring-badge">Recurrente</span>}
+                    {paymentBadge && <span className={`payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
+                  </span>
+                </span>
               </td>
               <td data-label="Cuenta" className="account-cell" title={`${movement.account || "Principal"}${movement.target_account ? ` -> ${movement.target_account}` : ""}`}>
                 {movement.account || "Principal"}
@@ -72,7 +90,7 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
               <td data-label="Tipo">
                 <span className={`pill ${movement.type === "Ingreso" ? "income" : "expense"}`}>{movement.type}</span>
               </td>
-              <td data-label="Categoria" className={getCategoryClass(movement.category)}>{movement.category}</td>
+              <td data-label="Categoria" className={getCategoryClass(movement.category)}><CategoryBadge category={movement.category} compact /></td>
               <td data-label="Responsables" title={formatResponsibles(movement.responsible, currentResponsible)}>{formatResponsibles(movement.responsible, currentResponsible)}</td>
               <td data-label="Estado">
                 <select
@@ -122,19 +140,24 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
         {movements.map((movement) => {
           const accountText = `${movement.account || "Principal"}${movement.target_account ? ` -> ${movement.target_account}` : ""}`;
           const tcLink = getTcSummaryLink(movement);
+          const paymentBadge = getPaymentBadge(movement);
+          const paymentBadgeMode = getPaymentBadgeMode(movement);
           return (
             <article className="mobile-movement-card" key={movement.row_key ? `${movement.row_key}-mobile` : `${movement.id}-mobile`}>
               <header>
                 <div>
-                  <strong>{movement.description}</strong>
-                  {movement.recurring_id && <span className="recurring-badge">Recurrente</span>}
-                  <span>{accountText}</span>
+                  <strong className="description-text">{movement.description}</strong>
+                  <span className="movement-badges">
+                    {movement.recurring_id && <span className="recurring-badge">Recurrente</span>}
+                    {paymentBadge && <span className={`payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
+                  </span>
+                  <span className="mobile-account-text">{accountText}</span>
                 </div>
                 <b className={movement.amount >= 0 ? "income-text" : "expense-text"}>{formatCurrency(movement.amount)}</b>
               </header>
               <div className="mobile-movement-meta">
                 <span className={`pill ${movement.type === "Ingreso" ? "income" : "expense"}`}>{movement.type}</span>
-                <span className={getCategoryClass(movement.category)}>{movement.category}</span>
+                <CategoryBadge category={movement.category} compact />
                 <span>{formatResponsibles(movement.responsible, currentResponsible)}</span>
               </div>
               <footer>
@@ -149,10 +172,10 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
                   <option>Pendiente</option>
                 </select>
                 <div className="mobile-card-actions">
-                  <button type="button" className="icon-button" onClick={() => onMove(movement, -1)} disabled={!movement.canMoveUp} aria-label="Subir movimiento">
+                  <button type="button" className="icon-button mobile-reorder-action" onClick={() => onMove(movement, -1)} disabled={!movement.canMoveUp} aria-label="Subir movimiento">
                     <ArrowUp size={14} />
                   </button>
-                  <button type="button" className="icon-button" onClick={() => onMove(movement, 1)} disabled={!movement.canMoveDown} aria-label="Bajar movimiento">
+                  <button type="button" className="icon-button mobile-reorder-action" onClick={() => onMove(movement, 1)} disabled={!movement.canMoveDown} aria-label="Bajar movimiento">
                     <ArrowDown size={14} />
                   </button>
                   <button type="button" className="icon-button" onClick={() => onEdit(movement.source_movement || movement)} aria-label="Editar movimiento">
