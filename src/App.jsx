@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ChevronDown, ChevronUp, ClipboardCopy, ClipboardPaste, CreditCard, FileText, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
+import { Camera, ChevronDown, ChevronUp, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
 import { AccountBalances } from "./components/AccountBalances";
 import { AccountEvolutionChart } from "./components/AccountEvolutionChart";
 import { AccountLedgerSections } from "./components/AccountLedgerSections";
@@ -7,7 +7,7 @@ import { AnnualFlowChart } from "./components/AnnualFlowChart";
 import { AnnualSummaryView } from "./components/AnnualSummaryView";
 import { AuthPanel } from "./components/AuthPanel";
 import { CategoryBreakdown } from "./components/CategoryBreakdown";
-import { CategoryBadge, CategoryIconPicker, getCategoryStyle, setCustomCategoryVisuals } from "./components/CategoryVisuals";
+import { CategoryBadge, CategoryIconPicker, CategorySelector, getCategoryStyle, setCustomCategoryVisuals } from "./components/CategoryVisuals";
 import { CategoryPieChart } from "./components/CategoryPieChart";
 import { ColorPicker } from "./components/ColorPicker";
 import { CreditCardAnalysis } from "./components/CreditCardAnalysis";
@@ -388,6 +388,7 @@ export function App() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(false);
   const [tcAnalysisFocus, setTcAnalysisFocus] = useState(null);
+  const [monthTransition, setMonthTransition] = useState(null);
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(hasPasswordRecoveryParams);
   const [quickLinkHandled, setQuickLinkHandled] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -397,6 +398,7 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [noticeAction, setNoticeAction] = useState(null);
   const movementSwipeRef = useRef(null);
+  const movementFilterPanelRef = useRef(null);
 
   const isRemote = hasSupabaseConfig && session && !demoMode;
   const hasOpenModal = Boolean(
@@ -449,6 +451,39 @@ export function App() {
       window.scrollTo(0, scrollY);
     };
   }, [hasOpenModal]);
+
+  useEffect(() => {
+    const shouldFreezeForMobileFilters =
+      activeView === "movements" &&
+      filtersOpen &&
+      window.matchMedia("(max-width: 720px)").matches;
+
+    if (!shouldFreezeForMobileFilters) return undefined;
+
+    const scrollY = window.scrollY;
+    const previousBodyStyles = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width
+    };
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyStyles.overflow;
+      document.body.style.position = previousBodyStyles.position;
+      document.body.style.top = previousBodyStyles.top;
+      document.body.style.width = previousBodyStyles.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, [activeView, filtersOpen]);
 
   useEffect(() => {
     if (!hasSupabaseConfig) {
@@ -1057,6 +1092,30 @@ export function App() {
     setNotice("Estado actualizado.");
   }
 
+  async function updateMovementQuickFields(movement, patch) {
+    const sourceMovement = movement.source_movement || movement;
+    const payload = { ...patch };
+
+    if (payload.category) {
+      payload.category = normalizeCategory(payload.category, sourceMovement.type, categoryOptionsByType[sourceMovement.type]);
+    }
+
+    if (payload.responsible) {
+      payload.responsible = serializeResponsibleNames(payload.responsible, currentResponsible);
+    }
+
+    if (isRemote) {
+      const { error } = await supabase.from("movements").update(payload).eq("id", sourceMovement.id);
+      if (error) {
+        setNotice(error.message);
+        return;
+      }
+    }
+
+    setMovements((current) => current.map((item) => (item.id === sourceMovement.id ? { ...item, ...payload } : item)));
+    setNotice("Movimiento actualizado.");
+  }
+
   async function syncRemoteData() {
     if (!isRemote) return;
 
@@ -1071,10 +1130,47 @@ export function App() {
     setNotice("Datos sincronizados.");
   }
 
+  function openMovementFilters() {
+    setActiveView("movements");
+    setFiltersOpen(true);
+    if (!window.matchMedia("(max-width: 720px)").matches) {
+      window.setTimeout(() => {
+        movementFilterPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+  }
+
+  function toggleStatusFilter(status) {
+    setFilters((current) => {
+      if (!status) {
+        return { ...current, status: [] };
+      }
+
+      const selected = Array.isArray(current.status) ? current.status : current.status ? [current.status] : [];
+      const nextStatus = selected.includes(status) ? selected.filter((item) => item !== status) : [...selected, status];
+      return { ...current, status: nextStatus };
+    });
+  }
+
   function moveSelectedMonth(offset) {
+    setMonthTransition(offset > 0 ? "next" : "prev");
     const period = addMonthsToPeriod(selectedYear, selectedMonth, offset);
     setSelectedYear(period.year);
     setSelectedMonth(period.month);
+  }
+
+  function updateSelectedPeriod(month, year, direction = 0) {
+    const nextMonth = Number(month);
+    const nextYear = Number(year);
+    const currentValue = Number(selectedYear) * 12 + Number(selectedMonth);
+    const nextValue = nextYear * 12 + nextMonth;
+
+    if (nextValue !== currentValue) {
+      setMonthTransition(direction ? (direction > 0 ? "next" : "prev") : nextValue > currentValue ? "next" : "prev");
+    }
+
+    setSelectedMonth(nextMonth);
+    setSelectedYear(nextYear);
   }
 
   function isInteractiveSwipeTarget(target) {
@@ -1110,28 +1206,9 @@ export function App() {
     moveSelectedMonth(deltaX < 0 ? 1 : -1);
   }
 
-  async function moveMovement(movement, direction) {
-    const account = movement.display_account || movement.account || "Principal";
-    const movementId = movement.source_movement?.id || movement.id;
-    const sameAccountRows = movements
-      .filter((item) => {
-        const samePeriod = Number(item.year) === Number(movement.year) && Number(item.month) === Number(movement.month);
-        const belongsToAccount = (item.account || "Principal") === account || (item.flow === "Transferencia" && item.target_account === account);
-        return samePeriod && belongsToAccount;
-      })
-      .sort((a, b) => getMovementSortValueForAccount(a, account) - getMovementSortValueForAccount(b, account) || String(a.id).localeCompare(String(b.id)));
-    const index = sameAccountRows.findIndex((item) => item.id === movementId);
-    const nextIndex = index + direction;
-
-    if (index < 0 || nextIndex < 0 || nextIndex >= sameAccountRows.length) {
-      return;
-    }
-
-    const reorderedRows = [...sameAccountRows];
-    const [movedRow] = reorderedRows.splice(index, 1);
-    reorderedRows.splice(nextIndex, 0, movedRow);
+  async function applyMovementOrder(account, orderedRows) {
     const baseOrder = Date.now();
-    const orderUpdates = reorderedRows.map((item, itemIndex) => ({
+    const orderUpdates = orderedRows.map((item, itemIndex) => ({
       id: item.id,
       field: getMovementSortFieldForAccount(item, account),
       value: baseOrder + itemIndex
@@ -1153,9 +1230,56 @@ export function App() {
       if (error) {
         setNotice(error.message);
         loadMovements();
-        return;
+        return false;
       }
     }
+
+    return true;
+  }
+
+  function getMovementRowsForAccount(movement, account) {
+    return movements
+      .filter((item) => {
+        const samePeriod = Number(item.year) === Number(movement.year) && Number(item.month) === Number(movement.month);
+        const belongsToAccount = (item.account || "Principal") === account || (item.flow === "Transferencia" && item.target_account === account);
+        return samePeriod && belongsToAccount;
+      })
+      .sort((a, b) => getMovementSortValueForAccount(a, account) - getMovementSortValueForAccount(b, account) || String(a.id).localeCompare(String(b.id)));
+  }
+
+  async function moveMovement(movement, direction) {
+    const account = movement.display_account || movement.account || "Principal";
+    const movementId = movement.source_movement?.id || movement.id;
+    const sameAccountRows = getMovementRowsForAccount(movement, account);
+    const index = sameAccountRows.findIndex((item) => item.id === movementId);
+    const nextIndex = index + direction;
+
+    if (index < 0 || nextIndex < 0 || nextIndex >= sameAccountRows.length) {
+      return;
+    }
+
+    const reorderedRows = [...sameAccountRows];
+    const [movedRow] = reorderedRows.splice(index, 1);
+    reorderedRows.splice(nextIndex, 0, movedRow);
+    await applyMovementOrder(account, reorderedRows);
+  }
+
+  async function moveMovementToMovement(movement, targetMovement) {
+    const account = movement.display_account || movement.account || "Principal";
+    const movementId = movement.source_movement?.id || movement.id;
+    const targetId = targetMovement.source_movement?.id || targetMovement.id;
+    const sameAccountRows = getMovementRowsForAccount(movement, account);
+    const index = sameAccountRows.findIndex((item) => item.id === movementId);
+    const targetIndex = sameAccountRows.findIndex((item) => item.id === targetId);
+
+    if (index < 0 || targetIndex < 0 || index === targetIndex) {
+      return;
+    }
+
+    const reorderedRows = [...sameAccountRows];
+    const [movedRow] = reorderedRows.splice(index, 1);
+    reorderedRows.splice(targetIndex, 0, movedRow);
+    await applyMovementOrder(account, reorderedRows);
   }
 
   function openCopyModal() {
@@ -2113,6 +2237,7 @@ export function App() {
     [accounts, resolvedMovements, selectedMonth, selectedYear]
   );
   const currentResponsible = profile?.username || getDefaultResponsible(session);
+  const selectedStatusFilters = Array.isArray(filters.status) ? filters.status : filters.status ? [filters.status] : [];
 
   function matchesMovementFilters(movement) {
     const search = filters.search.trim().toLowerCase();
@@ -2124,7 +2249,7 @@ export function App() {
       (!filters.responsible || movementResponsibles.includes(filters.responsible)) &&
       (!filters.type || movement.type === filters.type) &&
       (!filters.category || movement.category === filters.category) &&
-      (!filters.status || movement.status === filters.status) &&
+      (!selectedStatusFilters.length || selectedStatusFilters.includes(movement.status)) &&
       (!filters.flow || movement.flow === filters.flow)
     );
   }
@@ -2144,7 +2269,7 @@ export function App() {
     statuses: ["Confirmado", "Proyectado", "Pendiente"],
     flows: ["Movimiento", "Transferencia", "Pago Tarjeta"]
   };
-  const hasActiveFilters = Object.values(filters).some(Boolean);
+  const hasActiveFilters = Object.values(filters).some((value) => (Array.isArray(value) ? value.length > 0 : Boolean(value)));
   const selectedMonthSummary = summary.monthly.find((item) => item.month === Number(selectedMonth));
   const accountBalances = useMemo(() => calculateAccountBalances(resolvedMovements, accounts), [accounts, resolvedMovements]);
   const cardPaymentTotals = useMemo(() => {
@@ -2240,6 +2365,17 @@ export function App() {
         </button>
       )}
 
+      {activeView === "movements" && (
+        <button type="button" className={`filter-action-button ${hasActiveFilters ? "has-active-filters" : ""}`} onClick={openMovementFilters} aria-label="Abrir filtros">
+          <Filter size={20} />
+          <span>Filtros</span>
+        </button>
+      )}
+
+      {activeView === "movements" && filtersOpen && (
+        <button type="button" className="filter-drawer-backdrop" onClick={() => setFiltersOpen(false)} aria-label="Cerrar filtros" />
+      )}
+
       {notice && (
         <div className="toast-notice" role="status" aria-live="polite">
           <span>{notice}</span>
@@ -2287,10 +2423,10 @@ export function App() {
       {activeView !== "profile" && activeView !== "annual-summary" && activeView !== "tc-analysis" && (
         <>
       <section className="controls-row">
-        <PeriodSelector month={selectedMonth} year={selectedYear} onChange={({ month, year }) => { setSelectedMonth(Number(month)); setSelectedYear(Number(year)); }} />
+        <PeriodSelector month={selectedMonth} year={selectedYear} onChange={({ month, year }) => updateSelectedPeriod(month, year)} />
         <label>
           Año
-          <select value={selectedYear} onChange={(event) => setSelectedYear(Number(event.target.value))}>
+          <select value={selectedYear} onChange={(event) => updateSelectedPeriod(selectedMonth, event.target.value)}>
             {yearOptions.map((year) => (
               <option key={year} value={year}>
                 {year}
@@ -2300,7 +2436,7 @@ export function App() {
         </label>
         <label>
           Mes
-          <select value={selectedMonth} onChange={(event) => setSelectedMonth(Number(event.target.value))}>
+          <select value={selectedMonth} onChange={(event) => updateSelectedPeriod(event.target.value, selectedYear)}>
             {monthLabels.map((month, index) => (
               <option key={month} value={index + 1}>
                 {month}
@@ -2321,13 +2457,13 @@ export function App() {
       </section>
 
       <SummaryCards summary={summary} selectedMonth={selectedMonth} />
-      <MonthlyGrid summary={summary} selectedMonth={selectedMonth} onSelectMonth={setSelectedMonth} />
+      <MonthlyGrid summary={summary} selectedMonth={selectedMonth} onSelectMonth={(month) => updateSelectedPeriod(month, selectedYear)} />
         </>
       )}
 
       {activeView === "movements" && (
       <section className="work-area" onTouchStart={handleMovementTouchStart} onTouchEnd={handleMovementTouchEnd}>
-        <div className="ledger-panel">
+        <div className={`ledger-panel month-transition-panel ${monthTransition ? `is-month-${monthTransition}` : ""}`} onAnimationEnd={() => setMonthTransition(null)}>
           <div className="section-heading">
             <div>
               <h2>Detalle mensual</h2>
@@ -2338,7 +2474,7 @@ export function App() {
               Agregar movimiento
             </button>
           </div>
-          <section className={`filter-panel ${filtersOpen ? "open" : ""}`}>
+          <section className={`filter-panel ${filtersOpen ? "open" : ""}`} ref={movementFilterPanelRef}>
             <div className="filter-heading">
               <div>
                 <h3>Filtros</h3>
@@ -2352,6 +2488,29 @@ export function App() {
                   Limpiar
                 </button>
               </div>
+            </div>
+            <div className="mobile-filter-shortcuts">
+              <fieldset className="mobile-filter-type">
+                <legend>Tipo</legend>
+                <div className="filter-segmented">
+                  {["", "Ingreso", "Egreso"].map((type) => (
+                    <button type="button" className={filters.type === type ? "active" : ""} key={type || "all-types"} onClick={() => setFilters((current) => ({ ...current, type }))}>
+                      {type || "Todo"}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="mobile-filter-status">
+                <legend>Estado</legend>
+                <div className="filter-segmented">
+                  {["", "Confirmado", "Pendiente", "Proyectado"].map((status) => (
+                    <button type="button" className={(!status && selectedStatusFilters.length === 0) || selectedStatusFilters.includes(status) ? "active" : ""} key={status || "all-statuses"} onClick={() => toggleStatusFilter(status)} aria-pressed={!status ? selectedStatusFilters.length === 0 : selectedStatusFilters.includes(status)}>
+                      {status || "Todo"}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              <CategorySelector categories={["Todas", ...filterOptions.categories]} value={filters.category || "Todas"} onChange={(category) => setFilters((current) => ({ ...current, category: category === "Todas" ? "" : category }))} />
             </div>
             <div className="filter-grid">
               <label>
@@ -2396,7 +2555,7 @@ export function App() {
               </label>
               <label>
                 Estado
-                <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
+                <select value={selectedStatusFilters.length === 1 ? selectedStatusFilters[0] : ""} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
                   <option value="">Todos</option>
                   {filterOptions.statuses.map((status) => (
                     <option key={status}>{status}</option>
@@ -2414,7 +2573,7 @@ export function App() {
               </label>
             </div>
           </section>
-          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} cardPaymentStats={cardPaymentStats} movements={monthMovements} allMovements={resolvedMovements} currentResponsible={currentResponsible} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onMove={moveMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
+          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} cardPaymentStats={cardPaymentStats} movements={monthMovements} allMovements={resolvedMovements} currentResponsible={currentResponsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onQuickUpdate={updateMovementQuickFields} onMove={moveMovement} onMoveToMovement={moveMovementToMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
         </div>
 
         <aside className="side-panel">
@@ -2429,6 +2588,13 @@ export function App() {
           </section>
         </aside>
       </section>
+      )}
+
+      {activeView === "movements" && monthTransition && (
+        <div className="month-change-flash" aria-hidden="true">
+          <span>{monthLabels[selectedMonth - 1]}</span>
+          <strong>{selectedYear}</strong>
+        </div>
       )}
 
       {activeView === "annual-summary" && (
@@ -2519,7 +2685,7 @@ export function App() {
               </label>
               <label>
                 Estado
-                <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
+                <select value={selectedStatusFilters.length === 1 ? selectedStatusFilters[0] : ""} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
                   <option value="">Todos</option>
                   {filterOptions.statuses.map((status) => (
                     <option key={status}>{status}</option>

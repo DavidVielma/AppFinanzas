@@ -33,7 +33,7 @@ function getAccountColorToken(account) {
   return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
 }
 
-export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onMove, onQuickAdd, onQuickPay, onOpenTcDetail }) {
+export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onQuickAdd, onQuickPay, onOpenTcDetail }) {
   const visibleAccounts = accounts.filter((account) => account.name !== "Otros");
   const accountsByName = Object.fromEntries(visibleAccounts.map((account) => [account.name, account]));
   const grouped = visibleAccounts.reduce((acc, account) => {
@@ -148,7 +148,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
             </div>
           </div>
         )}
-        <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onMove={onMove} onOpenTcDetail={onOpenTcDetail} />
+        <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onQuickUpdate={onQuickUpdate} onMove={onMove} onMoveToMovement={onMoveToMovement} onOpenTcDetail={onOpenTcDetail} />
       </section>
     );
   }

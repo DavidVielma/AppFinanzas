@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, FileSearch, Pencil, Trash2 } from "lucide-react";
 import { CategoryBadge } from "./CategoryVisuals";
 import { formatCurrency } from "../lib/finance";
@@ -30,6 +31,34 @@ function formatResponsibles(value, currentResponsible) {
   return raw.split(",").map((name) => displayName(name.trim())).join(", ");
 }
 
+function normalizeResponsibleName(name, currentResponsible) {
+  const value = String(name || "").trim();
+  if (!value || value.toLowerCase() === "yo") return currentResponsible || "Yo";
+  return value;
+}
+
+function parseResponsibleNames(value, currentResponsible) {
+  const raw = String(value || "").trim();
+  if (!raw) return [currentResponsible || "Yo"];
+
+  if (raw.startsWith("[") && raw.endsWith("]")) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((name) => normalizeResponsibleName(name, currentResponsible)).filter(Boolean);
+      }
+    } catch {
+      return [raw];
+    }
+  }
+
+  return raw.split(",").map((name) => normalizeResponsibleName(name, currentResponsible)).filter(Boolean);
+}
+
+function displayResponsibleName(name, currentResponsible) {
+  return normalizeResponsibleName(name, currentResponsible) === currentResponsible || String(name).toLowerCase() === "yo" ? "Yo" : name;
+}
+
 function getTcSummaryLink(movement) {
   const description = String(movement?.source_movement?.description || movement?.description || "");
   if (!description.startsWith("TC ")) return null;
@@ -51,7 +80,274 @@ function getPaymentBadgeMode(movement) {
   return movement.payment_badge_mode || (movement.card_payment_mode === "manual" ? "manual" : "auto");
 }
 
-export function MovementTable({ movements, currentResponsible, onEdit, onDelete, onStatusChange, onMove, onOpenTcDetail }) {
+function isInteractiveTarget(target) {
+  return Boolean(target?.closest("button, a, input, select, textarea, label, [role='button']"));
+}
+
+function getMovementKey(movement) {
+  return movement.row_key || movement.id;
+}
+
+function reorderMovementsForDrag(items, fromIndex, toIndex) {
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return items;
+
+  const reordered = [...items];
+  const [moved] = reordered.splice(fromIndex, 1);
+  reordered.splice(toIndex, 0, moved);
+  return reordered;
+}
+
+export function MovementTable({ movements, currentResponsible, responsibles = [], categoryOptionsByType = {}, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onOpenTcDetail }) {
+  const longPressTimerRef = useRef(null);
+  const dragRef = useRef(null);
+  const dragFrameRef = useRef(null);
+  const autoScrollFrameRef = useRef(null);
+  const scrollLockRef = useRef(null);
+  const [dragState, setDragState] = useState(null);
+  const [mobileEditor, setMobileEditor] = useState(null);
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(longPressTimerRef.current);
+      window.cancelAnimationFrame(dragFrameRef.current);
+      stopAutoScroll();
+      unlockPageScroll();
+    };
+  }, []);
+
+  function clearLongPressTimer() {
+    window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+  }
+
+  function preventPageScroll(event) {
+    if (!dragRef.current?.active) return;
+
+    const touch = Array.from(event.touches).find((item) => item.identifier === dragRef.current.touchId);
+    if (touch) {
+      updateDragOverFromTouch(touch);
+    }
+
+    event.preventDefault();
+  }
+
+  function lockPageScroll() {
+    if (scrollLockRef.current) return;
+
+    scrollLockRef.current = {
+      bodyOverflow: document.body.style.overflow,
+      htmlOverflow: document.documentElement.style.overflow,
+      preventPageScroll
+    };
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.addEventListener("touchmove", preventPageScroll, { passive: false, capture: true });
+  }
+
+  function unlockPageScroll() {
+    if (!scrollLockRef.current) return;
+
+    document.body.style.overflow = scrollLockRef.current.bodyOverflow;
+    document.documentElement.style.overflow = scrollLockRef.current.htmlOverflow;
+    document.removeEventListener("touchmove", scrollLockRef.current.preventPageScroll, { capture: true });
+    scrollLockRef.current = null;
+  }
+
+  function stopAutoScroll() {
+    window.cancelAnimationFrame(autoScrollFrameRef.current);
+    autoScrollFrameRef.current = null;
+  }
+
+  function updateAutoScroll(clientY) {
+    const drag = dragRef.current;
+    if (!drag?.active) return;
+
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const edgeSize = Math.min(120, Math.max(72, viewportHeight * 0.16));
+    const topDistance = clientY;
+    const bottomDistance = viewportHeight - clientY;
+    let speed = 0;
+
+    if (bottomDistance < edgeSize) {
+      speed = Math.min(18, Math.max(4, (edgeSize - bottomDistance) / 5));
+    } else if (topDistance < edgeSize) {
+      speed = -Math.min(18, Math.max(4, (edgeSize - topDistance) / 5));
+    }
+
+    drag.autoScrollSpeed = speed;
+
+    if (!speed) {
+      stopAutoScroll();
+      return;
+    }
+
+    if (autoScrollFrameRef.current) return;
+
+    function step() {
+      const activeDrag = dragRef.current;
+      if (!activeDrag?.active || !activeDrag.autoScrollSpeed) {
+        stopAutoScroll();
+        return;
+      }
+
+      window.scrollBy(0, activeDrag.autoScrollSpeed);
+      updateDragOverPosition();
+      autoScrollFrameRef.current = window.requestAnimationFrame(step);
+    }
+
+    autoScrollFrameRef.current = window.requestAnimationFrame(step);
+  }
+
+  function startMobileDrag(event, movement, index) {
+    if (isInteractiveTarget(event.target) || event.touches.length !== 1) return;
+
+    clearLongPressTimer();
+    const touch = event.touches[0];
+    dragRef.current = {
+      touchId: touch.identifier,
+      movement,
+      startIndex: index,
+      overIndex: index,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startScrollY: window.scrollY || document.documentElement.scrollTop || 0,
+      lastY: touch.clientY,
+      autoScrollSpeed: 0,
+      itemHeight: Math.max(56, event.currentTarget.getBoundingClientRect().height),
+      active: false
+    };
+
+    longPressTimerRef.current = window.setTimeout(() => {
+      if (!dragRef.current || dragRef.current.touchId !== touch.identifier) return;
+      dragRef.current.active = true;
+      lockPageScroll();
+      setDragState({ draggingIndex: index, overIndex: index, draggingKey: getMovementKey(movement) });
+    }, 360);
+  }
+
+  function updateMobileDrag(event) {
+    const drag = dragRef.current;
+    if (!drag) return;
+
+    const touch = Array.from(event.touches).find((item) => item.identifier === drag.touchId);
+    if (!touch) return;
+
+    if (!drag.active) {
+      const deltaX = Math.abs(touch.clientX - drag.startX);
+      const deltaY = Math.abs(touch.clientY - drag.startY);
+      if (deltaX > 18 || deltaY > 18) {
+        clearLongPressTimer();
+        dragRef.current = null;
+        unlockPageScroll();
+      }
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    updateDragOverFromTouch(touch);
+  }
+
+  function updateDragOverFromTouch(touch) {
+    const drag = dragRef.current;
+    if (!drag?.active) return;
+
+    drag.lastY = touch.clientY;
+    updateAutoScroll(touch.clientY);
+    if (dragFrameRef.current) return;
+
+    dragFrameRef.current = window.requestAnimationFrame(() => {
+      dragFrameRef.current = null;
+      updateDragOverPosition();
+    });
+  }
+
+  function updateDragOverPosition() {
+    const drag = dragRef.current;
+    if (!drag?.active) return;
+
+    const threshold = Math.max(68, drag.itemHeight * 0.9);
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const touchOffset = drag.lastY - drag.startY;
+    const scrollOffset = scrollY - drag.startScrollY;
+    const offset = touchOffset + scrollOffset;
+    const steps = Math.trunc(offset / threshold);
+    const overIndex = Math.max(0, Math.min(drag.startIndex + steps, movements.length - 1));
+
+    if (Number.isFinite(overIndex) && overIndex !== drag.overIndex) {
+      drag.overIndex = overIndex;
+      setDragState({ draggingIndex: drag.startIndex, overIndex, draggingKey: getMovementKey(drag.movement) });
+    }
+  }
+
+  function endMobileDrag(event) {
+    const drag = dragRef.current;
+    if (!drag) return;
+
+    clearLongPressTimer();
+    window.cancelAnimationFrame(dragFrameRef.current);
+    dragFrameRef.current = null;
+    stopAutoScroll();
+    dragRef.current = null;
+    setDragState(null);
+    unlockPageScroll();
+
+    if (!drag.active || drag.overIndex === drag.startIndex) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const targetMovement = movements[drag.overIndex];
+    if (targetMovement) {
+      onMoveToMovement?.(drag.movement, targetMovement);
+    }
+  }
+
+  function cancelMobileDrag() {
+    clearLongPressTimer();
+    window.cancelAnimationFrame(dragFrameRef.current);
+    dragFrameRef.current = null;
+    stopAutoScroll();
+    dragRef.current = null;
+    setDragState(null);
+    unlockPageScroll();
+  }
+
+  function getMobileEditorKey(movement) {
+    return `${movement.row_key || movement.id}-mobile-editor`;
+  }
+
+  function toggleMobileEditor(type, movement) {
+    const key = getMobileEditorKey(movement);
+    setMobileEditor((current) => (current?.type === type && current?.key === key ? null : { type, key }));
+  }
+
+  function getCategoryOptions(movement) {
+    const baseOptions = categoryOptionsByType[movement.type] || [];
+    return Array.from(new Set([movement.category || "Sin definir", ...baseOptions]));
+  }
+
+  function getResponsibleOptions(movement) {
+    const selectedNames = parseResponsibleNames(movement.responsible, currentResponsible);
+    return Array.from(new Set([currentResponsible || "Yo", ...responsibles.map((responsible) => normalizeResponsibleName(responsible.name, currentResponsible)), ...selectedNames]));
+  }
+
+  function updateMobileCategory(movement, category) {
+    setMobileEditor(null);
+    onQuickUpdate?.(movement.source_movement || movement, { category });
+  }
+
+  function toggleMovementResponsible(movement, responsible) {
+    const selectedNames = parseResponsibleNames(movement.responsible, currentResponsible);
+    const normalized = normalizeResponsibleName(responsible, currentResponsible);
+    const isSelected = selectedNames.includes(normalized);
+    const nextNames = isSelected ? selectedNames.filter((name) => name !== normalized) : [...selectedNames, normalized];
+    onQuickUpdate?.(movement.source_movement || movement, { responsible: nextNames.length ? nextNames.join(", ") : normalized });
+  }
+
+  const mobileMovements = dragState
+    ? reorderMovementsForDrag(movements, dragState.draggingIndex, dragState.overIndex)
+    : movements;
+
   return (
     <div className="table-wrap">
       <table>
@@ -137,13 +433,26 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
         </tbody>
       </table>
       <div className="mobile-movement-list">
-        {movements.map((movement) => {
+        {mobileMovements.map((movement) => {
+          const originalIndex = movements.findIndex((item) => getMovementKey(item) === getMovementKey(movement));
           const accountText = `${movement.account || "Principal"}${movement.target_account ? ` -> ${movement.target_account}` : ""}`;
           const tcLink = getTcSummaryLink(movement);
           const paymentBadge = getPaymentBadge(movement);
           const paymentBadgeMode = getPaymentBadgeMode(movement);
+          const isDragging = dragState?.draggingKey === getMovementKey(movement);
+          const editorKey = getMobileEditorKey(movement);
+          const selectedResponsibles = parseResponsibleNames(movement.responsible, currentResponsible);
           return (
-            <article className="mobile-movement-card" key={movement.row_key ? `${movement.row_key}-mobile` : `${movement.id}-mobile`}>
+            <article
+              className={`mobile-movement-card${isDragging ? " is-dragging" : ""}`}
+              key={movement.row_key ? `${movement.row_key}-mobile` : `${movement.id}-mobile`}
+              data-mobile-movement-index={originalIndex}
+              onTouchStart={(event) => startMobileDrag(event, movement, originalIndex)}
+              onTouchMove={updateMobileDrag}
+              onTouchEnd={endMobileDrag}
+              onTouchCancel={cancelMobileDrag}
+              onContextMenu={(event) => event.preventDefault()}
+            >
               <header>
                 <div>
                   <strong className="description-text">{movement.description}</strong>
@@ -157,9 +466,36 @@ export function MovementTable({ movements, currentResponsible, onEdit, onDelete,
               </header>
               <div className="mobile-movement-meta">
                 <span className={`pill ${movement.type === "Ingreso" ? "income" : "expense"}`}>{movement.type}</span>
-                <CategoryBadge category={movement.category} compact />
-                <span>{formatResponsibles(movement.responsible, currentResponsible)}</span>
+                <button type="button" className="mobile-chip-button category-chip-button" onClick={() => toggleMobileEditor("category", movement)} aria-expanded={mobileEditor?.type === "category" && mobileEditor?.key === editorKey} aria-label={`Editar categoria de ${movement.description}`}>
+                  <CategoryBadge category={movement.category} compact />
+                </button>
+                {selectedResponsibles.map((responsible) => (
+                  <button type="button" className="mobile-chip-button responsible-chip-button" key={responsible} onClick={() => toggleMobileEditor("responsible", movement)} aria-expanded={mobileEditor?.type === "responsible" && mobileEditor?.key === editorKey} aria-label={`Editar responsables de ${movement.description}`}>
+                    {displayResponsibleName(responsible, currentResponsible)}
+                  </button>
+                ))}
               </div>
+              {mobileEditor?.type === "category" && mobileEditor.key === editorKey && (
+                <div className="mobile-inline-editor category-inline-editor">
+                  {getCategoryOptions(movement).map((category) => (
+                    <button type="button" className={category === movement.category ? "active" : ""} key={category} onClick={() => updateMobileCategory(movement, category)}>
+                      <CategoryBadge category={category} compact />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {mobileEditor?.type === "responsible" && mobileEditor.key === editorKey && (
+                <div className="mobile-inline-editor responsible-inline-editor">
+                  {getResponsibleOptions(movement).map((responsible) => {
+                    const selected = selectedResponsibles.includes(responsible);
+                    return (
+                      <button type="button" className={selected ? "active" : ""} key={responsible} onClick={() => toggleMovementResponsible(movement, responsible)} aria-pressed={selected}>
+                        {displayResponsibleName(responsible, currentResponsible)}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <footer>
                 <select
                   className={`status-select ${getStatusClass(movement.status)}`}
