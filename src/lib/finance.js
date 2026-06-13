@@ -100,6 +100,18 @@ export function normalizeCategory(category, type = "Egreso", categoryOptions = n
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/\s+/g, " ");
+  const options = categoryOptions || getCategoryOptions(type);
+  const matchingOption = options.find((option) => String(option || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ") === normalized);
+
+  if (matchingOption) {
+    return matchingOption;
+  }
+
   const aliases = {
     alimentacion: "Alimentacion",
     alimentos: "Alimentacion",
@@ -160,7 +172,6 @@ export function normalizeCategory(category, type = "Egreso", categoryOptions = n
   if (["Transferencia", "Pago Tarjeta", "Ahorro"].includes(canonical)) {
     return canonical;
   }
-  const options = categoryOptions || getCategoryOptions(type);
   return options.includes(canonical) ? canonical : "Otros";
 }
 
