@@ -1727,12 +1727,12 @@ th {
 
 th:nth-child(1),
 td:nth-child(1) {
-  width: 20%;
+  width: 18%;
 }
 
 th:nth-child(2),
 td:nth-child(2) {
-  width: 16%;
+  width: 14%;
 }
 
 th:nth-child(3),
@@ -1762,7 +1762,7 @@ td:nth-child(7) {
 
 th:nth-child(8),
 td:nth-child(8) {
-  width: 7%;
+  width: 11%;
 }
 
 .amount-col {
@@ -1798,6 +1798,8 @@ td:nth-child(8) {
   text-align: center;
   overflow: visible;
   white-space: nowrap;
+  padding-right: 3px;
+  padding-left: 3px;
 }
 
 .pill {
@@ -5561,6 +5563,70 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
 }
 .personal-payment-dot.paid { background: #22a35a; }
 .personal-payment-dot.pending { background: #e6a817; }
+
+.reimbursement-modal { width: min(620px, 100%); }
+.reimbursement-source-summary,
+.reimbursement-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: #edf6f3;
+  color: #365b5e;
+}
+.reimbursement-person-list { display: grid; gap: 9px; margin: 14px 0; }
+.reimbursement-period-control { max-width: 280px; margin: 14px 0; }
+.reimbursement-period-control .period-picker { width: 100%; }
+.reimbursement-person-list label {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(150px, 0.8fr);
+  align-items: center;
+  gap: 12px;
+  font-weight: 800;
+}
+.reimbursement-person-list label > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 7px;
+  padding-left: 10px;
+  border: 1px solid #ccd9df;
+  border-radius: 9px;
+  background: #ffffff;
+}
+.reimbursement-person-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.reimbursement-person-name button {
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 1px solid #e8c76c;
+  border-radius: 999px;
+  background: #fff4cf;
+  color: #8a5a00;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+.reimbursement-person-name button.paid { border-color: #86d5a4; background: #dcfce7; color: #166534; }
+.reimbursement-person-list input { width: 100%; min-height: 42px; border: 0; background: transparent; }
+.reimbursement-person-list input:focus { outline: 0; }
+.reimbursement-help { margin: 12px 0; color: #64748b; font-size: 0.78rem; }
+.reimbursement-total { margin-top: 4px; background: #f8fafc; }
+.reimbursement-action { color: #0f766e; }
+.reimbursement-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: #ccfbf1;
+  color: #0f766e;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+@media (max-width: 560px) {
+  .reimbursement-person-list label { grid-template-columns: 1fr; gap: 5px; }
+}
 
 .debt-summary-action { background: rgba(255, 255, 255, 0.58); }
 .debt-summary-modal { width: min(720px, 100%); }

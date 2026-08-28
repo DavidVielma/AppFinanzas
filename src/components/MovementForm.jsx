@@ -177,6 +177,7 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
   const isFullCreditCardPayment = draft.flow === "Pago Tarjeta" && draft.card_payment_mode !== "manual";
   const responsibleOptions = responsibles.length ? responsibles : [{ name: draft.responsible || "Yo" }];
   const selectedResponsibles = parseResponsibleNames(draft.responsible, currentResponsible);
+  const isCardMovement = isCreditCardAccount(draft.account, accounts);
   const installmentCount = Math.max(1, Number.parseInt(draft.installment_count, 10) || 1);
   const installmentPreview = draft.installment_mode === "total" && Number(draft.amount)
     ? Math.abs(Number(draft.amount)) / installmentCount
@@ -390,7 +391,7 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
           ))}
         </div>
       </fieldset>
-      {editingId && selectedResponsibles.length > 1 && (
+      {editingId && selectedResponsibles.length > 1 && !isCardMovement && (
         <fieldset className="responsible-payment-editor">
           <legend>Pago por persona</legend>
           <p>El monto se divide automaticamente entre {selectedResponsibles.length} {selectedResponsibles.length === 1 ? "persona" : "personas"}.</p>

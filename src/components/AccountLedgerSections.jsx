@@ -3,6 +3,7 @@ import { ChevronDown, HandCoins, Pencil, Plus, X } from "lucide-react";
 import { formatCurrency, getCreditCardPaymentCoverage } from "../lib/finance";
 import { getMutedTextColor, getReadableTextColor } from "../lib/colors";
 import { MovementTable } from "./MovementTable";
+import { getResponsibleAmount } from "../lib/responsibleAmounts";
 
 function getVisibleSortValue(movement) {
   return Number(movement.visible_sort_order ?? movement.sort_order) || Date.parse(movement.created_at || "") || 0;
@@ -64,7 +65,7 @@ function getAccountColorToken(account) {
   return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
 }
 
-export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onQuickAdd, onQuickPay, onOpenTcDetail }) {
+export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onCreateReimbursement, onQuickAdd, onQuickPay, onOpenTcDetail }) {
   const [debtSummaryOpen, setDebtSummaryOpen] = useState(false);
   const [expandedDebtPerson, setExpandedDebtPerson] = useState("");
 
@@ -72,19 +73,26 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
     if (!debtSummaryOpen) return undefined;
 
     const scrollY = window.scrollY;
+    const shouldFreezeDocumentPosition = window.matchMedia("(max-width: 720px)").matches;
+    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
     const previousBodyStyles = {
       overflow: document.body.style.overflow,
       position: document.body.style.position,
       top: document.body.style.top,
-      width: document.body.style.width
+      width: document.body.style.width,
+      paddingRight: document.body.style.paddingRight
     };
     const previousHtmlOverflow = document.documentElement.style.overflow;
 
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = "100%";
+    if (shouldFreezeDocumentPosition) {
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+    } else if (scrollbarWidth) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
 
     return () => {
       document.documentElement.style.overflow = previousHtmlOverflow;
@@ -92,7 +100,8 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
       document.body.style.position = previousBodyStyles.position;
       document.body.style.top = previousBodyStyles.top;
       document.body.style.width = previousBodyStyles.width;
-      window.scrollTo(0, scrollY);
+      document.body.style.paddingRight = previousBodyStyles.paddingRight;
+      if (shouldFreezeDocumentPosition) window.scrollTo(0, scrollY);
     };
   }, [debtSummaryOpen]);
   const visibleAccounts = accounts.filter((account) => account.name !== "Otros");
@@ -146,11 +155,11 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
       if (sourceAccount?.type === "tarjeta_credito") return;
       const names = parseResponsibleNames(movement.responsible, currentResponsible);
       const paidNames = parsePaidResponsibleNames(movement.paid_responsibles, currentResponsible);
-      const share = Math.abs(Number(movement.original_amount ?? movement.amount ?? 0)) / Math.max(1, names.length);
 
       names.forEach((name) => {
         if (!name || name === currentResponsible || String(name).toLowerCase() === "yo") return;
-        const isPaid = names.length === 1 ? movement.status === "Confirmado" : paidNames.includes(name);
+        const isPaid = names.length === 1 && !movement.responsible_amounts ? movement.status === "Confirmado" : paidNames.includes(name);
+        const share = getResponsibleAmount(movement, name, names.length);
         if (isPaid || !share) return;
 
         const key = name.toLocaleLowerCase("es");
@@ -187,7 +196,8 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
         canMoveUp: visibleIndex > 0,
         canMoveDown: visibleIndex >= 0 && visibleIndex < rows.length - 1,
         payment_badge: paymentCoverage?.label || null,
-        payment_badge_mode: paymentCoverage?.mode || null
+        payment_badge_mode: paymentCoverage?.mode || null,
+        has_reimbursement: allMovements.some((item) => item.reimbursement_source_id === (movement.source_movement?.id || movement.id))
       };
     });
     const total = rows.reduce((sum, movement) => sum + Number(movement.amount || 0), 0);
@@ -254,7 +264,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
             </div>
           </div>
         )}
-        <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} selectedResponsible={selectedResponsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onQuickUpdate={onQuickUpdate} onMove={onMove} onMoveToMovement={onMoveToMovement} onOpenTcDetail={onOpenTcDetail} />
+        <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} selectedResponsible={selectedResponsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} isCreditCardLedger={isCard} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onQuickUpdate={onQuickUpdate} onMove={onMove} onMoveToMovement={onMoveToMovement} onCreateReimbursement={onCreateReimbursement} onOpenTcDetail={onOpenTcDetail} />
       </section>
     );
   }

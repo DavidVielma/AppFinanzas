@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node src/lib/finance.test.js",
+    "test": "node src/lib/finance.test.js && node src/lib/responsibleAmounts.test.js",
     "build": "vite build",
     "preview": "vite preview"
   },

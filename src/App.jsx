@@ -41,6 +41,7 @@ import { getAccountColorStyle } from "./lib/colors";
 import { parseQuickAmount, parseQuickTextMovement } from "./lib/quickMovement";
 import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
+import { getResponsibleAmount, parseResponsibleAmounts } from "./lib/responsibleAmounts";
 
 const initialPeriod = getCurrentPeriod();
 const quickMovementShortcutUrl = "https://www.icloud.com/shortcuts/45efc6dc3d8847c09c0ccb223d4abf03";
@@ -56,6 +57,8 @@ const emptyDraft = {
   status: "Proyectado",
   responsible: "",
   paid_responsibles: "[]",
+  responsible_amounts: null,
+  reimbursement_source_id: null,
   installment_mode: "none",
   installment_count: "1",
   recurring_frequency: "none",
@@ -391,6 +394,7 @@ export function App() {
   const [draft, setDraft] = useState(emptyDraft);
   const [editingId, setEditingId] = useState(null);
   const [movementModalOpen, setMovementModalOpen] = useState(false);
+  const [reimbursementModal, setReimbursementModal] = useState(null);
   const [deleteCandidate, setDeleteCandidate] = useState(null);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
@@ -418,6 +422,7 @@ export function App() {
   const isRemote = hasSupabaseConfig && session && !demoMode;
   const hasOpenModal = Boolean(
     movementModalOpen ||
+    reimbursementModal ||
     deleteCandidate ||
     passwordModalOpen ||
     accountModalOpen ||
@@ -793,7 +798,9 @@ export function App() {
       card_payment_mode: draft.flow === "Pago Tarjeta" ? cardPaymentMode : null,
       status: draft.status,
       responsible: serializedResponsibles,
-      paid_responsibles: responsibleCount > 1 ? draft.paid_responsibles || "[]" : "[]",
+      paid_responsibles: !isCreditCardAccount(draft.account, accounts) && responsibleCount > 1 ? draft.paid_responsibles || "[]" : "[]",
+      responsible_amounts: draft.responsible_amounts || null,
+      reimbursement_source_id: draft.reimbursement_source_id || null,
       recurring_modified: Boolean(editingId && draft.recurring_id)
     };
     const payload = {
@@ -975,6 +982,13 @@ export function App() {
   }
 
   function editMovement(movement) {
+    if (movement.reimbursement_source_id) {
+      const sourceMovement = movements.find((item) => item.id === movement.reimbursement_source_id);
+      if (sourceMovement) {
+        openCardReimbursement(sourceMovement, movement);
+        return;
+      }
+    }
     const paymentCoverage = getCreditCardPaymentCoverage(movement, resolvedMovements, accounts);
     setEditingId(movement.id);
     setSelectedYear(movement.year);
@@ -990,6 +1004,8 @@ export function App() {
       status: movement.status,
       responsible: movement.responsible || responsibles[0]?.name || getDefaultResponsible(session),
       paid_responsibles: movement.paid_responsibles || "[]",
+      responsible_amounts: movement.responsible_amounts || null,
+      reimbursement_source_id: movement.reimbursement_source_id || null,
       sort_order: movement.sort_order,
       recurring_id: movement.recurring_id,
       recurring_occurrence: movement.recurring_occurrence,
@@ -1007,6 +1023,109 @@ export function App() {
       month: movement.month
     });
     setMovementModalOpen(true);
+  }
+
+  function openCardReimbursement(movement, existingMovement = null) {
+    const sourceMovement = movement.source_movement || movement;
+    if (!isCreditCardAccount(sourceMovement.account, accounts) || sourceMovement.flow !== "Movimiento") {
+      setNotice("El reembolso solo aplica a compras realizadas con tarjeta.");
+      return;
+    }
+
+    const sourceNames = parseResponsibleNames(sourceMovement.responsible, currentResponsible);
+    const otherNames = sourceNames.filter((name) => name !== currentResponsible && String(name).toLowerCase() !== "yo");
+    if (!otherNames.length) {
+      setNotice("Selecciona al menos otra persona en la compra antes de generar el reembolso.");
+      return;
+    }
+
+    const existing = existingMovement || movements.find((item) => item.reimbursement_source_id === sourceMovement.id) || null;
+    const storedAmounts = parseResponsibleAmounts(existing?.responsible_amounts);
+    const suggestedShare = existing
+      ? Math.abs(Number(existing.amount || 0)) / Math.max(1, otherNames.length)
+      : Math.abs(Number(sourceMovement.amount || 0)) / Math.max(1, sourceNames.length);
+    const amounts = Object.fromEntries(otherNames.map((name) => [name, storedAmounts[name] ?? suggestedShare]));
+    const storedPaidNames = parsePaidResponsibleNames(existing?.paid_responsibles, currentResponsible);
+    const paidNames = existing?.status === "Confirmado" && otherNames.length === 1
+      ? otherNames
+      : storedPaidNames.filter((name) => otherNames.includes(name));
+
+    setReimbursementModal({
+      sourceMovement,
+      existing,
+      people: otherNames,
+      amounts,
+      paidNames,
+      year: existing?.year || sourceMovement.year,
+      month: existing?.month || sourceMovement.month
+    });
+  }
+
+  async function saveCardReimbursement(event) {
+    event.preventDefault();
+    if (!reimbursementModal) return;
+
+    const entries = reimbursementModal.people
+      .map((name) => [name, Math.max(0, Number(reimbursementModal.amounts[name]) || 0)])
+      .filter(([, amount]) => amount > 0);
+    if (!entries.length) {
+      setNotice("Ingresa un monto de reembolso para al menos una persona.");
+      return;
+    }
+
+    const sourceMovement = reimbursementModal.sourceMovement;
+    const existing = reimbursementModal.existing;
+    const amountByPerson = Object.fromEntries(entries);
+    const activePeople = entries.map(([name]) => name);
+    const paidNames = reimbursementModal.paidNames.filter((name) => activePeople.includes(name));
+    const totalAmount = entries.reduce((sum, [, amount]) => sum + amount, 0);
+    const payload = {
+      flow: "Movimiento",
+      type: "Ingreso",
+      account: "Principal",
+      target_account: null,
+      category: normalizeCategory("Reembolso", "Ingreso", categoryOptionsByType.Ingreso),
+      description: existing?.description || `Reembolso: ${sourceMovement.description}`,
+      amount: totalAmount,
+      card_payment_mode: null,
+      status: paidNames.length === activePeople.length ? "Confirmado" : "Pendiente",
+      responsible: activePeople.join(", "),
+      paid_responsibles: JSON.stringify(paidNames),
+      responsible_amounts: JSON.stringify(amountByPerson),
+      reimbursement_source_id: sourceMovement.id,
+      recurring_modified: false,
+      sort_order: existing?.sort_order || Date.now(),
+      year: Number(reimbursementModal.year),
+      month: Number(reimbursementModal.month)
+    };
+
+    let savedMovement;
+    if (isRemote) {
+      const request = existing
+        ? supabase.from("movements").update(payload).eq("id", existing.id).select().single()
+        : supabase.from("movements").insert(payload).select().single();
+      const { data, error } = await request;
+      if (error) {
+        setNotice(error.message);
+        return;
+      }
+      savedMovement = data;
+    } else {
+      savedMovement = {
+        ...payload,
+        id: existing?.id || buildLocalId(),
+        created_at: existing?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    setMovements((current) => existing
+      ? current.map((item) => item.id === existing.id ? savedMovement : item)
+      : [...current, savedMovement]);
+    setSelectedYear(Number(reimbursementModal.year));
+    setSelectedMonth(Number(reimbursementModal.month));
+    setReimbursementModal(null);
+    setNotice(existing ? "Reembolso actualizado." : "Reembolso pendiente creado en Principal.");
   }
 
   function getRecurringMovementScopeRows(movement, scope) {
@@ -2258,8 +2377,9 @@ export function App() {
     const movementResponsibles = parseResponsibleNames(movement.responsible, currentResponsible);
     const movementResponsibleText = movementResponsibles.join(" ");
     const isSharedMovement = movementResponsibles.length > 1;
+    const isCardMovement = isCreditCardAccount(movement.source_movement?.account || movement.account, accounts);
     const selectedResponsiblePaid = filters.responsible && (
-      isSharedMovement
+      isSharedMovement || movement.responsible_amounts
         ? parsePaidResponsibleNames(movement.paid_responsibles, currentResponsible).includes(filters.responsible)
         : movement.status === "Confirmado"
     );
@@ -2267,7 +2387,7 @@ export function App() {
       (!search || `${movement.description} ${movement.category} ${movement.account} ${movement.target_account || ""} ${movementResponsibleText}`.toLowerCase().includes(search)) &&
       (!filters.account || (movement.display_account || movement.account) === filters.account) &&
       (!filters.responsible || movementResponsibles.includes(filters.responsible)) &&
-      (!filters.payment || (filters.payment === "paid" ? selectedResponsiblePaid : !selectedResponsiblePaid)) &&
+      (!filters.payment || (!isCardMovement && (filters.payment === "paid" ? selectedResponsiblePaid : !selectedResponsiblePaid))) &&
       (!filters.type || movement.type === filters.type) &&
       (!filters.category || movement.category === filters.category) &&
       (!selectedStatusFilters.length || selectedStatusFilters.includes(movement.status)) &&
@@ -2277,10 +2397,13 @@ export function App() {
   function applyResponsibleShare(movement) {
     if (!filters.responsible) return movement;
     const movementResponsibles = parseResponsibleNames(movement.responsible, currentResponsible);
-    if (!movementResponsibles.includes(filters.responsible) || movementResponsibles.length < 2) return movement;
+    if (!movementResponsibles.includes(filters.responsible)) return movement;
+    if (movementResponsibles.length < 2 && !movement.responsible_amounts) return movement;
+    const responsibleAmount = getResponsibleAmount(movement, filters.responsible, movementResponsibles.length);
+    const amountSign = Number(movement.amount || 0) < 0 ? -1 : 1;
     return {
       ...movement,
-      amount: Number(movement.amount || 0) / movementResponsibles.length,
+      amount: responsibleAmount * amountSign,
       original_amount: movement.amount,
       source_movement: movement.source_movement || movement
     };
@@ -2615,7 +2738,7 @@ export function App() {
               </label>
             </div>
           </section>
-          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} cardPaymentStats={cardPaymentStats} movements={filters.responsible ? monthMovements.map(applyResponsibleShare) : monthMovements} allMovements={resolvedMovements} currentResponsible={currentResponsible} selectedResponsible={filters.responsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onQuickUpdate={updateMovementQuickFields} onMove={moveMovement} onMoveToMovement={moveMovementToMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
+          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} cardPaymentStats={cardPaymentStats} movements={filters.responsible ? monthMovements.map(applyResponsibleShare) : monthMovements} allMovements={resolvedMovements} currentResponsible={currentResponsible} selectedResponsible={filters.responsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onQuickUpdate={updateMovementQuickFields} onMove={moveMovement} onMoveToMovement={moveMovementToMovement} onCreateReimbursement={openCardReimbursement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
         </div>
 
         <aside className="side-panel">
@@ -3124,6 +3247,53 @@ export function App() {
                 />
               </div>
             </div>
+          </section>
+        </div>
+      )}
+
+      {reimbursementModal && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel reimbursement-modal" role="dialog" aria-modal="true" aria-labelledby="reimbursement-modal-title">
+            <header className="modal-header">
+              <div>
+                <h2 id="reimbursement-modal-title">{reimbursementModal.existing ? "Editar reembolso" : "Generar reembolso"}</h2>
+                <p>{reimbursementModal.sourceMovement.description}</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setReimbursementModal(null)} aria-label="Cerrar"><X size={18} /></button>
+            </header>
+            <div className="reimbursement-source-summary">
+              <span>Compra en {reimbursementModal.sourceMovement.account}</span>
+              <strong>{formatCurrency(reimbursementModal.sourceMovement.amount)}</strong>
+            </div>
+            <form onSubmit={saveCardReimbursement}>
+              <div className="reimbursement-period-control">
+                <PeriodSelector month={reimbursementModal.month} year={reimbursementModal.year} onChange={({ month, year }) => setReimbursementModal((current) => ({ ...current, month, year }))} />
+              </div>
+              <div className="reimbursement-person-list">
+                {reimbursementModal.people.map((person) => (
+                  <label key={person}>
+                    <span className="reimbursement-person-name">
+                      <strong>{person}</strong>
+                      <button type="button" className={reimbursementModal.paidNames.includes(person) ? "paid" : "pending"} onClick={() => setReimbursementModal((current) => ({ ...current, paidNames: current.paidNames.includes(person) ? current.paidNames.filter((name) => name !== person) : [...current.paidNames, person] }))}>
+                        {reimbursementModal.paidNames.includes(person) ? "Pagado" : "Pendiente"}
+                      </button>
+                    </span>
+                    <div>
+                      <span>$</span>
+                      <input type="number" min="0" step="1" inputMode="numeric" value={reimbursementModal.amounts[person]} onChange={(event) => setReimbursementModal((current) => ({ ...current, amounts: { ...current.amounts, [person]: event.target.value } }))} />
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div className="reimbursement-total">
+                <span>Total del reembolso</span>
+                <strong>{formatCurrency(reimbursementModal.people.reduce((sum, person) => sum + (Number(reimbursementModal.amounts[person]) || 0), 0))}</strong>
+              </div>
+              <p className="reimbursement-help">Se creara un unico ingreso pendiente en Principal. Cada persona conservara su monto y estado de pago independiente.</p>
+              <button type="submit" className="primary-action form-action">
+                {reimbursementModal.existing ? "Guardar reembolso" : "Crear reembolso pendiente"}
+              </button>
+            </form>
           </section>
         </div>
       )}

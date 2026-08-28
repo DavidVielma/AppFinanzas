@@ -25,6 +25,8 @@ create table if not exists public.movements (
   status text not null default 'Proyectado' check (status in ('Confirmado', 'Proyectado', 'Pendiente')),
   responsible text,
   paid_responsibles text,
+  responsible_amounts text,
+  reimbursement_source_id uuid references public.movements(id) on delete set null,
   sort_order bigint,
   target_sort_order bigint,
   recurring_id uuid,
@@ -118,6 +120,8 @@ create index if not exists movements_user_period_idx on public.movements(user_id
 create index if not exists movements_user_category_idx on public.movements(user_id, category);
 create index if not exists movements_user_account_idx on public.movements(user_id, account);
 create index if not exists movements_user_recurring_idx on public.movements(user_id, recurring_id);
+create index if not exists movements_reimbursement_source_idx on public.movements(user_id, reimbursement_source_id);
+create unique index if not exists movements_one_reimbursement_per_source_idx on public.movements(user_id, reimbursement_source_id) where reimbursement_source_id is not null;
 create index if not exists categories_user_type_idx on public.categories(user_id, type);
 create index if not exists recurring_movements_user_active_idx on public.recurring_movements(user_id, active);
 create index if not exists whatsapp_message_logs_created_at_idx on public.whatsapp_message_logs(created_at);
