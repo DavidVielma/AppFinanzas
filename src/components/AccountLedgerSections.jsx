@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, HandCoins, Pencil, Plus, X } from "lucide-react";
 import { formatCurrency, getCreditCardPaymentCoverage } from "../lib/finance";
 import { getMutedTextColor, getReadableTextColor } from "../lib/colors";
@@ -67,6 +67,34 @@ function getAccountColorToken(account) {
 export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onQuickAdd, onQuickPay, onOpenTcDetail }) {
   const [debtSummaryOpen, setDebtSummaryOpen] = useState(false);
   const [expandedDebtPerson, setExpandedDebtPerson] = useState("");
+
+  useEffect(() => {
+    if (!debtSummaryOpen) return undefined;
+
+    const scrollY = window.scrollY;
+    const previousBodyStyles = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width
+    };
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyStyles.overflow;
+      document.body.style.position = previousBodyStyles.position;
+      document.body.style.top = previousBodyStyles.top;
+      document.body.style.width = previousBodyStyles.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, [debtSummaryOpen]);
   const visibleAccounts = accounts.filter((account) => account.name !== "Otros");
   const accountsByName = Object.fromEntries(visibleAccounts.map((account) => [account.name, account]));
   const grouped = visibleAccounts.reduce((acc, account) => {
