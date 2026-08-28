@@ -5629,7 +5629,10 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
 }
 
 .debt-summary-action { background: rgba(255, 255, 255, 0.58); }
-.debt-summary-modal { width: min(720px, 100%); }
+.debt-summary-modal {
+  width: min(720px, 100%);
+  overscroll-behavior: contain;
+}
 .debt-summary-list { display: grid; gap: 10px; margin-top: 16px; }
 .debt-summary-list article {
   border: 1px solid #dbe5e8;

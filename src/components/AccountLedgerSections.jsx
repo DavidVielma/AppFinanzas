@@ -74,25 +74,48 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
 
     const scrollY = window.scrollY;
     const shouldFreezeDocumentPosition = window.matchMedia("(max-width: 720px)").matches;
-    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+
+    if (!shouldFreezeDocumentPosition) {
+      const preventExteriorScroll = (event) => {
+        if (!event.target?.closest?.(".debt-summary-modal")) event.preventDefault();
+      };
+      const preventExteriorScrollKeys = (event) => {
+        const scrollKeys = ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "];
+        if (!scrollKeys.includes(event.key)) return;
+        if (event.target?.closest?.(".debt-summary-modal")) return;
+        if (event.target?.closest?.("input, textarea, select, [contenteditable='true']")) return;
+        event.preventDefault();
+      };
+      const restoreDocumentScroll = () => {
+        if (window.scrollY !== scrollY) window.scrollTo(window.scrollX, scrollY);
+      };
+
+      document.addEventListener("wheel", preventExteriorScroll, { passive: false, capture: true });
+      document.addEventListener("touchmove", preventExteriorScroll, { passive: false, capture: true });
+      document.addEventListener("keydown", preventExteriorScrollKeys, true);
+      window.addEventListener("scroll", restoreDocumentScroll, { passive: true });
+
+      return () => {
+        document.removeEventListener("wheel", preventExteriorScroll, true);
+        document.removeEventListener("touchmove", preventExteriorScroll, true);
+        document.removeEventListener("keydown", preventExteriorScrollKeys, true);
+        window.removeEventListener("scroll", restoreDocumentScroll);
+      };
+    }
+
     const previousBodyStyles = {
       overflow: document.body.style.overflow,
       position: document.body.style.position,
       top: document.body.style.top,
-      width: document.body.style.width,
-      paddingRight: document.body.style.paddingRight
+      width: document.body.style.width
     };
     const previousHtmlOverflow = document.documentElement.style.overflow;
 
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
-    if (shouldFreezeDocumentPosition) {
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = "100%";
-    } else if (scrollbarWidth) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
 
     return () => {
       document.documentElement.style.overflow = previousHtmlOverflow;
@@ -100,8 +123,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
       document.body.style.position = previousBodyStyles.position;
       document.body.style.top = previousBodyStyles.top;
       document.body.style.width = previousBodyStyles.width;
-      document.body.style.paddingRight = previousBodyStyles.paddingRight;
-      if (shouldFreezeDocumentPosition) window.scrollTo(0, scrollY);
+      window.scrollTo(0, scrollY);
     };
   }, [debtSummaryOpen]);
   const visibleAccounts = accounts.filter((account) => account.name !== "Otros");
