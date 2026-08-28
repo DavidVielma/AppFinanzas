@@ -1,4 +1,5 @@
-import { Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronDown, HandCoins, Pencil, Plus, X } from "lucide-react";
 import { formatCurrency, getCreditCardPaymentCoverage } from "../lib/finance";
 import { getMutedTextColor, getReadableTextColor } from "../lib/colors";
 import { MovementTable } from "./MovementTable";
@@ -9,6 +10,36 @@ function getVisibleSortValue(movement) {
 
 function sortVisibleRows(a, b) {
   return getVisibleSortValue(a) - getVisibleSortValue(b) || String(a.id).localeCompare(String(b.id));
+}
+
+function normalizeResponsibleName(name, currentResponsible) {
+  const value = String(name || "").trim();
+  if (!value || value.toLowerCase() === "yo") return currentResponsible || "Yo";
+  return value;
+}
+
+function parseResponsibleNames(value, currentResponsible) {
+  const raw = String(value || "").trim();
+  if (!raw) return [currentResponsible || "Yo"];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return Array.from(new Set(parsed.map((name) => normalizeResponsibleName(name, currentResponsible)).filter(Boolean)));
+  } catch {
+    return Array.from(new Set(raw.split(",").map((name) => normalizeResponsibleName(name, currentResponsible)).filter(Boolean)));
+  }
+  return [];
+}
+
+function parsePaidResponsibleNames(value, currentResponsible) {
+  const raw = String(value || "").trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map((name) => normalizeResponsibleName(name, currentResponsible));
+  } catch {
+    return raw.split(",").map((name) => normalizeResponsibleName(name, currentResponsible)).filter(Boolean);
+  }
+  return [];
 }
 
 const accountColorTokens = {
@@ -33,7 +64,9 @@ function getAccountColorToken(account) {
   return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
 }
 
-export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onQuickAdd, onQuickPay, onOpenTcDetail }) {
+export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onQuickAdd, onQuickPay, onOpenTcDetail }) {
+  const [debtSummaryOpen, setDebtSummaryOpen] = useState(false);
+  const [expandedDebtPerson, setExpandedDebtPerson] = useState("");
   const visibleAccounts = accounts.filter((account) => account.name !== "Otros");
   const accountsByName = Object.fromEntries(visibleAccounts.map((account) => [account.name, account]));
   const grouped = visibleAccounts.reduce((acc, account) => {
@@ -75,6 +108,42 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
       .filter((movement) => movement.flow === "Pago Tarjeta" && movement.target_account)
       .map((movement) => [movement.target_account, movement])
   );
+  const debtSummary = useMemo(() => {
+    const summaryByPerson = new Map();
+
+    movements.forEach((movement) => {
+      if (movement.flow && movement.flow !== "Movimiento") return;
+      const names = parseResponsibleNames(movement.responsible, currentResponsible);
+      const paidNames = parsePaidResponsibleNames(movement.paid_responsibles, currentResponsible);
+      const share = Math.abs(Number(movement.original_amount ?? movement.amount ?? 0)) / Math.max(1, names.length);
+
+      names.forEach((name) => {
+        if (!name || name === currentResponsible || String(name).toLowerCase() === "yo") return;
+        const isPaid = names.length === 1 ? movement.status === "Confirmado" : paidNames.includes(name);
+        if (isPaid || !share) return;
+
+        const key = name.toLocaleLowerCase("es");
+        const current = summaryByPerson.get(key) || { name, owedToMe: 0, iOwe: 0, movements: 0, items: [] };
+        const direction = movement.type === "Ingreso" ? "owed-to-me" : "i-owe";
+        if (direction === "owed-to-me") current.owedToMe += share;
+        else current.iOwe += share;
+        current.movements += 1;
+        current.items.push({
+          id: `${movement.row_key || movement.id}-${name}`,
+          description: movement.description,
+          account: movement.display_account || movement.account || "Principal",
+          share,
+          direction,
+          movement: movement.source_movement || movement
+        });
+        summaryByPerson.set(key, current);
+      });
+    });
+
+    return Array.from(summaryByPerson.values())
+      .map((person) => ({ ...person, balance: person.owedToMe - person.iOwe }))
+      .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance) || a.name.localeCompare(b.name, "es"));
+  }, [currentResponsible, movements]);
 
   function renderAccount(account) {
     const rows = [...(grouped[account.name] || [])].filter((movement) => !filterMovement || filterMovement(movement)).sort(sortVisibleRows);
@@ -116,6 +185,12 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
                 {registeredPayment ? "Editar pago" : "Pagar"}
               </button>
             )}
+            {isPrincipal && (
+              <button type="button" className="icon-text debt-summary-action" onClick={() => setDebtSummaryOpen(true)}>
+                <HandCoins size={16} />
+                Deudas
+              </button>
+            )}
             {!account.archived && (
               <button type="button" className="icon-text" onClick={() => onQuickAdd(account)}>
                 <Plus size={16} />
@@ -148,20 +223,69 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
             </div>
           </div>
         )}
-        <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onQuickUpdate={onQuickUpdate} onMove={onMove} onMoveToMovement={onMoveToMovement} onOpenTcDetail={onOpenTcDetail} />
+        <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} selectedResponsible={selectedResponsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onQuickUpdate={onQuickUpdate} onMove={onMove} onMoveToMovement={onMoveToMovement} onOpenTcDetail={onOpenTcDetail} />
       </section>
     );
   }
 
   return (
-    <div className="account-ledger">
-      {mainAccounts.map(renderAccount)}
-      <div className="credit-card-ledgers">
-        <div className="subsection-heading">
-          <h3>Tarjetas de credito</h3>
+    <>
+      <div className="account-ledger">
+        {mainAccounts.map(renderAccount)}
+        <div className="credit-card-ledgers">
+          <div className="subsection-heading">
+            <h3>Tarjetas de credito</h3>
+          </div>
+          {creditCards.map((account) => renderAccount(accountsByName[account.name]))}
         </div>
-        {creditCards.map((account) => renderAccount(accountsByName[account.name]))}
       </div>
-    </div>
+      {debtSummaryOpen && (
+        <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setDebtSummaryOpen(false); }}>
+          <section className="modal-panel debt-summary-modal" role="dialog" aria-modal="true" aria-labelledby="debt-summary-title">
+            <header className="modal-heading">
+              <div>
+                <h2 id="debt-summary-title">Resumen de deudas</h2>
+                <p>Saldos personales pendientes del periodo visible.</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => { setDebtSummaryOpen(false); setExpandedDebtPerson(""); }} aria-label="Cerrar resumen"><X size={18} /></button>
+            </header>
+            <div className="debt-summary-list">
+              {debtSummary.map((person) => (
+                <article className={expandedDebtPerson === person.name ? "expanded" : ""} key={person.name}>
+                  <button type="button" className="debt-person-summary" onClick={() => setExpandedDebtPerson((current) => current === person.name ? "" : person.name)} aria-expanded={expandedDebtPerson === person.name}>
+                    <div>
+                      <strong>{person.name}</strong>
+                      <small>{person.movements} {person.movements === 1 ? "movimiento pendiente" : "movimientos pendientes"}</small>
+                    </div>
+                    <div className="debt-summary-breakdown">
+                      <span>Me debe <b>{formatCurrency(person.owedToMe)}</b></span>
+                      <span>Le debo <b>{formatCurrency(person.iOwe)}</b></span>
+                    </div>
+                    <strong className={`debt-net ${person.balance >= 0 ? "owed-to-me" : "i-owe"}`}>
+                      {person.balance >= 0 ? "Me debe" : "Le debo"} {formatCurrency(Math.abs(person.balance))}
+                    </strong>
+                    <ChevronDown className="debt-expand-icon" size={18} />
+                  </button>
+                  {expandedDebtPerson === person.name && (
+                    <div className="debt-movement-detail">
+                      {person.items.map((item) => (
+                        <div key={item.id}>
+                          <span><strong>{item.description}</strong><small>{item.account}</small></span>
+                          <span className={item.direction}>{item.direction === "owed-to-me" ? "Me debe" : "Le debo"}</span>
+                          <b>{formatCurrency(item.share)}</b>
+                          <button type="button" className="icon-button debt-detail-edit" onClick={() => { setDebtSummaryOpen(false); setExpandedDebtPerson(""); onEdit(item.movement); }} aria-label={`Editar ${item.description}`} title="Editar movimiento"><Pencil size={15} /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+              {!debtSummary.length && <p className="empty-row">No hay deudas personales pendientes en este periodo.</p>}
+            </div>
+            <p className="debt-summary-note">Ingresos pendientes se consideran a tu favor; egresos pendientes, a favor de la otra persona.</p>
+          </section>
+        </div>
+      )}
+    </>
   );
 }

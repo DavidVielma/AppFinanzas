@@ -55,6 +55,7 @@ const emptyDraft = {
   amount: "",
   status: "Proyectado",
   responsible: "",
+  paid_responsibles: "[]",
   installment_mode: "none",
   installment_count: "1",
   recurring_frequency: "none",
@@ -258,6 +259,20 @@ function parseResponsibleNames(value, defaultResponsible) {
   return Array.from(new Set(names.map((name) => normalizeResponsibleName(name, defaultResponsible)).filter(Boolean)));
 }
 
+function parsePaidResponsibleNames(value, defaultResponsible) {
+  const raw = String(value || "").trim();
+  if (!raw) return [];
+  try {
+    const names = JSON.parse(raw);
+    if (Array.isArray(names)) {
+      return Array.from(new Set(names.map((name) => normalizeResponsibleName(name, defaultResponsible)).filter(Boolean)));
+    }
+  } catch {
+    return raw.split(",").map((name) => normalizeResponsibleName(name, defaultResponsible)).filter(Boolean);
+  }
+  return [];
+}
+
 function serializeResponsibleNames(value, defaultResponsible) {
   const names = Array.isArray(value) ? value : parseResponsibleNames(value, defaultResponsible);
   return Array.from(new Set(names.map((name) => normalizeResponsibleName(name, defaultResponsible)).filter(Boolean))).join(", ");
@@ -364,7 +379,7 @@ export function App() {
   const [responsibleDraft, setResponsibleDraft] = useState("");
   const [customCategories, setCustomCategories] = useState([]);
   const [categoryDraft, setCategoryDraft] = useState({ name: "", type: "Egreso", icon: "circle-help", color: "#475569" });
-  const [filters, setFilters] = useState({ search: "", account: "", responsible: "", type: "", category: "", status: "", flow: "" });
+  const [filters, setFilters] = useState({ search: "", account: "", responsible: "", payment: "", type: "", category: "", status: "", flow: "" });
   const [accountDraft, setAccountDraft] = useState({ name: "", type: "principal", color: "#e2e8f0" });
   const [cardDraft, setCardDraft] = useState({ name: "", color: "#cfe9d8" });
   const [movements, setMovements] = useState([]);
@@ -766,6 +781,8 @@ export function App() {
     }
 
     const type = getTypeFromAmount(signedAmount);
+    const serializedResponsibles = serializeResponsibleNames(draft.responsible, responsibles[0]?.name || getDefaultResponsible(session));
+    const responsibleCount = parseResponsibleNames(serializedResponsibles, responsibles[0]?.name || getDefaultResponsible(session)).length;
     const basePayload = {
       flow: draft.flow,
       type,
@@ -775,7 +792,8 @@ export function App() {
       amount: signedAmount,
       card_payment_mode: draft.flow === "Pago Tarjeta" ? cardPaymentMode : null,
       status: draft.status,
-      responsible: serializeResponsibleNames(draft.responsible, responsibles[0]?.name || getDefaultResponsible(session)),
+      responsible: serializedResponsibles,
+      paid_responsibles: responsibleCount > 1 ? draft.paid_responsibles || "[]" : "[]",
       recurring_modified: Boolean(editingId && draft.recurring_id)
     };
     const payload = {
@@ -971,6 +989,7 @@ export function App() {
       amount: movement.amount,
       status: movement.status,
       responsible: movement.responsible || responsibles[0]?.name || getDefaultResponsible(session),
+      paid_responsibles: movement.paid_responsibles || "[]",
       sort_order: movement.sort_order,
       recurring_id: movement.recurring_id,
       recurring_occurrence: movement.recurring_occurrence,
@@ -1133,11 +1152,6 @@ export function App() {
   function openMovementFilters() {
     setActiveView("movements");
     setFiltersOpen(true);
-    if (!window.matchMedia("(max-width: 720px)").matches) {
-      window.setTimeout(() => {
-        movementFilterPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
-    }
   }
 
   function toggleStatusFilter(status) {
@@ -2243,22 +2257,42 @@ export function App() {
     const search = filters.search.trim().toLowerCase();
     const movementResponsibles = parseResponsibleNames(movement.responsible, currentResponsible);
     const movementResponsibleText = movementResponsibles.join(" ");
+    const isSharedMovement = movementResponsibles.length > 1;
+    const selectedResponsiblePaid = filters.responsible && (
+      isSharedMovement
+        ? parsePaidResponsibleNames(movement.paid_responsibles, currentResponsible).includes(filters.responsible)
+        : movement.status === "Confirmado"
+    );
     return (
       (!search || `${movement.description} ${movement.category} ${movement.account} ${movement.target_account || ""} ${movementResponsibleText}`.toLowerCase().includes(search)) &&
       (!filters.account || (movement.display_account || movement.account) === filters.account) &&
       (!filters.responsible || movementResponsibles.includes(filters.responsible)) &&
+      (!filters.payment || (filters.payment === "paid" ? selectedResponsiblePaid : !selectedResponsiblePaid)) &&
       (!filters.type || movement.type === filters.type) &&
       (!filters.category || movement.category === filters.category) &&
       (!selectedStatusFilters.length || selectedStatusFilters.includes(movement.status)) &&
       (!filters.flow || movement.flow === filters.flow)
     );
   }
-  const filteredMonthMovements = monthMovements.filter(matchesMovementFilters);
+  function applyResponsibleShare(movement) {
+    if (!filters.responsible) return movement;
+    const movementResponsibles = parseResponsibleNames(movement.responsible, currentResponsible);
+    if (!movementResponsibles.includes(filters.responsible) || movementResponsibles.length < 2) return movement;
+    return {
+      ...movement,
+      amount: Number(movement.amount || 0) / movementResponsibles.length,
+      original_amount: movement.amount,
+      source_movement: movement.source_movement || movement
+    };
+  }
+
+  const filteredMonthMovements = monthMovements.filter(matchesMovementFilters).map(applyResponsibleShare);
   const monthOperatingMovements = filteredMonthMovements.filter((item) => isSummaryMovement(item, accounts));
   const monthCategoryMovements = filteredMonthMovements.filter(isCategoryChartMovement);
   const filteredYearMovements = resolvedMovements
     .filter((item) => Number(item.year) === Number(selectedYear))
-    .filter(matchesMovementFilters);
+    .filter(matchesMovementFilters)
+    .map(applyResponsibleShare);
   const dashboardCategoryMovements = (dashboardCategoryScope === "year" ? filteredYearMovements : filteredMonthMovements).filter(isCategoryChartMovement);
   const movementModalType = draft.installment_mode && draft.installment_mode !== "none" ? "Egreso" : draft.flow === "Movimiento" ? getTypeFromAmount(draft.amount) : "Egreso";
   const filterOptions = {
@@ -2474,18 +2508,18 @@ export function App() {
               Agregar movimiento
             </button>
           </div>
-          <section className={`filter-panel ${filtersOpen ? "open" : ""}`} ref={movementFilterPanelRef}>
+          <section className={`filter-panel movement-filter-panel ${filtersOpen ? "open" : ""}`} ref={movementFilterPanelRef}>
             <div className="filter-heading">
               <div>
                 <h3>Filtros</h3>
                 <span>Filtro aplicado a las filas visibles</span>
               </div>
               <div className="filter-actions">
-                <button type="button" className="ghost-action filter-toggle" onClick={() => setFiltersOpen((current) => !current)}>
-                  {filtersOpen ? "Ocultar" : "Mostrar"}
-                </button>
-                <button type="button" className="ghost-action" onClick={() => setFilters({ search: "", account: "", responsible: "", type: "", category: "", status: "", flow: "" })} disabled={!hasActiveFilters}>
+                <button type="button" className="ghost-action" onClick={() => setFilters({ search: "", account: "", responsible: "", payment: "", type: "", category: "", status: "", flow: "" })} disabled={!hasActiveFilters}>
                   Limpiar
+                </button>
+                <button type="button" className="ghost-action drawer-close-action" onClick={() => setFiltersOpen(false)} aria-label="Cerrar filtros">
+                  <X size={18} />
                 </button>
               </div>
             </div>
@@ -2528,11 +2562,19 @@ export function App() {
               </label>
               <label>
                 Responsable
-                <select value={filters.responsible} onChange={(event) => setFilters((current) => ({ ...current, responsible: event.target.value }))}>
+                <select value={filters.responsible} onChange={(event) => setFilters((current) => ({ ...current, responsible: event.target.value, payment: event.target.value ? current.payment : "" }))}>
                   <option value="">Todos</option>
                   {filterOptions.responsibles.map((responsible) => (
                     <option key={responsible} value={responsible}>{responsible === currentResponsible ? "Yo" : responsible}</option>
                   ))}
+                </select>
+              </label>
+              <label>
+                Estado de deuda
+                <select value={filters.payment} disabled={!filters.responsible} onChange={(event) => setFilters((current) => ({ ...current, payment: event.target.value }))}>
+                  <option value="">Todos</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="paid">Pagados</option>
                 </select>
               </label>
               <label>
@@ -2573,7 +2615,7 @@ export function App() {
               </label>
             </div>
           </section>
-          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} cardPaymentStats={cardPaymentStats} movements={monthMovements} allMovements={resolvedMovements} currentResponsible={currentResponsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onQuickUpdate={updateMovementQuickFields} onMove={moveMovement} onMoveToMovement={moveMovementToMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
+          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} cardPaymentStats={cardPaymentStats} movements={filters.responsible ? monthMovements.map(applyResponsibleShare) : monthMovements} allMovements={resolvedMovements} currentResponsible={currentResponsible} selectedResponsible={filters.responsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onQuickUpdate={updateMovementQuickFields} onMove={moveMovement} onMoveToMovement={moveMovementToMovement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
         </div>
 
         <aside className="side-panel">
@@ -2637,7 +2679,7 @@ export function App() {
                 <button type="button" className="ghost-action filter-toggle" onClick={() => setDashboardFiltersOpen((current) => !current)}>
                   {dashboardFiltersOpen ? "Ocultar" : "Mostrar"}
                 </button>
-                <button type="button" className="ghost-action" onClick={() => setFilters({ search: "", account: "", responsible: "", type: "", category: "", status: "", flow: "" })} disabled={!hasActiveFilters}>
+                <button type="button" className="ghost-action" onClick={() => setFilters({ search: "", account: "", responsible: "", payment: "", type: "", category: "", status: "", flow: "" })} disabled={!hasActiveFilters}>
                   Limpiar
                 </button>
               </div>
@@ -2658,11 +2700,19 @@ export function App() {
               </label>
               <label>
                 Responsable
-                <select value={filters.responsible} onChange={(event) => setFilters((current) => ({ ...current, responsible: event.target.value }))}>
+                <select value={filters.responsible} onChange={(event) => setFilters((current) => ({ ...current, responsible: event.target.value, payment: event.target.value ? current.payment : "" }))}>
                   <option value="">Todos</option>
                   {filterOptions.responsibles.map((responsible) => (
                     <option key={responsible} value={responsible}>{responsible === currentResponsible ? "Yo" : responsible}</option>
                   ))}
+                </select>
+              </label>
+              <label>
+                Estado de deuda
+                <select value={filters.payment} disabled={!filters.responsible} onChange={(event) => setFilters((current) => ({ ...current, payment: event.target.value }))}>
+                  <option value="">Todos</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="paid">Pagados</option>
                 </select>
               </label>
               <label>

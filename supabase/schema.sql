@@ -24,6 +24,7 @@ create table if not exists public.movements (
   card_payment_mode text check (card_payment_mode in ('auto', 'manual')),
   status text not null default 'Proyectado' check (status in ('Confirmado', 'Proyectado', 'Pendiente')),
   responsible text,
+  paid_responsibles text,
   sort_order bigint,
   target_sort_order bigint,
   recurring_id uuid,

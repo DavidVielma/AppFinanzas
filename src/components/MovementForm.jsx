@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Save } from "lucide-react";
 import { CategorySelector } from "./CategoryVisuals";
-import { flowTypes, getCategoryOptions, getTypeFromAmount, isCreditCardAccount, monthLabels } from "../lib/finance";
+import { flowTypes, formatCurrency, getCategoryOptions, getTypeFromAmount, isCreditCardAccount, monthLabels } from "../lib/finance";
 
 function normalizeResponsibleName(name, currentResponsible) {
   const value = String(name || "").trim();
@@ -196,7 +196,20 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
     const next = selectedResponsibles.includes(name)
       ? selectedResponsibles.filter((item) => item !== name)
       : [...selectedResponsibles, name];
-    update("responsible", next.join(", "));
+    const paidNames = parseResponsibleNames(draft.paid_responsibles, currentResponsible);
+    onChange({
+      ...draft,
+      responsible: next.join(", "),
+      paid_responsibles: next.length > 1 ? JSON.stringify(paidNames.filter((item) => next.includes(item))) : "[]"
+    });
+  }
+
+  function toggleResponsiblePayment(name) {
+    const paidNames = parseResponsibleNames(draft.paid_responsibles, currentResponsible);
+    const nextPaidNames = paidNames.includes(name)
+      ? paidNames.filter((item) => item !== name)
+      : [...paidNames, name];
+    update("paid_responsibles", JSON.stringify(nextPaidNames));
   }
 
   function toggleAmountSign() {
@@ -377,6 +390,24 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
           ))}
         </div>
       </fieldset>
+      {editingId && selectedResponsibles.length > 1 && (
+        <fieldset className="responsible-payment-editor">
+          <legend>Pago por persona</legend>
+          <p>El monto se divide automaticamente entre {selectedResponsibles.length} {selectedResponsibles.length === 1 ? "persona" : "personas"}.</p>
+          <div>
+            {selectedResponsibles.map((responsible) => {
+              const paid = parseResponsibleNames(draft.paid_responsibles, currentResponsible).includes(responsible);
+              const share = Number(draft.amount || 0) / selectedResponsibles.length;
+              return (
+                <button type="button" className={paid ? "paid" : "pending"} key={responsible} onClick={() => toggleResponsiblePayment(responsible)} aria-pressed={paid}>
+                  <span><strong>{responsible === currentResponsible ? "Yo" : responsible}</strong><small>{paid ? "Pagado" : "Pendiente"}</small></span>
+                  <b>{formatCurrency(share)}</b>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
       <button className="primary-action form-action">
         {editingId ? <Save size={18} /> : <Plus size={18} />}
         {editingId ? "Guardar" : "Agregar"}

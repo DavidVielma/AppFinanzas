@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, FileSearch, Pencil, Trash2 } from "lucide-react";
+import { FileSearch, Pencil, Trash2 } from "lucide-react";
 import { CategoryBadge } from "./CategoryVisuals";
 import { formatCurrency } from "../lib/finance";
 
@@ -97,7 +97,7 @@ function reorderMovementsForDrag(items, fromIndex, toIndex) {
   return reordered;
 }
 
-export function MovementTable({ movements, currentResponsible, responsibles = [], categoryOptionsByType = {}, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onOpenTcDetail }) {
+export function MovementTable({ movements, currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onOpenTcDetail }) {
   const longPressTimerRef = useRef(null);
   const dragRef = useRef(null);
   const dragFrameRef = useRef(null);
@@ -105,6 +105,8 @@ export function MovementTable({ movements, currentResponsible, responsibles = []
   const scrollLockRef = useRef(null);
   const [dragState, setDragState] = useState(null);
   const [mobileEditor, setMobileEditor] = useState(null);
+  const [desktopDragKey, setDesktopDragKey] = useState(null);
+  const [desktopDragOrder, setDesktopDragOrder] = useState(null);
 
   useEffect(() => {
     return () => {
@@ -331,6 +333,20 @@ export function MovementTable({ movements, currentResponsible, responsibles = []
     return Array.from(new Set([currentResponsible || "Yo", ...responsibles.map((responsible) => normalizeResponsibleName(responsible.name, currentResponsible)), ...selectedNames]));
   }
 
+  function getSelectedResponsiblePayment(movement) {
+    const movementResponsibles = parseResponsibleNames(movement.responsible, currentResponsible);
+    if (!selectedResponsible || !movementResponsibles.includes(selectedResponsible)) return null;
+    if (movementResponsibles.length === 1) return movement.status === "Confirmado" ? "paid" : "pending";
+    let paidNames = [];
+    try {
+      const parsed = JSON.parse(String(movement.paid_responsibles || "[]"));
+      if (Array.isArray(parsed)) paidNames = parsed.map((name) => normalizeResponsibleName(name, currentResponsible));
+    } catch {
+      paidNames = String(movement.paid_responsibles || "").split(",").map((name) => normalizeResponsibleName(name, currentResponsible));
+    }
+    return paidNames.includes(selectedResponsible) ? "paid" : "pending";
+  }
+
   function updateMobileCategory(movement, category) {
     setMobileEditor(null);
     onQuickUpdate?.(movement.source_movement || movement, { category });
@@ -344,8 +360,44 @@ export function MovementTable({ movements, currentResponsible, responsibles = []
     onQuickUpdate?.(movement.source_movement || movement, { responsible: nextNames.length ? nextNames.join(", ") : normalized });
   }
 
+  function startDesktopDrag(event, movement) {
+    if (isInteractiveTarget(event.target)) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", getMovementKey(movement));
+    setDesktopDragKey(getMovementKey(movement));
+    setDesktopDragOrder(movements.map(getMovementKey));
+  }
+
+  function previewDesktopMovement(targetMovement) {
+    if (!desktopDragKey) return;
+    const targetKey = getMovementKey(targetMovement);
+    setDesktopDragOrder((current) => {
+      const keys = current || movements.map(getMovementKey);
+      const fromIndex = keys.indexOf(desktopDragKey);
+      const toIndex = keys.indexOf(targetKey);
+      return reorderMovementsForDrag(keys, fromIndex, toIndex);
+    });
+  }
+
+  function dropDesktopMovement(event, targetMovement) {
+    event.preventDefault();
+    const sourceKey = event.dataTransfer.getData("text/plain") || desktopDragKey;
+    const sourceMovement = movements.find((movement) => getMovementKey(movement) === sourceKey);
+    setDesktopDragKey(null);
+    setDesktopDragOrder(null);
+    if (sourceMovement && getMovementKey(sourceMovement) !== getMovementKey(targetMovement)) {
+      onMoveToMovement?.(sourceMovement, targetMovement);
+    }
+  }
+
   const mobileMovements = dragState
     ? reorderMovementsForDrag(movements, dragState.draggingIndex, dragState.overIndex)
+    : movements;
+  const desktopMovements = desktopDragOrder
+    ? desktopDragOrder.map((key) => movements.find((movement) => getMovementKey(movement) === key)).filter(Boolean)
     : movements;
 
   return (
@@ -364,12 +416,13 @@ export function MovementTable({ movements, currentResponsible, responsibles = []
           </tr>
         </thead>
         <tbody>
-          {movements.map((movement) => {
+          {desktopMovements.map((movement) => {
             const tcLink = getTcSummaryLink(movement);
             const paymentBadge = getPaymentBadge(movement);
             const paymentBadgeMode = getPaymentBadgeMode(movement);
+            const responsiblePayment = getSelectedResponsiblePayment(movement);
             return (
-            <tr key={movement.row_key || movement.id}>
+            <tr key={movement.row_key || movement.id} draggable className={desktopDragKey === getMovementKey(movement) ? "desktop-dragging" : ""} onDragStart={(event) => startDesktopDrag(event, movement)} onDragEnter={() => previewDesktopMovement(movement)} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={(event) => dropDesktopMovement(event, movement)} onDragEnd={() => { setDesktopDragKey(null); setDesktopDragOrder(null); }}>
               <td data-label="Descripcion" className="description-cell" title={movement.description}>
                 <span className="description-content">
                   <span className="description-text">{movement.description}</span>
@@ -387,7 +440,10 @@ export function MovementTable({ movements, currentResponsible, responsibles = []
                 <span className={`pill ${movement.type === "Ingreso" ? "income" : "expense"}`}>{movement.type}</span>
               </td>
               <td data-label="Categoria" className={getCategoryClass(movement.category)}><CategoryBadge category={movement.category} compact /></td>
-              <td data-label="Responsables" title={formatResponsibles(movement.responsible, currentResponsible)}>{formatResponsibles(movement.responsible, currentResponsible)}</td>
+              <td data-label="Responsables" title={formatResponsibles(movement.responsible, currentResponsible)}>
+                <span>{formatResponsibles(movement.responsible, currentResponsible)}</span>
+                {responsiblePayment && <span className={`personal-payment-dot ${responsiblePayment}`} title={responsiblePayment === "paid" ? "Pagado" : "Pendiente"} aria-label={responsiblePayment === "paid" ? "Pagado" : "Pendiente"} />}
+              </td>
               <td data-label="Estado">
                 <select
                   className={`status-select ${getStatusClass(movement.status)}`}
@@ -402,12 +458,6 @@ export function MovementTable({ movements, currentResponsible, responsibles = []
               </td>
               <td data-label="Monto" className={`amount-col ${movement.amount >= 0 ? "income-text" : "expense-text"}`}>{formatCurrency(movement.amount)}</td>
               <td data-label="Acciones" className="actions-col">
-                <button type="button" className="icon-button" onClick={() => onMove(movement, -1)} disabled={!movement.canMoveUp} aria-label="Subir movimiento">
-                  <ArrowUp size={14} />
-                </button>
-                <button type="button" className="icon-button" onClick={() => onMove(movement, 1)} disabled={!movement.canMoveDown} aria-label="Bajar movimiento">
-                  <ArrowDown size={14} />
-                </button>
                 <button type="button" className="icon-button" onClick={() => onEdit(movement.source_movement || movement)} aria-label="Editar movimiento">
                   <Pencil size={16} />
                 </button>
@@ -442,6 +492,7 @@ export function MovementTable({ movements, currentResponsible, responsibles = []
           const isDragging = dragState?.draggingKey === getMovementKey(movement);
           const editorKey = getMobileEditorKey(movement);
           const selectedResponsibles = parseResponsibleNames(movement.responsible, currentResponsible);
+          const responsiblePayment = getSelectedResponsiblePayment(movement);
           return (
             <article
               className={`mobile-movement-card${isDragging ? " is-dragging" : ""}`}
@@ -470,10 +521,10 @@ export function MovementTable({ movements, currentResponsible, responsibles = []
                   <CategoryBadge category={movement.category} compact />
                 </button>
                 {selectedResponsibles.map((responsible) => (
-                  <button type="button" className="mobile-chip-button responsible-chip-button" key={responsible} onClick={() => toggleMobileEditor("responsible", movement)} aria-expanded={mobileEditor?.type === "responsible" && mobileEditor?.key === editorKey} aria-label={`Editar responsables de ${movement.description}`}>
-                    {displayResponsibleName(responsible, currentResponsible)}
-                  </button>
+                  <span className="mobile-chip-button responsible-chip-button" key={responsible}>{displayResponsibleName(responsible, currentResponsible)}</span>
                 ))}
+                <button type="button" className="mobile-chip-button responsible-edit-button" onClick={() => toggleMobileEditor("responsible", movement)} aria-label={`Editar responsables de ${movement.description}`}>Editar</button>
+                {responsiblePayment && <span className={`personal-payment-dot ${responsiblePayment}`} title={responsiblePayment === "paid" ? "Pagado" : "Pendiente"} aria-label={responsiblePayment === "paid" ? "Pagado" : "Pendiente"} />}
               </div>
               {mobileEditor?.type === "category" && mobileEditor.key === editorKey && (
                 <div className="mobile-inline-editor category-inline-editor">
@@ -508,12 +559,6 @@ export function MovementTable({ movements, currentResponsible, responsibles = []
                   <option>Pendiente</option>
                 </select>
                 <div className="mobile-card-actions">
-                  <button type="button" className="icon-button mobile-reorder-action" onClick={() => onMove(movement, -1)} disabled={!movement.canMoveUp} aria-label="Subir movimiento">
-                    <ArrowUp size={14} />
-                  </button>
-                  <button type="button" className="icon-button mobile-reorder-action" onClick={() => onMove(movement, 1)} disabled={!movement.canMoveDown} aria-label="Bajar movimiento">
-                    <ArrowDown size={14} />
-                  </button>
                   <button type="button" className="icon-button" onClick={() => onEdit(movement.source_movement || movement)} aria-label="Editar movimiento">
                     <Pencil size={16} />
                   </button>
