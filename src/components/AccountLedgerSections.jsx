@@ -113,6 +113,9 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
 
     movements.forEach((movement) => {
       if (movement.flow && movement.flow !== "Movimiento") return;
+      const sourceMovement = movement.source_movement || movement;
+      const sourceAccount = accountsByName[sourceMovement.account || "Principal"];
+      if (sourceAccount?.type === "tarjeta_credito") return;
       const names = parseResponsibleNames(movement.responsible, currentResponsible);
       const paidNames = parsePaidResponsibleNames(movement.paid_responsibles, currentResponsible);
       const share = Math.abs(Number(movement.original_amount ?? movement.amount ?? 0)) / Math.max(1, names.length);
@@ -134,7 +137,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
           account: movement.display_account || movement.account || "Principal",
           share,
           direction,
-          movement: movement.source_movement || movement
+          movement: sourceMovement
         });
         summaryByPerson.set(key, current);
       });
@@ -143,7 +146,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
     return Array.from(summaryByPerson.values())
       .map((person) => ({ ...person, balance: person.owedToMe - person.iOwe }))
       .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance) || a.name.localeCompare(b.name, "es"));
-  }, [currentResponsible, movements]);
+  }, [accountsByName, currentResponsible, movements]);
 
   function renderAccount(account) {
     const rows = [...(grouped[account.name] || [])].filter((movement) => !filterMovement || filterMovement(movement)).sort(sortVisibleRows);
