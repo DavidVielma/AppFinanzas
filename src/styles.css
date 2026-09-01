@@ -63,6 +63,7 @@ button {
 :root[data-theme="dark"] .auth-panel,
 :root[data-theme="dark"] .topbar,
 :root[data-theme="dark"] .setup-banner,
+:root[data-theme="dark"] .guide-banner,
 :root[data-theme="dark"] .ledger-panel,
 :root[data-theme="dark"] .side-panel > *,
 :root[data-theme="dark"] .dashboard-panel,
@@ -842,6 +843,66 @@ button:disabled {
   padding: 12px 14px;
   margin-bottom: 16px;
   color: #244f7d;
+}
+
+.guide-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #cbe6de;
+  background: #eef8f3;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  color: #14514a;
+}
+
+.guide-banner > svg {
+  flex: none;
+}
+
+.guide-banner div:first-of-type {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.guide-banner strong {
+  font-size: 0.95rem;
+}
+
+.guide-banner span {
+  font-size: 0.85rem;
+  color: #43706a;
+}
+
+:root[data-theme="dark"] .guide-banner span {
+  color: #a6b7c4;
+}
+
+.guide-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.guide-banner-actions .primary-action {
+  white-space: nowrap;
+}
+
+.nav-label-short {
+  display: none;
+}
+
+@media (min-width: 721px) and (max-width: 940px) {
+  .nav-label-full {
+    display: none;
+  }
+
+  .nav-label-short {
+    display: block;
+  }
 }
 
 .controls-row {
@@ -4554,6 +4615,24 @@ td:nth-child(8) {
     gap: 8px;
   }
 
+  .desktop-only-nav {
+    display: none !important;
+  }
+
+  .guide-banner {
+    flex-wrap: wrap;
+  }
+
+  .guide-banner-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .guide-banner-actions .primary-action {
+    flex: 1;
+    justify-content: center;
+  }
+
   .sidebar-signout {
     display: none;
   }
@@ -4569,8 +4648,10 @@ td:nth-child(8) {
     gap: 4px;
     padding: 6px 4px;
     font-size: 0.66rem;
+    line-height: 1.1;
     text-align: center;
     border-radius: 10px;
+    overflow-wrap: anywhere;
   }
 
   .mobile-only-nav {

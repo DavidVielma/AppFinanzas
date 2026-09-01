@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, ChevronDown, ChevronUp, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
+import { BookOpen, Camera, ChevronDown, ChevronUp, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
 import { AccountBalances } from "./components/AccountBalances";
 import { AccountEvolutionChart } from "./components/AccountEvolutionChart";
 import { AccountLedgerSections } from "./components/AccountLedgerSections";
@@ -45,6 +45,13 @@ import { getResponsibleAmount, parseResponsibleAmounts } from "./lib/responsible
 
 const initialPeriod = getCurrentPeriod();
 const quickMovementShortcutUrl = "https://www.icloud.com/shortcuts/45efc6dc3d8847c09c0ccb223d4abf03";
+const tutorialUrl = "/tutorial.html";
+const guideWelcomeStorageKey = "fluxa-guide-welcome-seen";
+
+function getGuideWelcomeKey(session) {
+  const userId = session?.user?.id;
+  return userId ? `${guideWelcomeStorageKey}:${userId}` : guideWelcomeStorageKey;
+}
 
 const emptyDraft = {
   flow: "Movimiento",
@@ -390,6 +397,7 @@ export function App() {
   const [selectedYear, setSelectedYear] = useState(initialPeriod.year);
   const [selectedMonth, setSelectedMonth] = useState(initialPeriod.month);
   const [activeView, setActiveView] = useState("movements");
+  const [guideBannerOpen, setGuideBannerOpen] = useState(false);
   const [dashboardCategoryScope, setDashboardCategoryScope] = useState("month");
   const [draft, setDraft] = useState(emptyDraft);
   const [editingId, setEditingId] = useState(null);
@@ -1266,6 +1274,32 @@ export function App() {
       loadProfile()
     ]);
     setNotice("Datos sincronizados.");
+  }
+
+  useEffect(() => {
+    if (!session && !demoMode) {
+      setGuideBannerOpen(false);
+      return;
+    }
+
+    try {
+      setGuideBannerOpen(!window.localStorage.getItem(getGuideWelcomeKey(session)));
+    } catch {
+      setGuideBannerOpen(false);
+    }
+  }, [demoMode, session?.user?.id]);
+
+  function openTutorial() {
+    window.open(tutorialUrl, "_blank", "noopener");
+  }
+
+  function dismissGuideBanner() {
+    setGuideBannerOpen(false);
+    try {
+      window.localStorage.setItem(getGuideWelcomeKey(session), "1");
+    } catch {
+      // el navegador puede bloquear el almacenamiento local
+    }
   }
 
   function openMovementFilters() {
@@ -2461,13 +2495,14 @@ export function App() {
   }
 
   const navItems = [
-    { id: "movements", label: "Movimientos", icon: ListChecks },
-    { id: "annual-summary", label: "Resumen Anual", icon: FileText },
-    { id: "tc-analysis", label: "Análisis TC", icon: CreditCard },
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "profile", label: "Perfil", icon: User }
+    { id: "movements", label: "Movimientos", shortLabel: "Movim.", icon: ListChecks },
+    { id: "annual-summary", label: "Resumen Anual", shortLabel: "Anual", icon: FileText },
+    { id: "tc-analysis", label: "Análisis TC", shortLabel: "TC", icon: CreditCard },
+    { id: "dashboard", label: "Dashboard", shortLabel: "Panel", icon: LayoutDashboard },
+    { id: "profile", label: "Perfil", shortLabel: "Perfil", icon: User },
+    { id: "help", label: "Guia de uso", shortLabel: "Guia", icon: BookOpen, action: openTutorial, className: "desktop-only-nav" }
   ];
-  const navOrder = ["movements", "annual-summary", "dashboard", "tc-analysis", "profile"];
+  const navOrder = ["movements", "annual-summary", "dashboard", "tc-analysis", "profile", "help"];
   const orderedNavItems = navOrder.map((id) => navItems.find((item) => item.id === id)).filter(Boolean);
 
   return (
@@ -2484,9 +2519,10 @@ export function App() {
           {orderedNavItems.map((item) => {
             const Icon = item.icon;
             return (
-              <button type="button" className={activeView === item.id ? "active" : ""} key={item.id} onClick={() => (item.action ? item.action() : setActiveView(item.id))}>
+              <button type="button" className={`${item.className || ""}${activeView === item.id ? " active" : ""}`.trim()} key={item.id} onClick={() => (item.action ? item.action() : setActiveView(item.id))}>
                 <Icon size={18} />
-                {item.label}
+                <span className="nav-label-full">{item.label}</span>
+                <span className="nav-label-short">{item.shortLabel || item.label}</span>
               </button>
             );
           })}
@@ -2574,6 +2610,24 @@ export function App() {
         <section className="setup-banner">
           <UploadCloud size={20} />
           <span>Modo demo local activo. Al configurar Supabase, los usuarios y movimientos se guardaran en la nube.</span>
+        </section>
+      )}
+
+      {guideBannerOpen && (
+        <section className="guide-banner">
+          <BookOpen size={20} />
+          <div>
+            <strong>¿Primera vez en Fluxa?</strong>
+            <span>La guía de uso explica cada seccion paso a paso, en PC y en celular.</span>
+          </div>
+          <div className="guide-banner-actions">
+            <button type="button" className="primary-action" onClick={openTutorial}>
+              Ver la guia
+            </button>
+            <button type="button" className="icon-button" onClick={dismissGuideBanner} aria-label="No volver a mostrar">
+              <X size={18} />
+            </button>
+          </div>
         </section>
       )}
 
@@ -2948,6 +3002,13 @@ export function App() {
                 <span>
                   <strong>Importar atajo rapido</strong>
                   <small>Agrega movimientos desde Atajos de iCloud.</small>
+                </span>
+              </a>
+              <a className="profile-action-card" href={tutorialUrl} target="_blank" rel="noreferrer">
+                <BookOpen size={20} />
+                <span>
+                  <strong>Guia de uso</strong>
+                  <small>Tutorial paso a paso de todas las secciones.</small>
                 </span>
               </a>
             </div>

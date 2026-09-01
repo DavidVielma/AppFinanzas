@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#155e63" />
+<link rel="icon" type="image/png" href="/Fluxa_Favicon.png" />
+<title>Guía de uso · Fluxa</title>
+<style>
+:root{
+  color-scheme: light;
+  --ink:#172033; --muted:#66758a; --brand:#155e63; --brand-strong:#0f4248;
+  --accent:#d97745; --leaf:#2f8f5b; --sky:#2f6fb0; --danger:#be123c;
+  --panel:#ffffff; --panel-soft:#f0f5f3; --line:#dbe4e5; --bg:#f4f7f4;
+  --chip:#e8f1ef; --shadow:0 10px 30px rgba(21,94,99,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --ink:#e7edf2; --muted:#a6b7c4; --brand:#46b8a8; --brand-strong:#d6fbf4;
+    --accent:#f1a46d; --leaf:#5bd089; --sky:#83bfff; --danger:#fb7185;
+    --panel:#0f2429; --panel-soft:#122c32; --line:#25434a; --bg:#07171a;
+    --chip:#153338; --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; min-width:320px; color:var(--ink);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:linear-gradient(180deg,rgba(21,94,99,.10),rgba(0,0,0,0) 320px),var(--bg);
+  line-height:1.55; -webkit-text-size-adjust:100%;
+}
+@media (prefers-color-scheme: dark){
+  body{background:linear-gradient(180deg,rgba(70,184,168,.14),rgba(0,0,0,0) 320px),var(--bg)}
+}
+img{max-width:100%}
+a{color:var(--brand);text-underline-offset:3px}
+h1,h2,h3,h4{line-height:1.2;margin:0}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 12px;padding-left:20px}
+li{margin:6px 0}
+code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  background:var(--chip); border:1px solid var(--line); border-radius:6px;
+  padding:1px 6px; font-size:.88em; overflow-wrap:anywhere;
+}
+
+/* ---------- Layout ---------- */
+.topbar{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:10px 18px;
+  background:color-mix(in srgb, var(--panel) 88%, transparent);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar .brand{display:flex;align-items:center;gap:10px;min-width:0;color:inherit;text-decoration:none;padding:4px 10px 4px 4px;border:1px solid transparent;border-radius:12px}
+.topbar .brand:hover{background:var(--panel-soft);border-color:var(--line)}
+.topbar .brand .back-ico{color:var(--brand);transform:rotate(180deg);order:-1}
+.topbar .brand img{width:34px;height:34px;border-radius:9px}
+.topbar .brand .logo-dark{display:none}
+@media (prefers-color-scheme: dark){
+  .topbar .brand .logo-light{display:none}
+  .topbar .brand .logo-dark{display:block}
+}
+.topbar .brand strong{display:block;font-size:1rem}
+.topbar .brand span{display:block;font-size:.76rem;color:var(--muted)}
+.topbar .spacer{flex:1}
+.menu-toggle{
+  display:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  border-radius:10px;padding:8px 12px;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;
+}
+
+.wrap{display:grid;grid-template-columns:264px minmax(0,1fr);gap:28px;max-width:1220px;margin:0 auto;padding:26px 18px 80px}
+.toc{position:sticky;top:74px;align-self:start;max-height:calc(100vh - 100px);overflow:auto}
+.toc-inner{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+.toc h2{font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:4px 6px 10px}
+.toc a{
+  display:block;padding:7px 10px;border-radius:9px;color:var(--ink);text-decoration:none;
+  font-size:.88rem;border-left:3px solid transparent;
+}
+.toc a:hover{background:var(--panel-soft)}
+.toc a.active{background:var(--chip);border-left-color:var(--brand);color:var(--brand-strong);font-weight:600}
+@media (prefers-color-scheme: dark){ .toc a.active{color:var(--brand)} }
+
+main{min-width:0}
+section.block{
+  background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  padding:22px;margin:0 0 20px;box-shadow:var(--shadow);scroll-margin-top:82px;
+}
+section.block > h2{font-size:1.35rem;margin-bottom:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+section.block > .sub{color:var(--muted);font-size:.94rem;margin-bottom:16px}
+h3{font-size:1.03rem;margin:20px 0 8px}
+h4{font-size:.94rem;margin:14px 0 6px}
+
+/* ---------- Hero ---------- */
+section.block.hero{
+  background:linear-gradient(135deg,#155e63,#0f4248);
+  color:#fff;border:0;padding:30px 26px;
+}
+.hero h1{font-size:2rem;margin-bottom:8px}
+.hero p{color:rgba(255,255,255,.9);max-width:62ch}
+.hero .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.hero .pills span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:6px 13px;font-size:.83rem}
+
+/* ---------- Piezas ---------- */
+.grid{display:grid;gap:12px}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.grid.three{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.card{background:var(--panel-soft);border:1px solid var(--line);border-radius:14px;padding:14px}
+.card h4{margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.card p{margin:0;font-size:.9rem;color:var(--muted)}
+.card p strong{color:var(--ink)}
+
+.steps{list-style:none;padding:0;margin:0;counter-reset:step}
+.steps li{
+  counter-increment:step;position:relative;padding:12px 0 12px 46px;border-bottom:1px dashed var(--line);margin:0;
+}
+.steps li:last-child{border-bottom:0}
+.steps li::before{
+  content:counter(step);position:absolute;left:0;top:11px;width:30px;height:30px;border-radius:50%;
+  background:var(--brand);color:#fff;display:grid;place-items:center;font-size:.85rem;font-weight:700;
+}
+.steps li strong{display:block}
+.steps li small{color:var(--muted);font-size:.86rem;display:block;margin-top:2px}
+
+.note{border-left:4px solid var(--sky);background:color-mix(in srgb,var(--sky) 10%,transparent);border-radius:0 12px 12px 0;padding:12px 14px;margin:14px 0;font-size:.92rem}
+.note.warn{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.note.tip{border-left-color:var(--leaf);background:color-mix(in srgb,var(--leaf) 12%,transparent)}
+.note strong{display:block;margin-bottom:2px}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.9rem;background:var(--panel)}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--panel-soft);font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:.8rem;font-weight:600;white-space:nowrap}
+.chip.green{background:color-mix(in srgb,var(--leaf) 18%,transparent);border-color:color-mix(in srgb,var(--leaf) 40%,transparent)}
+.chip.orange{background:color-mix(in srgb,var(--accent) 18%,transparent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.chip.blue{background:color-mix(in srgb,var(--sky) 18%,transparent);border-color:color-mix(in srgb,var(--sky) 40%,transparent)}
+.chip.red{background:color-mix(in srgb,var(--danger) 15%,transparent);border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
+
+.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+.ico.big{width:22px;height:22px}
+.brand-ico{color:var(--brand)}
+
+.faq details{border:1px solid var(--line);border-radius:12px;padding:0;margin:8px 0;background:var(--panel-soft);overflow:hidden}
+.faq summary{cursor:pointer;padding:12px 14px;font-weight:600;list-style:none;display:flex;gap:8px;align-items:center}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"+";color:var(--brand);font-weight:800;font-size:1.1rem;width:14px}
+.faq details[open] summary::before{content:"−"}
+.faq .answer{padding:0 14px 12px;font-size:.92rem;color:var(--muted)}
+.faq .answer strong{color:var(--ink)}
+
+.device-block{border:1px dashed var(--line);border-radius:14px;padding:14px;margin:12px 0;background:var(--panel-soft)}
+.device-block > h4{margin-top:0;display:flex;align-items:center;gap:8px;color:var(--brand)}
+body[data-device="pc"] .only-mobile{display:none}
+body[data-device="mobile"] .only-pc{display:none}
+
+.top-link{display:inline-flex;align-items:center;gap:6px;font-size:.84rem;color:var(--muted);text-decoration:none;margin-top:8px}
+footer.page-footer{max-width:1220px;margin:0 auto;padding:0 18px 60px;color:var(--muted);font-size:.85rem}
+
+@media (max-width: 940px){
+  .wrap{grid-template-columns:minmax(0,1fr);gap:14px;padding:16px 12px 60px}
+  .toc{position:static;max-height:none;display:none}
+  .toc.open{display:block}
+  .menu-toggle{display:inline-flex;align-items:center;gap:6px}
+  .hero h1{font-size:1.55rem}
+  section.block{padding:16px;border-radius:15px}
+  .topbar{padding:9px 12px;gap:8px}
+}
+
+@media (max-width: 560px){
+  .topbar .brand div strong{display:none}
+  .topbar .brand div span{font-size:.85rem;font-weight:600;color:var(--ink)}
+  .topbar .brand img{width:30px;height:30px}
+  .menu-toggle{padding:7px 10px}
+}
+</style>
+</head>
+<body data-device="pc">
+
+<header class="topbar">
+  <a class="brand" href="/" title="Volver a Fluxa">
+    <img class="logo-light" src="/Fluxa_Verde.png" alt="Fluxa" />
+    <img class="logo-dark" src="/Fluxa_Blanco.png" alt="Fluxa" />
+    <div>
+      <strong>Fluxa</strong>
+      <span>Volver a la app</span>
+    </div>
+    <svg class="ico back-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+  </a>
+  <div class="spacer"></div>
+  <button class="menu-toggle" id="menuToggle" aria-expanded="false">
+    <svg class="ico" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    Índice
+  </button>
+</header>
+
+<div class="wrap">
+  <nav class="toc" id="toc" aria-label="Índice del tutorial">
+    <div class="toc-inner">
+      <h2>Contenido</h2>
+      <a href="#inicio">1 · Qué es Fluxa</a>
+      <a href="#acceso">2 · Entrar a la app</a>
+      <a href="#mapa">3 · El mapa de la app</a>
+      <a href="#conceptos">4 · Conceptos base</a>
+      <a href="#movimientos">5 · Vista Movimientos</a>
+      <a href="#registrar">6 · Registrar un movimiento</a>
+      <a href="#casos">7 · Casos frecuentes</a>
+      <a href="#compartidos">8 · Gastos compartidos y deudas</a>
+      <a href="#filtros">9 · Filtros y búsqueda</a>
+      <a href="#copiar">10 · Copiar y pegar un mes</a>
+      <a href="#anual">11 · Resumen Anual</a>
+      <a href="#dashboard">12 · Dashboard</a>
+      <a href="#tc">13 · Análisis TC</a>
+      <a href="#perfil">14 · Perfil y administración</a>
+      <a href="#atajos">15 · Atajos rápidos</a>
+      <a href="#pdf">16 · Exportar a PDF</a>
+      <a href="#faq">17 · Preguntas frecuentes</a>
+      <a href="#glosario">18 · Glosario</a>
+    </div>
+  </nav>
+
+  <main>
+
+    <section class="block hero" id="inicio">
+      <h1>Cómo usar Fluxa</h1>
+      <p>Fluxa es tu control financiero mensual: registras lo que entra y lo que sale, lo separas por cuentas y tarjetas, y la app calcula sola los balances del mes y del año. Esta guía recorre cada pantalla y cada opción, paso a paso.</p>
+      <div class="pills">
+        <span>⏱ Lectura de 10 minutos</span>
+        <span>🖥 Se adapta a tu dispositivo</span>
+      </div>
+      <p style="margin-top:16px;font-size:.92rem">La guía detecta sola si estás en PC o en celular y te muestra las instrucciones que corresponden. Para volver a la app, toca el <strong>logo de Fluxa</strong> arriba a la izquierda.</p>
+    </section>
+
+    <section class="block" id="acceso">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 2 · Entrar a la app</h2>
+      <p class="sub">La primera pantalla tiene tres pestañas: <strong>Ingresar</strong>, <strong>Crear usuario</strong> y <strong>Recuperar</strong>.</p>
+
+      <ol class="steps">
+        <li><strong>Crear tu cuenta</strong><small>Pestaña <em>Crear usuario</em>: escribe un nombre de usuario, tu correo y una contraseña de al menos 6 caracteres. El nombre de usuario debe ser único y es el que verás luego como “Yo” dentro de la app.</small></li>
+        <li><strong>Confirmar el correo</strong><small>Recibirás un mail de confirmación. Ábrelo desde el mismo dispositivo donde vas a usar Fluxa.</small></li>
+        <li><strong>Ingresar</strong><small>Pestaña <em>Ingresar</em>: correo y contraseña. La sesión queda guardada en ese dispositivo hasta que presiones <em>Salir</em>.</small></li>
+        <li><strong>Si olvidaste la contraseña</strong><small>Pestaña <em>Recuperar</em>: escribe tu correo y te llega un enlace. Al abrirlo, Fluxa muestra directamente la pantalla para definir la nueva clave.</small></li>
+      </ol>
+
+      <div class="note tip">
+        <strong>Instálala como app</strong>
+        Fluxa funciona como aplicación instalable. En el celular abre la web y usa <em>Agregar a pantalla de inicio</em> (iPhone) o <em>Instalar app</em> (Android); en PC, el ícono de instalar de la barra de direcciones de Chrome o Edge. Se abre a pantalla completa, sin barra del navegador.
+      </div>
+
+      <div class="note">
+        <strong>Modo demo local</strong>
+        Si ves un aviso de “Modo demo local activo”, la app está funcionando sin conexión a la nube: los datos quedan solo en ese navegador. En la versión publicada normalmente estarás sincronizado y verás tu correo en el perfil.
+      </div>
+    </section>
+
+    <section class="block" id="mapa">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg> 3 · El mapa de la app</h2>
+      <p class="sub">Fluxa tiene cinco secciones. Son siempre las mismas, solo cambia dónde aparece el menú.</p>
+
+      <div class="grid two">
+        <div class="card">
+          <h4><svg class="ico brand-ico" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg> Movimientos</h4>
+          <p>Tu pantalla del día a día: el detalle del mes separado por cuenta y tarjeta. <strong>Aquí registras y editas todo.</strong></p>
+        </div>
+        <div class="card">
+          <h4><svg class="ico brand-ico" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg> Resumen Anual</h4>
+          <p>Los 12 meses del año en tarjetas, con el balance de cada mes y el saldo final de cada cuenta. <strong>Vista de lectura.</strong></p>
+        </div>
+        <div class="card">
+          <h4><svg class="ico brand-ico" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg> Dashboard</h4>
+          <p>Indicadores y gráficos: categorías, evolución de cuentas, gasto en tarjetas y flujo anual.</p>
+        </div>
+        <div class="card">
+          <h4><svg class="ico brand-ico" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> Análisis TC</h4>
+          <p>Sube el PDF del estado de cuenta de tu tarjeta y Fluxa separa los gastos por usuario y por sección.</p>
+        </div>
+        <div class="card">
+          <h4><svg class="ico brand-ico" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Perfil</h4>
+          <p>Tu foto, modo oscuro, cambio de contraseña y la administración de <strong>cuentas, responsables y categorías</strong>.</p>
+        </div>
+      </div>
+
+      <div class="device-block only-pc">
+        <h4><svg class="ico" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> En PC</h4>
+        <ul>
+          <li><strong>Menú lateral izquierdo</strong> fijo con las cinco secciones, el acceso a esta <em>Guía de uso</em>, el botón <em>Salir</em> y tu foto de perfil abajo.</li>
+          <li><strong>Barra superior</strong> con dos accesos: <span class="chip">PDF</span> (solo en Movimientos y Resumen Anual) y <span class="chip">Link rápido</span>.</li>
+          <li><strong>Botones flotantes</strong> a la derecha: <span class="chip green">⚡ Movimiento</span> para registrar al instante, <span class="chip blue">Sincronizar</span> para recargar los datos de la nube y <span class="chip orange">Filtros</span> cuando estás en Movimientos.</li>
+          <li><strong>Panel derecho</strong> en Movimientos con saldos de cuentas, tarjetas, categorías del mes y resumen anual.</li>
+        </ul>
+      </div>
+
+      <div class="device-block only-mobile">
+        <h4><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> En celular</h4>
+        <ul>
+          <li><strong>Barra inferior fija</strong> con las cinco secciones. Es el menú principal; reemplaza al panel lateral del PC.</li>
+          <li><strong>Botones flotantes</strong>: <span class="chip green">⚡ Movimiento</span> y, en la vista Movimientos, <span class="chip orange">Filtros</span> (que abre un panel deslizante).</li>
+          <li><strong>Desliza con el dedo</strong> hacia izquierda o derecha sobre la lista de movimientos para <strong>cambiar de mes</strong>.</li>
+          <li>Cada movimiento se ve como una <strong>tarjeta</strong> en vez de una fila de tabla, con el monto grande a la derecha.</li>
+          <li>El botón <em>Salir</em> y el acceso a esta <strong>Guía de uso</strong> están dentro de <strong>Perfil</strong>, no en la barra inferior.</li>
+          <li>La exportación a <strong>PDF</strong> y el <strong>Link rápido</strong> están disponibles desde PC; en el celular usa el atajo o el bot (sección 15).</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="block" id="conceptos">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> 4 · Conceptos base</h2>
+      <p class="sub">Entender estas cinco ideas hace que todo lo demás sea evidente.</p>
+
+      <h3>Cuentas y tarjetas</h3>
+      <p>Todo movimiento vive dentro de una <strong>cuenta</strong>. Fluxa parte con tres: <code>Principal</code>, <code>Ahorro</code> y una tarjeta de crédito. Las dos primeras no se pueden eliminar porque son la base del sistema; puedes crear todas las que quieras (una cuenta de viaje, otra tarjeta, etc.).</p>
+      <ul>
+        <li><strong>Cuenta principal:</strong> suma ingresos, egresos y transferencias. Su saldo se arrastra mes a mes.</li>
+        <li><strong>Tarjeta de crédito:</strong> registra compras que <em>no</em> descuentan plata al momento. La plata sale cuando registras un <strong>Pago Tarjeta</strong> desde una cuenta.</li>
+      </ul>
+
+      <h3>Operación: el “tipo” de movimiento</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Operación</th><th>Para qué sirve</th><th>Qué pide</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip">Movimiento</span></td><td>Un ingreso o un gasto normal.</td><td>Cuenta, categoría, descripción y monto.</td></tr>
+            <tr><td><span class="chip blue">Transferencia</span></td><td>Mover plata entre tus propias cuentas (ej. Principal → Ahorro).</td><td>Además, la cuenta <em>Destino</em>. Sale de una y entra a la otra automáticamente.</td></tr>
+            <tr><td><span class="chip orange">Pago Tarjeta</span></td><td>Pagar la tarjeta desde una cuenta.</td><td>Además, la <em>Tarjeta</em> que estás pagando.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>El signo del monto define ingreso o egreso</h3>
+      <p>No hay un selector “ingreso / egreso”: <strong>lo decide el signo del monto</strong>. Un monto positivo es <span class="chip green">Ingreso</span>, uno negativo es <span class="chip red">Egreso</span>. En el campo Monto hay un botón <code>+ / −</code> para cambiar el signo de un toque, y las categorías disponibles cambian según corresponda.</p>
+
+      <h3>Estados</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Estado</th><th>Cuándo usarlo</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip green">Confirmado</span></td><td>Ya ocurrió: la plata entró o salió.</td></tr>
+            <tr><td><span class="chip blue">Proyectado</span></td><td>Lo tienes planificado para ese mes pero aún no pasa. Es el estado por defecto.</td></tr>
+            <tr><td><span class="chip orange">Pendiente</span></td><td>Debería haber ocurrido y sigue en el aire (una deuda, un reembolso que no te han pagado).</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note warn">
+        <strong>Importante</strong>
+        Los tres estados <em>suman igual</em> en los balances: Fluxa te muestra el mes completo, incluyendo lo proyectado. El estado sirve para saber qué está cerrado y qué no, y para filtrar. Si quieres ver solo lo real, filtra por <em>Confirmado</em>.
+      </div>
+
+      <h3>Categorías y responsables</h3>
+      <p>La <strong>categoría</strong> clasifica el gasto o ingreso (Supermercado, Sueldo, Salud…) y es lo que alimenta los gráficos. Puedes crear las tuyas con ícono y color propios.</p>
+      <p>El <strong>responsable</strong> es de quién es ese movimiento. Si marcas a más de una persona, el monto se reparte en partes iguales entre ellas y Fluxa lleva la cuenta de quién te debe y a quién le debes.</p>
+    </section>
+
+    <section class="block" id="movimientos">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg> 5 · Vista Movimientos</h2>
+      <p class="sub">Es la pantalla principal. De arriba hacia abajo tiene cuatro zonas.</p>
+
+      <h3>A · Selector de periodo</h3>
+      <p>El botón <strong>Periodo</strong> abre un calendario de meses; también hay listas separadas de <em>Año</em> y <em>Mes</em>. Al lado están <span class="chip">Copiar mes</span> y <span class="chip">Pegar</span> (ver sección 10).</p>
+      <div class="device-block only-mobile">
+        <h4>Atajo en celular</h4>
+        <p style="margin:0">Desliza el dedo sobre la lista: <strong>izquierda</strong> avanza al mes siguiente, <strong>derecha</strong> vuelve al anterior. Verás el nombre del mes aparecer al centro como confirmación.</p>
+      </div>
+
+      <h3>B · Tarjetas de resumen y grilla de meses</h3>
+      <p>Cuatro tarjetas con <strong>Ingresos del mes</strong>, <strong>Egresos del mes</strong>, <strong>Balance mensual</strong> y <strong>Balance anual</strong>. Debajo, una grilla con los 12 meses y el balance de cada uno: <strong>haz clic en cualquier mes para saltar a él</strong>.</p>
+
+      <h3>C · Detalle mensual por cuenta</h3>
+      <p>El corazón de la app. Cada cuenta y cada tarjeta tiene su propio bloque con color, su total del mes y sus botones:</p>
+      <ul>
+        <li><span class="chip">+ Agregar</span> abre el formulario con esa cuenta ya seleccionada.</li>
+        <li>En la cuenta <strong>Principal</strong> aparece además la tira <strong>Pagos de tarjeta</strong> (un botón por tarjeta con el monto a pagar) y el botón <span class="chip orange">Deudas</span>.</li>
+        <li>En cada <strong>tarjeta</strong> se muestran cuatro cifras: <em>Total consumos</em>, <em>Saldo anterior</em>, <em>Pagado</em> y <em>Pendiente</em>, más el botón <span class="chip">Pagar</span> (o <em>Editar pago</em> si ya lo registraste).</li>
+      </ul>
+
+      <h4>Qué puedes hacer sobre cada movimiento</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Acción</th><th>Cómo</th></tr></thead>
+          <tbody>
+            <tr><td>Cambiar el estado</td><td>Con la lista desplegable de la columna <em>Estado</em>, sin abrir nada.</td></tr>
+            <tr><td>Editar</td><td>Botón del lápiz. Abre el formulario completo.</td></tr>
+            <tr><td>Eliminar</td><td>Botón del basurero. Si el movimiento es parte de una serie recurrente, te pregunta si borras uno, este y los siguientes, o toda la serie.</td></tr>
+            <tr><td>Generar reembolso</td><td>Ícono de la mano con monedas, en compras de tarjeta con otros responsables (ver la sección 8).</td></tr>
+            <tr><td>Ver detalle del estado de cuenta</td><td>Ícono de lupa sobre documento, en los movimientos creados desde Análisis TC.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="device-block only-pc">
+        <h4>Reordenar en PC</h4>
+        <p style="margin:0">Arrastra una fila con el mouse y suéltala donde quieras dentro de la misma cuenta. El orden queda guardado.</p>
+      </div>
+      <div class="device-block only-mobile">
+        <h4>Reordenar y editar rápido en celular</h4>
+        <ul style="margin:0">
+          <li><strong>Mantén presionada</strong> una tarjeta un instante y arrástrala para cambiarla de posición.</li>
+          <li>Toca la <strong>etiqueta de categoría</strong> para cambiarla desde una lista rápida, sin abrir el formulario.</li>
+          <li>Toca <strong>Editar</strong> junto a los responsables para marcar o desmarcar personas al vuelo.</li>
+        </ul>
+      </div>
+
+      <h3>D · Panel de apoyo</h3>
+      <p>Muestra el saldo <strong>Inicial</strong> y del <strong>Mes</strong> de cada cuenta, el administrador rápido de <strong>Tarjetas</strong>, el desglose de <strong>Categorías del mes</strong> en barras y el <strong>Resumen anual</strong>.</p>
+      <p class="only-mobile" style="font-size:.92rem;color:var(--muted)">En el celular este panel se muestra debajo del detalle mensual: baja hasta el final de la pantalla para verlo.</p>
+      <a class="top-link" href="#inicio">↑ Volver arriba</a>
+    </section>
+
+    <section class="block" id="registrar">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg> 6 · Registrar un movimiento</h2>
+      <p class="sub">Tres formas de abrir el formulario: el botón flotante <span class="chip green">⚡ Movimiento</span>, el botón <em>Agregar movimiento</em> de la cabecera del mes, o el <em>+ Agregar</em> de una cuenta concreta (llega con la cuenta ya elegida).</p>
+
+      <h3>Campo por campo</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Qué hacer</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Operación</strong></td><td>Movimiento, Transferencia o Pago Tarjeta. Cambia el resto del formulario.</td></tr>
+            <tr><td><strong>Estado</strong></td><td>Confirmado, Proyectado o Pendiente.</td></tr>
+            <tr><td><strong>Periodo</strong></td><td>Mes y año donde se guardará. Viene con el mes que estás viendo; puedes registrar a futuro sin cambiar de vista.</td></tr>
+            <tr><td><strong>Cuenta</strong></td><td>Dónde ocurre. Si es una tarjeta, es una compra con esa tarjeta.</td></tr>
+            <tr><td><strong>Categoría</strong></td><td>Selector con íconos. Las opciones cambian según el monto sea positivo o negativo.</td></tr>
+            <tr><td><strong>Destino / Tarjeta</strong></td><td>Solo en Transferencia y Pago Tarjeta: a qué cuenta llega o qué tarjeta pagas.</td></tr>
+            <tr><td><strong>Descripción</strong></td><td>El texto que verás en la lista. Obligatorio. Ej: <em>Supermercado Lider</em>.</td></tr>
+            <tr><td><strong>Monto</strong></td><td>Solo números; se formatea solo. El botón <code>+ / −</code> define ingreso o egreso.</td></tr>
+            <tr><td><strong>Cuotas</strong></td><td>Solo para gastos nuevos (ver 7.3).</td></tr>
+            <tr><td><strong>Repetición</strong></td><td>Para gastos o ingresos que se repiten (ver 7.4).</td></tr>
+            <tr><td><strong>Responsables</strong></td><td>Marca una o varias personas. Con dos o más, el monto se divide en partes iguales.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Termina con <span class="chip green">Agregar</span> (o <em>Guardar</em> si estabas editando).</p>
+
+      <div class="note tip">
+        <strong>Ejemplo completo</strong>
+        Compra del supermercado por $85.000 con la tarjeta, ya pagada, compartida con tu pareja: Operación <em>Movimiento</em> → Estado <em>Confirmado</em> → Cuenta <em>tu tarjeta</em> → Categoría <em>Supermercado</em> → Descripción <em>Súper quincena</em> → Monto <em>−85.000</em> → Responsables <em>Yo</em> + la otra persona → Agregar.
+      </div>
+    </section>
+
+    <section class="block" id="casos">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> 7 · Casos frecuentes</h2>
+
+      <h3>7.1 · Transferir entre tus cuentas</h3>
+      <p>Operación <strong>Transferencia</strong>, cuenta de origen, cuenta <em>Destino</em>, monto y listo. Fluxa crea el egreso en la cuenta de origen y muestra automáticamente el ingreso espejo en la cuenta de destino como <em>“Transferencia recibida”</em>. <strong>No lo registres dos veces.</strong></p>
+
+      <h3>7.2 · Pagar la tarjeta de crédito</h3>
+      <p>La forma más rápida es el botón <span class="chip">Pagar</span> del bloque de la tarjeta (o su botón en la tira <em>Pagos de tarjeta</em> de la cuenta Principal): abre el formulario con todo listo.</p>
+      <ul>
+        <li><strong>Pago completo:</strong> el monto se calcula solo (saldo anterior + consumos del mes − pagos ya hechos) y no se puede editar. Si agregas más compras, el pago se actualiza solo.</li>
+        <li><strong>Pago parcial:</strong> escribes tú el monto. Fluxa te muestra cuánto queda pendiente, y ese saldo pasa al mes siguiente como <em>Saldo anterior</em>.</li>
+      </ul>
+      <p>En la lista, el pago queda con una insignia <span class="chip">Total</span> o <span class="chip orange">Parcial</span> para que se vea de un vistazo.</p>
+
+      <h3>7.3 · Compras en cuotas</h3>
+      <p>Al crear un <strong>gasto nuevo</strong> aparece el recuadro <em>Cuotas</em>:</p>
+      <ul>
+        <li><strong>Sin intereses: dividir total.</strong> Escribes el valor total y los meses; Fluxa lo divide.</li>
+        <li><strong>Con intereses: cuota fija.</strong> Escribes lo que pagas cada mes y la cantidad de meses.</li>
+      </ul>
+      <p>En ambos casos se crean los movimientos mes a mes desde el periodo actual. El texto bajo el recuadro te anticipa cuántos se crearán y de qué monto.</p>
+
+      <h3>7.4 · Gastos e ingresos que se repiten</h3>
+      <p>El recuadro <em>Repetición</em> permite <strong>mensual, cada 2 meses, trimestral o anual</strong>, indicando cuántas veces (hasta 120). Se crean como proyectados y quedan marcados con la insignia <span class="chip blue">Recurrente</span>.</p>
+      <p>Al <strong>editar</strong> uno de ellos eliges el alcance: <em>solo este</em>, <em>este y los siguientes</em> o <em>toda la serie</em>. Al <strong>eliminar</strong>, la app pregunta lo mismo y te dice cuántos movimientos afecta cada opción.</p>
+
+    </section>
+
+    <section class="block" id="compartidos">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 8 · Gastos compartidos: responsables, deudas y reembolsos</h2>
+      <p class="sub">Es la parte más potente de Fluxa y la que más se presta a confusión. Son tres piezas encadenadas: marcas <strong>responsables</strong>, indicas <strong>quién ya pagó</strong>, y el botón <strong>Deudas</strong> te entrega el neto por persona. Las compras con tarjeta son un caso aparte y se cobran con un <strong>reembolso</strong>.</p>
+
+      <h3>8.1 · Paso 1: marcar a los responsables</h3>
+      <p>En el formulario del movimiento, el recuadro <em>Responsables</em> lista a todas las personas que creaste en <em>Perfil → Responsables</em>. Tú apareces siempre como <strong>Yo</strong>.</p>
+      <ul>
+        <li>Con <strong>una sola persona</strong> marcada, el movimiento es entero de ella.</li>
+        <li>Con <strong>dos o más</strong>, el monto se divide en partes iguales. Un gasto de $60.000 entre tres personas deja $20.000 a cada una.</li>
+        <li>Los montos desiguales solo se pueden fijar desde el reembolso de tarjeta (8.4). En el resto de los casos, la división es pareja.</li>
+      </ul>
+
+      <h3>8.2 · Paso 2: indicar quién ya pagó</h3>
+      <p>Fluxa usa dos mecanismos distintos según cuántas personas haya, y esta es la primera fuente de confusión:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Situación</th><th>Cómo se marca como pagado</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Un solo responsable</strong> distinto de ti</td>
+              <td>Manda el <strong>estado del movimiento</strong>: <span class="chip green">Confirmado</span> significa saldado; <span class="chip orange">Pendiente</span> o <span class="chip blue">Proyectado</span> significan que sigue debiéndose.</td>
+            </tr>
+            <tr>
+              <td><strong>Dos o más responsables</strong></td>
+              <td>Manda el botón por persona. Al <em>editar</em> el movimiento aparece el recuadro <strong>Pago por persona</strong>, con la parte de cada uno y un botón que alterna <em>Pendiente</em> / <em>Pagado</em>. Aquí el estado general del movimiento ya no decide la deuda.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>En la lista, si filtras por una persona verás un <strong>punto de color</strong> junto a los responsables: indica si la parte de esa persona está pagada o pendiente.</p>
+
+      <h3>8.3 · Paso 3: leer el resumen de Deudas</h3>
+      <p>El botón <span class="chip orange">Deudas</span> está en la cabecera de la cuenta <strong>Principal</strong>, en la vista Movimientos. Abre una ventana con una línea por persona: cuánto te debe, cuánto le debes y el <strong>neto</strong>. Al desplegar a alguien ves los movimientos que componen ese saldo, y el lápiz te lleva a editar cualquiera de ellos.</p>
+
+      <div class="note warn">
+        <strong>La regla que hay que memorizar</strong>
+        Un <strong>ingreso</strong> pendiente a nombre de otra persona significa que <strong>esa persona te debe</strong>. Un <strong>egreso</strong> pendiente a nombre de otra persona significa que <strong>tú le debes a ella</strong>. Dicho como lo dice la app: los ingresos pendientes son a tu favor, los egresos pendientes son a favor de la otra persona.
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Quieres registrar…</th><th>Regístralo como</th><th>Aparece en Deudas como</th></tr></thead>
+          <tbody>
+            <tr><td>Le presté plata a Ana, o le compré algo y me lo va a devolver</td><td>Ingreso pendiente, responsable Ana</td><td><strong>Ana me debe</strong></td></tr>
+            <tr><td>Ana pagó algo mío y se lo tengo que devolver</td><td>Egreso pendiente, responsable Ana</td><td><strong>Le debo a Ana</strong></td></tr>
+            <tr><td>Una compra con tarjeta que se reparte entre varios</td><td>No la registres como deuda: genera un <strong>reembolso</strong> (8.4)</td><td><strong>Me deben</strong>, una vez creado el reembolso</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Qué entra y qué no entra en el resumen</h4>
+      <ul>
+        <li>Solo el <strong>mes que estás viendo</strong>. Si cambias de periodo, cambia el resumen.</li>
+        <li>Solo movimientos normales: quedan fuera las <em>transferencias</em> y los <em>pagos de tarjeta</em>.</li>
+        <li>Quedan fuera las <strong>compras hechas con tarjeta</strong>, porque esa plata todavía no sale de tu cuenta. Se cobran con el reembolso.</li>
+        <li>Lo ya pagado desaparece del resumen: si no ves a alguien, es porque su parte está marcada como pagada.</li>
+      </ul>
+
+      <h3>8.4 · Compras con tarjeta: el reembolso</h3>
+      <p>Cuando pagas con tu tarjeta algo que se reparte entre varios, la deuda no nace al comprar sino al pagar la tarjeta. Por eso Fluxa la maneja aparte, con un movimiento de cobro único.</p>
+      <ol class="steps">
+        <li><strong>Abre el reembolso</strong><small>En la fila de la compra, dentro del bloque de la tarjeta, presiona el ícono de la <em>mano con monedas</em>. Solo aparece si la compra tiene marcada al menos otra persona además de ti.</small></li>
+        <li><strong>Revisa los montos propuestos</strong><small>Fluxa reparte el valor de la compra entre todos los responsables, incluyéndote, y propone esa cifra para cada persona. Puedes cambiar cada monto a mano: aquí sí se permiten partes desiguales.</small></li>
+        <li><strong>Elige el periodo y marca lo ya pagado</strong><small>El mes donde quieres que aparezca el cobro, y un botón <em>Pendiente</em> / <em>Pagado</em> por persona.</small></li>
+        <li><strong>Guarda</strong><small>Se crea <strong>un solo movimiento</strong>: un ingreso en la cuenta Principal, categoría <em>Reembolso</em>, descripción <em>Reembolso: (nombre de la compra)</em>, por la suma de todos los montos. Queda <span class="chip orange">Pendiente</span> mientras alguien no haya pagado y pasa a <span class="chip green">Confirmado</span> cuando marcas a todos.</small></li>
+      </ol>
+      <div class="note tip">
+        <strong>Por qué esto cierra el círculo</strong>
+        Ese reembolso es un ingreso pendiente a nombre de las otras personas, así que — por la regla de 8.3 — aparece solo en el resumen de <strong>Deudas</strong> como "me deben", con el monto de cada uno. La compra original queda marcada con la insignia <span class="chip">Reembolso</span> y el mismo ícono la reabre para editarla.
+      </div>
+
+      <h3>8.5 · Un ejemplo de punta a punta</h3>
+      <ol class="steps">
+        <li><strong>La compra</strong><small>Cena de $90.000 pagada con tu tarjeta. En el movimiento marcas como responsables a <em>Yo</em>, <em>Ana</em> y <em>Luis</em>.</small></li>
+        <li><strong>El cobro</strong><small>Ícono de reembolso: Fluxa propone $30.000 para Ana y $30.000 para Luis, que es la cena dividida en tres. Guardas.</small></li>
+        <li><strong>El resultado</strong><small>Aparece un ingreso pendiente de $60.000 en Principal, y el botón Deudas muestra "Ana me debe $30.000" y "Luis me debe $30.000".</small></li>
+        <li><strong>Ana te transfiere</strong><small>Reabres el reembolso y marcas a Ana como <em>Pagada</em>. En Deudas queda solo Luis con $30.000.</small></li>
+        <li><strong>Luis paga</strong><small>Lo marcas también y el ingreso pasa solo a <em>Confirmado</em>. El resumen de deudas queda limpio.</small></li>
+      </ol>
+      <div class="note">
+        <strong>Para revisar rápido lo que te deben</strong>
+        En los filtros elige <em>Responsable</em> igual a la persona y <em>Estado de deuda</em> igual a <em>Pendientes</em>: la lista queda solo con lo que falta, y cada movimiento muestra la parte de esa persona en vez del monto total.
+      </div>
+      <a class="top-link" href="#inicio">↑ Volver arriba</a>
+    </section>
+
+    <section class="block" id="filtros">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> 9 · Filtros y búsqueda</h2>
+      <p class="sub">El botón <span class="chip orange">Filtros</span> abre el panel. Cuando hay filtros activos, el botón queda resaltado.</p>
+      <div class="grid three">
+        <div class="card"><h4>Buscar</h4><p>Texto libre sobre descripción, categoría y cuenta.</p></div>
+        <div class="card"><h4>Cuenta</h4><p>Deja visible solo una cuenta o tarjeta.</p></div>
+        <div class="card"><h4>Responsable</h4><p>Muestra los movimientos de una persona <strong>con su parte del monto</strong>, no el total.</p></div>
+        <div class="card"><h4>Estado de deuda</h4><p>Se habilita al elegir responsable: <em>Pendientes</em> o <em>Pagados</em>.</p></div>
+        <div class="card"><h4>Tipo</h4><p>Ingreso o Egreso.</p></div>
+        <div class="card"><h4>Categoría</h4><p>Una categoría específica.</p></div>
+        <div class="card"><h4>Estado</h4><p>Confirmado, Proyectado o Pendiente.</p></div>
+        <div class="card"><h4>Operación</h4><p>Movimiento, Transferencia o Pago Tarjeta.</p></div>
+      </div>
+      <p style="margin-top:12px">El botón <strong>Limpiar</strong> deja todo en cero. Los filtros también existen en el <strong>Dashboard</strong>, donde afectan a los indicadores y gráficos.</p>
+      <div class="device-block only-mobile">
+        <h4>En celular</h4>
+        <p style="margin:0">Arriba del panel hay accesos directos de <strong>Tipo</strong> y <strong>Estado</strong> en botones grandes, y un selector visual de categoría. El panel se cierra tocando fuera o con la X.</p>
+      </div>
+    </section>
+
+    <section class="block" id="copiar">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> 10 · Copiar y pegar un mes</h2>
+      <p class="sub">La forma rápida de armar el mes siguiente cuando tus gastos se repiten.</p>
+      <ol class="steps">
+        <li><strong>Ubícate en el mes que quieres copiar</strong><small>Por ejemplo, marzo.</small></li>
+        <li><strong>Presiona <em>Copiar mes</em></strong><small>Se abre una lista con las cuentas que tienen movimientos y cuántos hay en cada una. Marca las que quieras y confirma.</small></li>
+        <li><strong>Cambia al mes de destino</strong><small>Por ejemplo, abril.</small></li>
+        <li><strong>Presiona <em>Pegar</em></strong><small>Los movimientos se crean en el nuevo periodo conservando cuenta, categoría, monto, estado y responsables. El botón está deshabilitado si no has copiado nada.</small></li>
+      </ol>
+      <div class="note warn"><strong>Ojo</strong> Pegar <em>agrega</em>: no reemplaza ni revisa duplicados. Si pegas dos veces, tendrás los movimientos duplicados.</div>
+    </section>
+
+    <section class="block" id="anual">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></svg> 11 · Resumen Anual</h2>
+      <p class="sub">Los doce meses del año, uno al lado del otro, para mirar la película completa.</p>
+      <ul>
+        <li>Arriba, el <strong>balance anual</strong> y el selector de <em>Año</em>.</li>
+        <li>Una fila de botones <em>Ene · Feb · Mar…</em> que desplaza la vista hasta ese mes.</li>
+        <li>Cada tarjeta de mes muestra el <strong>balance del mes</strong>, el <strong>saldo final de cada cuenta principal</strong> y el detalle resumido de cada cuenta y tarjeta, con un punto verde o rojo por movimiento.</li>
+      </ul>
+      <div class="note">Esta vista es de <strong>solo lectura</strong>: para editar algo, vuelve a Movimientos. También puedes exportarla a PDF desde PC.</div>
+    </section>
+
+    <section class="block" id="dashboard">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg> 12 · Dashboard</h2>
+      <p class="sub">Los mismos datos, en formato gráfico. Usa el selector de mes y año de arriba, y los filtros del panel.</p>
+      <div class="grid two">
+        <div class="card"><h4>Indicadores</h4><p>Ingresos, egresos, balance y cantidad de movimientos del mes filtrado.</p></div>
+        <div class="card"><h4>Categorías</h4><p>Barras y gráfico de torta. El interruptor <strong>Mes / Año</strong> cambia el alcance.</p></div>
+        <div class="card"><h4>Evolución de cuentas</h4><p>Cómo se mueve el saldo de tus cuentas a lo largo del año. Se puede acotar a una cuenta con el filtro.</p></div>
+        <div class="card"><h4>Tarjetas y flujo anual</h4><p>Gasto mensual en tarjetas de crédito e ingresos contra egresos de los 12 meses.</p></div>
+      </div>
+      <p style="margin-top:10px;font-size:.92rem;color:var(--muted)">Los pagos de tarjeta y las transferencias se excluyen de los gráficos de categorías para no contar dos veces el mismo gasto.</p>
+    </section>
+
+    <section class="block" id="tc">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> 13 · Análisis TC</h2>
+      <p class="sub">Lee el PDF del estado de cuenta de tu tarjeta y lo desarma en movimientos, separados por usuario (titular y adicionales) y por sección.</p>
+      <ol class="steps">
+        <li><strong>Carga el PDF</strong><small>Botón <em>Cargar PDF</em>. Está preparado para el formato de estado de cuenta de Banco Falabella.</small></li>
+        <li><strong>Abre la importación</strong><small>Queda guardada en la lista con su nombre, mes y año, que puedes editar. Presiona <em>Ver</em> para abrir el detalle y <em>Volver a importaciones</em> para salir.</small></li>
+        <li><strong>Revisa la conciliación</strong><small>Compara el total de operaciones con el total facturado en el PDF. Si la <em>diferencia</em> es cercana a cero, la lectura fue correcta.</small></li>
+        <li><strong>Explora por usuario y sección</strong><small>Toca una tarjeta de usuario o de sección para filtrar, y usa el buscador para encontrar un comercio puntual.</small></li>
+        <li><strong>Marca los <em>Gastos Casa</em></strong><small>La casilla de cada fila te permite juntar los gastos compartidos y ver su total.</small></li>
+        <li><strong>Envía el resumen a Movimientos</strong><small>Elige tarjeta, mes y año y presiona <em>Sincronizar resumen</em>: se crea un egreso por cada usuario del estado de cuenta. Desde esos movimientos, el ícono de lupa te trae de vuelta a este detalle.</small></li>
+      </ol>
+      <div class="note warn"><strong>Dónde se guarda</strong> Las importaciones de estados de cuenta quedan <strong>solo en el navegador donde las cargaste</strong>. No se sincronizan entre dispositivos ni viajan a la nube; los movimientos que envías con <em>Sincronizar resumen</em>, sí.</div>
+    </section>
+
+    <section class="block" id="perfil">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 14 · Perfil y administración</h2>
+      <p class="sub">Todo lo que configuras una vez y después olvidas.</p>
+
+      <h3>Tu cuenta</h3>
+      <ul>
+        <li><strong>Foto:</strong> toca el círculo del avatar y elige una imagen. Se comprime sola si es muy pesada.</li>
+        <li><strong>Estado:</strong> te dice si estás sincronizado en la nube o en modo demo local.</li>
+        <li><strong>Cambiar contraseña:</strong> pide la actual antes de guardar la nueva.</li>
+        <li><strong>Modo oscuro:</strong> el interruptor queda guardado en tu perfil, así que te sigue en todos tus dispositivos.</li>
+        <li><strong>Salir:</strong> cierra la sesión en ese dispositivo.</li>
+        <li><strong>Guía de uso:</strong> vuelve a abrir este tutorial cuando quieras. En el celular este es el acceso principal; en PC también está en el menú lateral.</li>
+      </ul>
+
+      <h3>Cuentas y tarjetas</h3>
+      <ul>
+        <li>Crea una cuenta con <strong>nombre, tipo</strong> (Principal o Tarjeta) <strong>y color</strong>. El color es el que verás en el detalle mensual.</li>
+        <li>Ordena con las flechas ↑ ↓: ese orden manda en toda la app.</li>
+        <li>Edita cualquier fila y presiona <em>Guardar</em>.</li>
+        <li>Una tarjeta con historial se <strong>archiva</strong> en vez de borrarse, para no perder los movimientos; queda oculta salvo en los meses donde tenía actividad. Solo se pueden eliminar cuentas sin movimientos, y <code>Principal</code> y <code>Ahorro</code> nunca.</li>
+      </ul>
+
+      <h3>Responsables</h3>
+      <p>Agrega a las personas o grupos con los que compartes gastos (tu pareja, un amigo, “Casa”). Aparecerán como casillas en el formulario de movimientos y en los filtros. Tú mismo apareces siempre como <strong>Yo</strong>.</p>
+
+      <h3>Categorías</h3>
+      <p>Fluxa trae un listado por defecto para ingresos y egresos. Puedes agregar las tuyas con <strong>nombre, tipo, ícono y color</strong>, y ajustar ícono o color después tocando la etiqueta. Las categorías propias se eliminan con la X; las de fábrica no.</p>
+    </section>
+
+    <section class="block" id="atajos">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> 15 · Atajos para registrar rápido</h2>
+      <p class="sub">Para anotar el gasto en el momento, sin navegar por la app.</p>
+
+      <h3>Link rápido</h3>
+      <p>El botón <span class="chip">Link rápido</span> de la barra superior (en PC) copia al portapapeles una dirección de ejemplo. Al abrirla, Fluxa <strong>abre el formulario con los datos precargados</strong>; tú solo confirmas con <em>Agregar</em>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Parámetro</th><th>Ejemplo</th><th>Qué hace</th></tr></thead>
+          <tbody>
+            <tr><td><code>monto</code></td><td><code>monto=-20000</code></td><td>Obligatorio. Negativo = gasto, positivo = ingreso.</td></tr>
+            <tr><td><code>descripcion</code></td><td><code>descripcion=farmacia</code></td><td>Texto del movimiento.</td></tr>
+            <tr><td><code>categoria</code></td><td><code>categoria=Salud</code></td><td>Categoría inicial.</td></tr>
+            <tr><td><code>status</code></td><td><code>status=Confirmado</code></td><td>Confirmado, Proyectado o Pendiente.</td></tr>
+            <tr><td><code>year</code> y <code>month</code></td><td><code>year=2026&amp;month=6</code></td><td>Periodo donde se abrirá. Si no los pones, usa el mes actual.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Ejemplo completo: <code>?monto=-20000&amp;descripcion=farmacia&amp;categoria=Salud&amp;status=Confirmado</code></p>
+
+      <h3>Atajo de iPhone</h3>
+      <p>En <strong>Perfil → Importar atajo rápido</strong> se descarga un atajo de iCloud: te pregunta monto y descripción y abre Fluxa lista para guardar. Ideal para el widget o para pedírselo a Siri.</p>
+
+      <h3>Bot de WhatsApp</h3>
+      <p>Si está habilitado para tu número, puedes escribirle al bot y el movimiento se guarda solo:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Le escribes</th><th>Se guarda</th></tr></thead>
+          <tbody>
+            <tr><td><code>20000 farmacia</code></td><td>Gasto confirmado de $20.000 en Principal.</td></tr>
+            <tr><td><code>2690 mc furry</code></td><td>Gasto confirmado de $2.690.</td></tr>
+            <tr><td><code>ingreso 50000 pago cliente</code></td><td>Ingreso de $50.000.</td></tr>
+            <tr><td><code>abono 12000 reembolso</code></td><td>Ingreso de $12.000.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:.92rem;color:var(--muted)">Por defecto queda como gasto confirmado en la cuenta Principal, y el bot te responde con la categoría que asignó. Cada número debe estar registrado previamente por el administrador.</p>
+    </section>
+
+    <section class="block" id="pdf">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg> 16 · Exportar a PDF</h2>
+      <p class="sub">Disponible desde PC, en las vistas <strong>Movimientos</strong> y <strong>Resumen Anual</strong>.</p>
+      <ol class="steps">
+        <li><strong>Ubícate en el mes o el año que quieres exportar</strong><small>El PDF respeta lo que estás viendo.</small></li>
+        <li><strong>Presiona <span class="chip">PDF</span> en la barra superior</strong><small>Se abre una ventana con el reporte listo para imprimir o guardar.</small></li>
+        <li><strong>Guarda como PDF</strong><small>En el diálogo de impresión elige “Guardar como PDF”.</small></li>
+      </ol>
+      <div class="note warn"><strong>Si no pasa nada</strong> el navegador bloqueó la ventana emergente. Permite las ventanas emergentes para el sitio de Fluxa y vuelve a intentar.</div>
+    </section>
+
+    <section class="block faq" id="faq">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> 17 · Preguntas frecuentes</h2>
+
+      <details><summary>¿Por qué mi gasto quedó como ingreso?</summary><div class="answer">Porque el monto quedó positivo. Edita el movimiento y usa el botón <code>+ / −</code> junto al monto para dejarlo negativo.</div></details>
+      <details><summary>¿Los movimientos “Proyectados” cuentan en el balance?</summary><div class="answer">Sí. Fluxa muestra el mes completo, real y planificado. Si quieres ver solo lo que ya ocurrió, filtra por estado <strong>Confirmado</strong>.</div></details>
+      <details><summary>Registré una transferencia y aparece en las dos cuentas. ¿Está duplicada?</summary><div class="answer">No. La segunda línea es el espejo automático (“Transferencia recibida”) que representa la entrada en la cuenta de destino. Se edita y se borra desde el movimiento original.</div></details>
+      <details><summary>Pagué la tarjeta pero sigue apareciendo saldo pendiente.</summary><div class="answer">Revisa si el pago quedó como <strong>Parcial</strong>, o si agregaste compras después de registrarlo. Con la modalidad <em>Pago completo</em> el monto se recalcula solo; con <em>Pago parcial</em>, el saldo restante se arrastra al mes siguiente.</div></details>
+      <details><summary>No encuentro una cuenta que había creado.</summary><div class="answer">Si es una tarjeta con historial, probablemente está <strong>archivada</strong>: aparece solo en los meses donde tuvo movimientos. Restáurala en <em>Perfil → Cuentas y tarjetas → Restaurar</em>.</div></details>
+      <details><summary>Cambié algo en el celular y no lo veo en el PC.</summary><div class="answer">Presiona el botón <strong>Sincronizar</strong> (el de las flechas circulares) o recarga la página. Los datos viven en la nube; la vista se refresca al sincronizar.</div></details>
+      <details><summary>¿Puedo borrar de una vez todos los movimientos de un mes?</summary><div class="answer">No hay borrado masivo: se eliminan uno a uno. La excepción son las series recurrentes, donde puedes borrar “este y los siguientes” o la serie completa de una vez.</div></details>
+      <details><summary>¿Se puede editar el pasado?</summary><div class="answer">Sí. Cambia el periodo y edita cualquier mes, anterior o futuro. Los saldos se recalculan en cadena.</div></details>
+      <details><summary>¿Qué pasa si elimino un responsable?</summary><div class="answer">Deja de aparecer para nuevos movimientos, pero los movimientos antiguos conservan el nombre que tenían.</div></details>
+    </section>
+
+    <section class="block" id="glosario">
+      <h2><svg class="ico big brand-ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> 18 · Glosario rápido</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Término</th><th>Significado en Fluxa</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Movimiento</strong></td><td>Cada línea de ingreso o gasto.</td></tr>
+            <tr><td><strong>Operación</strong></td><td>Si el movimiento es normal, una transferencia entre cuentas o un pago de tarjeta.</td></tr>
+            <tr><td><strong>Cuenta</strong></td><td>Dónde vive la plata. Su saldo se arrastra mes a mes.</td></tr>
+            <tr><td><strong>Saldo inicial</strong></td><td>Con cuánto llegó la cuenta al mes que estás viendo.</td></tr>
+            <tr><td><strong>Saldo anterior (tarjeta)</strong></td><td>Deuda que venía del mes pasado sin pagar.</td></tr>
+            <tr><td><strong>Total consumos</strong></td><td>Lo comprado con esa tarjeta en el mes.</td></tr>
+            <tr><td><strong>Pendiente (tarjeta)</strong></td><td>Lo que falta por pagar considerando saldo anterior, consumos y pagos.</td></tr>
+            <tr><td><strong>Responsable</strong></td><td>Persona a quien corresponde el movimiento, entero o en partes.</td></tr>
+            <tr><td><strong>Reembolso</strong></td><td>Ingreso pendiente creado para cobrar a otros una compra de tarjeta.</td></tr>
+            <tr><td><strong>Recurrente</strong></td><td>Movimiento que se repite automáticamente en varios periodos.</td></tr>
+            <tr><td><strong>Balance</strong></td><td>Ingresos menos egresos del mes o del año.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <a class="top-link" href="#inicio">↑ Volver al inicio</a>
+    </section>
+
+  </main>
+</div>
+
+<footer class="page-footer">
+  Fluxa · Guía de uso. ¿Echas de menos algo? Anótalo y lo agregamos en la próxima versión.
+</footer>
+
+<script>
+(function(){
+  var body = document.body;
+  var mobileQuery = window.matchMedia("(max-width: 720px), (pointer: coarse) and (hover: none)");
+
+  function applyDevice(){
+    body.setAttribute("data-device", mobileQuery.matches ? "mobile" : "pc");
+  }
+
+  applyDevice();
+  if (mobileQuery.addEventListener) {
+    mobileQuery.addEventListener("change", applyDevice);
+  } else if (mobileQuery.addListener) {
+    mobileQuery.addListener(applyDevice);
+  }
+  window.addEventListener("resize", applyDevice);
+  window.addEventListener("orientationchange", applyDevice);
+
+  var toc = document.getElementById("toc");
+  var menuToggle = document.getElementById("menuToggle");
+  menuToggle.addEventListener("click", function(){
+    var open = toc.classList.toggle("open");
+    menuToggle.setAttribute("aria-expanded", String(open));
+  });
+
+  var links = Array.prototype.slice.call(toc.querySelectorAll("a"));
+  links.forEach(function(link){
+    link.addEventListener("click", function(){
+      if (window.innerWidth <= 940) {
+        toc.classList.remove("open");
+        menuToggle.setAttribute("aria-expanded", "false");
+      }
+    });
+  });
+
+  if ("IntersectionObserver" in window) {
+    var observer = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (!entry.isIntersecting) return;
+        links.forEach(function(link){
+          link.classList.toggle("active", link.getAttribute("href") === "#" + entry.target.id);
+        });
+      });
+    }, { rootMargin: "-84px 0px -70% 0px", threshold: 0 });
+
+    document.querySelectorAll("section.block[id]").forEach(function(section){ observer.observe(section); });
+  }
+})();
+</script>
+</body>
+</html>
