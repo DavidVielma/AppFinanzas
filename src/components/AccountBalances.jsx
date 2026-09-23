@@ -1,11 +1,11 @@
 import { calculateAccountLedger, formatCurrency } from "../lib/finance";
 import { getAccountColorStyle } from "../lib/colors";
 
-export function AccountBalances({ accounts, movements, year, month }) {
+export function AccountBalances({ accounts, movements, year, month, className = "" }) {
   const ledger = calculateAccountLedger(movements, year, month, accounts);
 
   return (
-    <section className="balance-list">
+    <section className={["balance-list", className].filter(Boolean).join(" ")}>
       <h2>Cuentas</h2>
       {accounts.filter((account) => account.type !== "tarjeta_credito").map((account) => {
         const opening = ledger.opening[account.name] || 0;

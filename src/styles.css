@@ -65,6 +65,7 @@ button {
 :root[data-theme="dark"] .setup-banner,
 :root[data-theme="dark"] .guide-banner,
 :root[data-theme="dark"] .ledger-panel,
+:root[data-theme="dark"] .balance-list,
 :root[data-theme="dark"] .side-panel > *,
 :root[data-theme="dark"] .dashboard-panel,
 :root[data-theme="dark"] .filter-panel,
@@ -508,12 +509,16 @@ button:disabled {
 }
 
 .app-sidebar {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 250px;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   padding: 22px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: #103f46;
   color: #ffffff;
 }
@@ -775,6 +780,7 @@ button:disabled {
 }
 
 .app-shell {
+  grid-column: 2;
   width: min(1720px, 100%);
   margin: 0 auto;
   padding: 24px;
@@ -782,7 +788,6 @@ button:disabled {
 
 .topbar,
 .controls-row,
-.work-area,
 .section-heading,
 .topbar-actions {
   display: flex;
@@ -1035,11 +1040,21 @@ button:disabled {
 }
 
 .work-area {
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  grid-template-areas:
+    "ledger balances"
+    "ledger side";
+  align-items: start;
+  gap: 16px;
+}
+
+.account-balances-panel {
+  grid-area: balances;
 }
 
 .ledger-panel {
-  flex: 1 1 auto;
+  grid-area: ledger;
   min-width: 0;
   background: #ffffff;
   border: 1px solid #d8e3e1;
@@ -1170,7 +1185,7 @@ button:disabled {
 }
 
 .side-panel {
-  flex: 0 0 390px;
+  grid-area: side;
   width: 390px;
   display: grid;
   gap: 16px;
@@ -4211,7 +4226,13 @@ td:nth-child(8) {
 
   .app-sidebar {
     position: static;
+    width: auto;
     height: auto;
+    overflow: visible;
+  }
+
+  .app-shell {
+    grid-column: 1;
   }
 
   .sidebar-nav {
@@ -4232,11 +4253,14 @@ td:nth-child(8) {
   }
 
   .work-area {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "balances"
+      "ledger"
+      "side";
   }
 
   .side-panel {
-    flex: 0 1 auto;
     width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

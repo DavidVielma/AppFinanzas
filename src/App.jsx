@@ -2446,6 +2446,7 @@ export function App() {
   const filteredMonthMovements = monthMovements.filter(matchesMovementFilters).map(applyResponsibleShare);
   const monthOperatingMovements = filteredMonthMovements.filter((item) => isSummaryMovement(item, accounts));
   const monthCategoryMovements = filteredMonthMovements.filter(isCategoryChartMovement);
+  const filteredAccountMovements = resolvedMovements.filter(matchesMovementFilters).map(applyResponsibleShare);
   const filteredYearMovements = resolvedMovements
     .filter((item) => Number(item.year) === Number(selectedYear))
     .filter(matchesMovementFilters)
@@ -2674,6 +2675,7 @@ export function App() {
 
       {activeView === "movements" && (
       <section className="work-area" onTouchStart={handleMovementTouchStart} onTouchEnd={handleMovementTouchEnd}>
+        <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-panel" />
         <div className={`ledger-panel month-transition-panel ${monthTransition ? `is-month-${monthTransition}` : ""}`} onAnimationEnd={() => setMonthTransition(null)}>
           <div className="section-heading">
             <div>
@@ -2796,7 +2798,6 @@ export function App() {
         </div>
 
         <aside className="side-panel">
-          <AccountBalances accounts={visibleAccounts} movements={resolvedMovements} year={Number(selectedYear)} month={Number(selectedMonth)} />
           <CreditCardManager accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardPaymentStats={cardPaymentStats} draft={cardDraft} onDraftChange={setCardDraft} onCreate={createCreditCard} onDelete={deleteCreditCard} />
           <CategoryBreakdown movements={monthCategoryMovements} />
           <section className="balance-list">
