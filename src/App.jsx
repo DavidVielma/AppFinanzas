@@ -139,12 +139,7 @@ function accountHasMovementsInPeriod(accountName, movements, year, month) {
 }
 
 function isCategoryChartMovement(movement) {
-  return (
-    !movement.source_movement &&
-    movement.flow !== "Pago Tarjeta" &&
-    movement.flow !== "Transferencia" &&
-    movement.category !== "Pago Tarjeta"
-  );
+  return !movement.source_movement && movement.flow !== "Pago Tarjeta" && movement.category !== "Pago Tarjeta";
 }
 
 function getVisibleAccountsForPeriod(accounts, movements, year, month) {
@@ -3147,11 +3142,9 @@ export function App() {
                     <ColorPicker defaultValue={account.color || "#e2e8f0"} compact />
                     <span className="account-status">{account.archived ? "Archivada" : hasMovements ? "Con movimientos" : "Sin movimientos"}</span>
                     <button type="submit" className="ghost-action account-save-action">Guardar</button>
-                    {account.type === "tarjeta_credito" && (
-                      <button type="button" className="ghost-action account-archive-action" onClick={() => updateAccount(account, { archived: !account.archived })}>
-                        {account.archived ? "Restaurar" : "Archivar"}
-                      </button>
-                    )}
+                    <button type="button" className="ghost-action account-archive-action" onClick={() => updateAccount(account, { archived: !account.archived })}>
+                      {account.archived ? "Restaurar" : "Archivar"}
+                    </button>
                     {!account.locked && !hasMovements && (
                       <button type="button" className="icon-button danger account-delete-action" onClick={() => deleteAccount(account)} aria-label={`Eliminar ${account.name}`}>
                         <X size={16} />
