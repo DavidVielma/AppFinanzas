@@ -107,8 +107,13 @@ button {
 :root[data-theme="dark"] .filter-heading span,
 :root[data-theme="dark"] .month-cell small,
 :root[data-theme="dark"] .profile-avatar-row span,
-:root[data-theme="dark"] .installment-box p {
+:root[data-theme="dark"] .installment-box p,
+:root[data-theme="dark"] .breakdown-group-heading {
   color: #a6b7c4;
+}
+
+:root[data-theme="dark"] .breakdown-group + .breakdown-group {
+  border-top-color: #25434a;
 }
 
 :root[data-theme="dark"] h1,
@@ -2177,6 +2182,28 @@ td:nth-child(8) {
   display: grid;
   gap: 8px;
   margin-top: 14px;
+}
+
+.breakdown-group + .breakdown-group {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e5ebef;
+}
+
+.breakdown-group-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #697789;
+}
+
+.breakdown-group-heading strong {
+  font-size: 0.95rem;
+  text-transform: none;
 }
 
 .bar-label,
