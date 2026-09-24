@@ -138,8 +138,8 @@ function accountHasMovementsInPeriod(accountName, movements, year, month) {
   );
 }
 
-function isCategoryChartMovement(movement) {
-  return !movement.source_movement && movement.flow !== "Pago Tarjeta" && movement.category !== "Pago Tarjeta";
+function isCategoryChartMovement(movement, accounts) {
+  return !movement.source_movement && isSummaryMovement(movement, accounts);
 }
 
 function getVisibleAccountsForPeriod(accounts, movements, year, month) {
@@ -2171,7 +2171,7 @@ export function App() {
       .join("");
     const annualCategoryRows = Object.entries(
       yearMovements
-        .filter(isCategoryChartMovement)
+        .filter((item) => isCategoryChartMovement(item, accounts))
         .reduce((groups, movement) => {
           const key = movement.category || "Sin categoria";
           groups[key] = (groups[key] || 0) + Number(movement.amount || 0);
@@ -2445,13 +2445,13 @@ export function App() {
 
   const filteredMonthMovements = monthMovements.filter(matchesMovementFilters).map(applyResponsibleShare);
   const monthOperatingMovements = filteredMonthMovements.filter((item) => isSummaryMovement(item, accounts));
-  const monthCategoryMovements = filteredMonthMovements.filter(isCategoryChartMovement);
+  const monthCategoryMovements = filteredMonthMovements.filter((item) => isCategoryChartMovement(item, accounts));
   const filteredAccountMovements = resolvedMovements.filter(matchesMovementFilters).map(applyResponsibleShare);
   const filteredYearMovements = resolvedMovements
     .filter((item) => Number(item.year) === Number(selectedYear))
     .filter(matchesMovementFilters)
     .map(applyResponsibleShare);
-  const dashboardCategoryMovements = (dashboardCategoryScope === "year" ? filteredYearMovements : filteredMonthMovements).filter(isCategoryChartMovement);
+  const dashboardCategoryMovements = (dashboardCategoryScope === "year" ? filteredYearMovements : filteredMonthMovements).filter((item) => isCategoryChartMovement(item, accounts));
   const movementModalType = draft.installment_mode && draft.installment_mode !== "none" ? "Egreso" : draft.flow === "Movimiento" ? getTypeFromAmount(draft.amount) : "Egreso";
   const filterOptions = {
     accounts: visibleAccounts.map((account) => account.name),
