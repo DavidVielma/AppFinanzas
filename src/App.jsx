@@ -139,7 +139,12 @@ function accountHasMovementsInPeriod(accountName, movements, year, month) {
 }
 
 function isCategoryChartMovement(movement) {
-  return !movement.source_movement && movement.flow !== "Pago Tarjeta" && movement.category !== "Pago Tarjeta";
+  return (
+    !movement.source_movement &&
+    movement.flow !== "Pago Tarjeta" &&
+    movement.flow !== "Transferencia" &&
+    movement.category !== "Pago Tarjeta"
+  );
 }
 
 function getVisibleAccountsForPeriod(accounts, movements, year, month) {

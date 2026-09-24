@@ -1042,6 +1042,7 @@ button:disabled {
 .work-area {
   display: grid;
   grid-template-columns: 1fr 390px;
+  grid-template-rows: max-content auto;
   grid-template-areas:
     "ledger balances"
     "ledger side";
@@ -4254,6 +4255,7 @@ td:nth-child(8) {
 
   .work-area {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     grid-template-areas:
       "balances"
       "ledger"
