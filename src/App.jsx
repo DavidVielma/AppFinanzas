@@ -1308,6 +1308,16 @@ export function App() {
     setFiltersOpen(true);
   }
 
+  function filterByCategory(category) {
+    setFilters((current) => ({ ...current, category: current.category === category ? "" : category }));
+    setFiltersOpen(true);
+  }
+
+  function filterByDashboardCategory(category) {
+    setFilters((current) => ({ ...current, category: current.category === category ? "" : category }));
+    setDashboardFiltersOpen(true);
+  }
+
   function toggleStatusFilter(status) {
     setFilters((current) => {
       if (!status) {
@@ -2812,7 +2822,7 @@ export function App() {
         <aside className="side-panel">
           <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-desktop-only" />
           <CreditCardManager accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardPaymentStats={cardPaymentStats} draft={cardDraft} onDraftChange={setCardDraft} onCreate={createCreditCard} onDelete={deleteCreditCard} />
-          <CategoryBreakdown movements={monthCategoryMovements} />
+          <CategoryBreakdown movements={monthCategoryMovements} activeCategory={filters.category} onSelectCategory={filterByCategory} />
           <section className="balance-list">
             <h2>Resumen anual</h2>
             <div><span>Ingresos</span><strong>{formatCurrency(summary.annualIncome)}</strong></div>
@@ -2966,7 +2976,7 @@ export function App() {
                   </button>
                 </div>
               </div>
-              <CategoryBreakdown movements={dashboardCategoryMovements} />
+              <CategoryBreakdown movements={dashboardCategoryMovements} activeCategory={filters.category} onSelectCategory={filterByDashboardCategory} />
             </div>
             <CategoryPieChart movements={dashboardCategoryMovements} scopeLabel={dashboardCategoryScope === "year" ? `Año ${selectedYear}` : monthLabels[selectedMonth - 1]} />
           </div>
