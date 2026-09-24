@@ -1040,22 +1040,17 @@ button:disabled {
 }
 
 .work-area {
-  display: grid;
-  grid-template-columns: 1fr 390px;
-  grid-template-rows: max-content auto;
-  grid-template-areas:
-    "ledger balances"
-    "ledger side";
-  align-items: start;
+  display: flex;
+  align-items: flex-start;
   gap: 16px;
 }
 
-.account-balances-panel {
-  grid-area: balances;
+.balance-list.account-balances-mobile-only {
+  display: none;
 }
 
 .ledger-panel {
-  grid-area: ledger;
+  flex: 1 1 auto;
   min-width: 0;
   background: #ffffff;
   border: 1px solid #d8e3e1;
@@ -1186,7 +1181,7 @@ button:disabled {
 }
 
 .side-panel {
-  grid-area: side;
+  flex: 0 0 390px;
   width: 390px;
   display: grid;
   gap: 16px;
@@ -4254,15 +4249,19 @@ td:nth-child(8) {
   }
 
   .work-area {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    grid-template-areas:
-      "balances"
-      "ledger"
-      "side";
+    flex-direction: column;
+  }
+
+  .balance-list.account-balances-mobile-only {
+    display: block;
+  }
+
+  .balance-list.account-balances-desktop-only {
+    display: none;
   }
 
   .side-panel {
+    flex: 0 1 auto;
     width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

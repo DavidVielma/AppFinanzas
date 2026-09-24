@@ -2680,7 +2680,7 @@ export function App() {
 
       {activeView === "movements" && (
       <section className="work-area" onTouchStart={handleMovementTouchStart} onTouchEnd={handleMovementTouchEnd}>
-        <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-panel" />
+        <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-mobile-only" />
         <div className={`ledger-panel month-transition-panel ${monthTransition ? `is-month-${monthTransition}` : ""}`} onAnimationEnd={() => setMonthTransition(null)}>
           <div className="section-heading">
             <div>
@@ -2803,6 +2803,7 @@ export function App() {
         </div>
 
         <aside className="side-panel">
+          <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-desktop-only" />
           <CreditCardManager accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardPaymentStats={cardPaymentStats} draft={cardDraft} onDraftChange={setCardDraft} onCreate={createCreditCard} onDelete={deleteCreditCard} />
           <CategoryBreakdown movements={monthCategoryMovements} />
           <section className="balance-list">
