@@ -443,6 +443,7 @@ export function expandCardPaymentCategories(movements, allMovements, accounts = 
         (item.account || "Principal") === movement.target_account &&
         Number(item.year) === Number(movement.year) &&
         Number(item.month) === Number(movement.month) &&
+        item.type === "Egreso" &&
         !isInternalFlow(item)
     );
     const totalPurchases = cardPurchases.reduce((sum, item) => sum + Math.abs(Number(item.amount || 0)), 0);
