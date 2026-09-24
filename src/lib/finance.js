@@ -429,3 +429,34 @@ export function groupByCategory(movements) {
     return groups;
   }, {});
 }
+
+export function expandCardPaymentCategories(movements, allMovements, accounts = defaultAccounts) {
+  const cardNames = new Set(accounts.filter((account) => account.type === "tarjeta_credito").map((account) => account.name));
+
+  return movements.flatMap((movement) => {
+    if (movement.flow !== "Pago Tarjeta" || !cardNames.has(movement.target_account)) {
+      return [movement];
+    }
+
+    const cardPurchases = allMovements.filter(
+      (item) =>
+        (item.account || "Principal") === movement.target_account &&
+        Number(item.year) === Number(movement.year) &&
+        Number(item.month) === Number(movement.month) &&
+        !isInternalFlow(item)
+    );
+    const totalPurchases = cardPurchases.reduce((sum, item) => sum + Math.abs(Number(item.amount || 0)), 0);
+    if (totalPurchases === 0) {
+      return [movement];
+    }
+
+    const amountByCategory = groupByCategory(cardPurchases);
+    const paymentAmount = Number(movement.amount || 0);
+
+    return Object.entries(amountByCategory).map(([category, categoryTotal]) => ({
+      ...movement,
+      category,
+      amount: paymentAmount * (Math.abs(categoryTotal) / totalPurchases)
+    }));
+  });
+}

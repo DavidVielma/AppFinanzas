@@ -25,6 +25,7 @@ import {
   calculateCreditCardPeriodStats,
   calculateSummary,
   defaultAccounts,
+  expandCardPaymentCategories,
   formatCurrency,
   getCurrentPeriod,
   getCreditCardPaymentCoverage,
@@ -2170,8 +2171,11 @@ export function App() {
       `)
       .join("");
     const annualCategoryRows = Object.entries(
-      yearMovements
-        .filter((item) => isCategoryChartMovement(item, accounts))
+      expandCardPaymentCategories(
+        yearMovements.filter((item) => isCategoryChartMovement(item, accounts)),
+        resolvedMovements,
+        accounts
+      )
         .reduce((groups, movement) => {
           const key = movement.category || "Sin categoria";
           groups[key] = (groups[key] || 0) + Number(movement.amount || 0);
@@ -2445,13 +2449,21 @@ export function App() {
 
   const filteredMonthMovements = monthMovements.filter(matchesMovementFilters).map(applyResponsibleShare);
   const monthOperatingMovements = filteredMonthMovements.filter((item) => isSummaryMovement(item, accounts));
-  const monthCategoryMovements = filteredMonthMovements.filter((item) => isCategoryChartMovement(item, accounts));
+  const monthCategoryMovements = expandCardPaymentCategories(
+    filteredMonthMovements.filter((item) => isCategoryChartMovement(item, accounts)),
+    resolvedMovements,
+    accounts
+  );
   const filteredAccountMovements = resolvedMovements.filter(matchesMovementFilters).map(applyResponsibleShare);
   const filteredYearMovements = resolvedMovements
     .filter((item) => Number(item.year) === Number(selectedYear))
     .filter(matchesMovementFilters)
     .map(applyResponsibleShare);
-  const dashboardCategoryMovements = (dashboardCategoryScope === "year" ? filteredYearMovements : filteredMonthMovements).filter((item) => isCategoryChartMovement(item, accounts));
+  const dashboardCategoryMovements = expandCardPaymentCategories(
+    (dashboardCategoryScope === "year" ? filteredYearMovements : filteredMonthMovements).filter((item) => isCategoryChartMovement(item, accounts)),
+    resolvedMovements,
+    accounts
+  );
   const movementModalType = draft.installment_mode && draft.installment_mode !== "none" ? "Egreso" : draft.flow === "Movimiento" ? getTypeFromAmount(draft.amount) : "Egreso";
   const filterOptions = {
     accounts: visibleAccounts.map((account) => account.name),
