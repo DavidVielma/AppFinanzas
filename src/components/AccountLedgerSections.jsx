@@ -243,7 +243,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
     const accountMutedInk = getMutedTextColor(accountFill);
 
     return (
-      <section className={`account-section ${isPrincipal ? "principal-account-section" : ""}`} key={account.name} style={{ "--account-accent": accountAccent, "--account-fill": accountFill, "--account-ink": accountInk, "--account-muted-ink": accountMutedInk }}>
+      <section className={`account-section ${isPrincipal ? "principal-account-section" : ""}`} key={account.name} data-account-section={account.name} style={{ "--account-accent": accountAccent, "--account-fill": accountFill, "--account-ink": accountInk, "--account-muted-ink": accountMutedInk }}>
         <header className="account-section-header">
           <div>
             <h3>{account.name}</h3>

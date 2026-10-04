@@ -1632,6 +1632,7 @@ button:disabled {
 }
 
 .account-section {
+  scroll-margin-top: 12px;
   border: 1px solid color-mix(in srgb, var(--account-accent, #d8e3e1) 54%, #cbd8d9);
   border-radius: 8px;
   overflow: hidden;
@@ -2059,6 +2060,20 @@ td:nth-child(8) {
   padding: 14px;
 }
 
+.account-balance-link {
+  cursor: pointer;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.account-balance-link:hover {
+  filter: brightness(0.97);
+}
+
+.account-balance-link:focus-visible {
+  outline: 2px solid #155e63;
+  outline-offset: 2px;
+}
+
 .account-balance header,
 .account-balance dl {
   display: grid;
@@ -2284,6 +2299,16 @@ td:nth-child(8) {
 .balance-list {
   display: grid;
   gap: 12px;
+}
+
+.balance-list.account-balances-mobile-only,
+.balance-list.account-balances-desktop-only {
+  gap: 2px;
+}
+
+.balance-list.account-balances-mobile-only h2,
+.balance-list.account-balances-desktop-only h2 {
+  margin-bottom: 10px;
 }
 
 .annual-controls {
@@ -4330,7 +4355,7 @@ td:nth-child(8) {
   }
 
   .balance-list.account-balances-mobile-only {
-    display: block;
+    display: grid;
   }
 
   .balance-list.account-balances-desktop-only {

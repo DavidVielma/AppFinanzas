@@ -1,6 +1,12 @@
 import { calculateAccountLedger, formatCurrency } from "../lib/finance";
 import { getAccountColorStyle } from "../lib/colors";
 
+function scrollToAccountSection(accountName) {
+  const sections = document.querySelectorAll("[data-account-section]");
+  const target = Array.from(sections).find((section) => section.dataset.accountSection === accountName);
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export function AccountBalances({ accounts, movements, year, month, className = "" }) {
   const ledger = calculateAccountLedger(movements, year, month, accounts);
   const confirmedLedger = calculateAccountLedger(
@@ -20,7 +26,21 @@ export function AccountBalances({ accounts, movements, year, month, className = 
         const confirmedBalance = confirmedLedger.closing[account.name] || 0;
         const isCard = account.type === "tarjeta_credito";
         return (
-          <article className="account-balance" key={account.name} style={getAccountColorStyle(account.color, "#ffffff")}>
+          <article
+            className="account-balance account-balance-link"
+            key={account.name}
+            style={getAccountColorStyle(account.color, "#ffffff")}
+            role="button"
+            tabIndex={0}
+            title={`Ir a ${account.name}`}
+            onClick={() => scrollToAccountSection(account.name)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                scrollToAccountSection(account.name);
+              }
+            }}
+          >
             <header>
               <span>
                 {account.name}
