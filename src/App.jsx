@@ -1263,6 +1263,35 @@ export function App() {
     setNotice("Movimiento actualizado.");
   }
 
+  async function toggleDebtPaid(movement, personName) {
+    const sourceMovement = movement.source_movement || movement;
+    const names = parseResponsibleNames(sourceMovement.responsible, currentResponsible);
+    const isSingleResponsible = names.length === 1 && !sourceMovement.responsible_amounts;
+    let patch;
+
+    if (isSingleResponsible) {
+      patch = { status: sourceMovement.status === "Confirmado" ? "Pendiente" : "Confirmado" };
+    } else {
+      const paidNames = parsePaidResponsibleNames(sourceMovement.paid_responsibles, currentResponsible);
+      const nextPaidNames = paidNames.includes(personName) ? paidNames.filter((name) => name !== personName) : [...paidNames, personName];
+      const otherNames = names.filter((name) => name && name !== currentResponsible && String(name).toLowerCase() !== "yo");
+      const allPaid = otherNames.every((name) => nextPaidNames.includes(name));
+      patch = { paid_responsibles: JSON.stringify(nextPaidNames) };
+      if (allPaid) patch.status = "Confirmado";
+      else if (sourceMovement.status === "Confirmado") patch.status = "Pendiente";
+    }
+
+    if (isRemote) {
+      const { error } = await supabase.from("movements").update(patch).eq("id", sourceMovement.id);
+      if (error) {
+        setNotice(error.message);
+        return;
+      }
+    }
+
+    setMovements((current) => current.map((item) => (item.id === sourceMovement.id ? { ...item, ...patch } : item)));
+  }
+
   async function syncRemoteData() {
     if (!isRemote) return;
 
@@ -2816,7 +2845,7 @@ export function App() {
               </label>
             </div>
           </section>
-          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} cardPaymentStats={cardPaymentStats} movements={filters.responsible ? monthMovements.map(applyResponsibleShare) : monthMovements} allMovements={resolvedMovements} currentResponsible={currentResponsible} selectedResponsible={filters.responsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onQuickUpdate={updateMovementQuickFields} onMove={moveMovement} onMoveToMovement={moveMovementToMovement} onCreateReimbursement={openCardReimbursement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} />
+          <AccountLedgerSections accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} cardPaymentStats={cardPaymentStats} movements={filters.responsible ? monthMovements.map(applyResponsibleShare) : monthMovements} allMovements={resolvedMovements} currentResponsible={currentResponsible} selectedResponsible={filters.responsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} filterMovement={matchesMovementFilters} hasActiveFilters={hasActiveFilters} onEdit={editMovement} onDelete={deleteMovement} onStatusChange={updateMovementStatus} onQuickUpdate={updateMovementQuickFields} onMove={moveMovement} onMoveToMovement={moveMovementToMovement} onCreateReimbursement={openCardReimbursement} onQuickAdd={quickAddForAccount} onQuickPay={quickPayCreditCard} onOpenTcDetail={openTcDetailFromMovement} onToggleDebtPaid={toggleDebtPaid} />
         </div>
 
         <aside className="side-panel">

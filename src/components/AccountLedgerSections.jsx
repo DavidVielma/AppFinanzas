@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, HandCoins, Pencil, Plus, X } from "lucide-react";
+import { Check, ChevronDown, HandCoins, Pencil, Plus, X } from "lucide-react";
 import { formatCurrency, getCreditCardPaymentCoverage } from "../lib/finance";
 import { getMutedTextColor, getReadableTextColor } from "../lib/colors";
 import { MovementTable } from "./MovementTable";
@@ -65,7 +65,7 @@ function getAccountColorToken(account) {
   return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
 }
 
-export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onCreateReimbursement, onQuickAdd, onQuickPay, onOpenTcDetail }) {
+export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onCreateReimbursement, onQuickAdd, onQuickPay, onOpenTcDetail, onToggleDebtPaid }) {
   const [debtSummaryOpen, setDebtSummaryOpen] = useState(false);
   const [expandedDebtPerson, setExpandedDebtPerson] = useState("");
 
@@ -182,20 +182,24 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
         if (!name || name === currentResponsible || String(name).toLowerCase() === "yo") return;
         const isPaid = names.length === 1 && !movement.responsible_amounts ? movement.status === "Confirmado" : paidNames.includes(name);
         const share = getResponsibleAmount(movement, name, names.length);
-        if (isPaid || !share) return;
+        if (!share) return;
 
         const key = name.toLocaleLowerCase("es");
         const current = summaryByPerson.get(key) || { name, owedToMe: 0, iOwe: 0, movements: 0, items: [] };
         const direction = movement.type === "Ingreso" ? "owed-to-me" : "i-owe";
-        if (direction === "owed-to-me") current.owedToMe += share;
-        else current.iOwe += share;
-        current.movements += 1;
+        if (!isPaid) {
+          if (direction === "owed-to-me") current.owedToMe += share;
+          else current.iOwe += share;
+          current.movements += 1;
+        }
         current.items.push({
           id: `${movement.row_key || movement.id}-${name}`,
           description: movement.description,
           account: movement.display_account || movement.account || "Principal",
           share,
           direction,
+          paid: isPaid,
+          personName: name,
           movement: sourceMovement
         });
         summaryByPerson.set(key, current);
@@ -203,8 +207,12 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
     });
 
     return Array.from(summaryByPerson.values())
-      .map((person) => ({ ...person, balance: person.owedToMe - person.iOwe }))
-      .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance) || a.name.localeCompare(b.name, "es"));
+      .map((person) => ({
+        ...person,
+        balance: person.owedToMe - person.iOwe,
+        items: [...person.items].sort((a, b) => Number(a.paid) - Number(b.paid))
+      }))
+      .sort((a, b) => Number(a.movements === 0) - Number(b.movements === 0) || Math.abs(b.balance) - Math.abs(a.balance) || a.name.localeCompare(b.name, "es"));
   }, [accountsByName, currentResponsible, movements]);
 
   function renderAccount(account) {
@@ -324,18 +332,23 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
                       <span>Me debe <b>{formatCurrency(person.owedToMe)}</b></span>
                       <span>Le debo <b>{formatCurrency(person.iOwe)}</b></span>
                     </div>
-                    <strong className={`debt-net ${person.balance >= 0 ? "owed-to-me" : "i-owe"}`}>
-                      {person.balance >= 0 ? "Me debe" : "Le debo"} {formatCurrency(Math.abs(person.balance))}
-                    </strong>
+                    {person.movements === 0 ? (
+                      <strong className="debt-net settled">Al día</strong>
+                    ) : (
+                      <strong className={`debt-net ${person.balance >= 0 ? "owed-to-me" : "i-owe"}`}>
+                        {person.balance >= 0 ? "Me debe" : "Le debo"} {formatCurrency(Math.abs(person.balance))}
+                      </strong>
+                    )}
                     <ChevronDown className="debt-expand-icon" size={18} />
                   </button>
                   {expandedDebtPerson === person.name && (
                     <div className="debt-movement-detail">
                       {person.items.map((item) => (
-                        <div key={item.id}>
+                        <div key={item.id} className={item.paid ? "is-paid" : ""}>
                           <span><strong>{item.description}</strong><small>{item.account}</small></span>
-                          <span className={item.direction}>{item.direction === "owed-to-me" ? "Me debe" : "Le debo"}</span>
+                          <span className={item.paid ? "paid" : item.direction}>{item.paid ? "Pagado" : item.direction === "owed-to-me" ? "Me debe" : "Le debo"}</span>
                           <b>{formatCurrency(item.share)}</b>
+                          <button type="button" className={`icon-button debt-detail-paid ${item.paid ? "is-paid" : ""}`} onClick={() => onToggleDebtPaid?.(item.movement, item.personName)} aria-pressed={item.paid} aria-label={item.paid ? `Marcar ${item.description} como no pagado` : `Marcar ${item.description} como pagado`} title={item.paid ? "Marcar como no pagado" : "Marcar como pagado"}><Check size={16} /></button>
                           <button type="button" className="icon-button debt-detail-edit" onClick={() => { setDebtSummaryOpen(false); setExpandedDebtPerson(""); onEdit(item.movement); }} aria-label={`Editar ${item.description}`} title="Editar movimiento"><Pencil size={15} /></button>
                         </div>
                       ))}
