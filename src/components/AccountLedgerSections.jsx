@@ -262,12 +262,10 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
                 Deudas
               </button>
             )}
-            {!account.archived && (
-              <button type="button" className="icon-text" onClick={() => onQuickAdd(account)}>
-                <Plus size={16} />
-                Agregar
-              </button>
-            )}
+            <button type="button" className="icon-text" onClick={() => onQuickAdd(account)}>
+              <Plus size={16} />
+              Agregar
+            </button>
           </div>
         </header>
         {isCard && cardStats && !hasActiveFilters && (

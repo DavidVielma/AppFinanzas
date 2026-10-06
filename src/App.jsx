@@ -794,6 +794,14 @@ export function App() {
       return;
     }
 
+    const unavailableAccount = [draft.account, draft.flow !== "Movimiento" ? draft.target_account : null]
+      .filter(Boolean)
+      .find((name) => accounts.find((account) => account.name === name)?.archived && !accountHasMovementsInPeriod(name, resolvedMovements, draftYear, draftMonth));
+    if (unavailableAccount) {
+      setNotice(`${unavailableAccount} esta archivada y no tiene movimientos en este mes. Desarchivala para usarla.`);
+      return;
+    }
+
     const type = getTypeFromAmount(signedAmount);
     const serializedResponsibles = serializeResponsibleNames(draft.responsible, responsibles[0]?.name || getDefaultResponsible(session));
     const responsibleCount = parseResponsibleNames(serializedResponsibles, responsibles[0]?.name || getDefaultResponsible(session)).length;
@@ -2541,7 +2549,7 @@ export function App() {
     () => calculateCreditCardFullPaymentAmounts(resolvedMovements, Number(draft.year) || Number(selectedYear), Number(draft.month) || Number(selectedMonth), accounts, { excludePaymentId: editingId }),
     [accounts, draft.month, draft.year, editingId, resolvedMovements, selectedMonth, selectedYear]
   );
-  const selectableAccounts = accounts.filter((account) => !account.archived);
+  const selectableAccounts = getVisibleAccountsForPeriod(accounts, resolvedMovements, Number(draft.year) || Number(selectedYear), Number(draft.month) || Number(selectedMonth));
 
   if (loading) {
     return <div className="loading">Cargando finanzas...</div>;
