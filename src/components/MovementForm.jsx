@@ -121,14 +121,15 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
 
   useEffect(() => {
     if (!responsibleOpen) return undefined;
-    function handlePointerDown(event) {
+    // "click" y no "pointerdown": al deslizar para desplazar la pantalla no se dispara click.
+    function handleOutsideClick(event) {
       if (!responsibleRef.current?.contains(event.target)) {
         setResponsibleOpen(false);
         setResponsibleQuery("");
       }
     }
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
   }, [responsibleOpen]);
 
   function update(field, value) {
