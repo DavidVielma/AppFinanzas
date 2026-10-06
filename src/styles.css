@@ -101,7 +101,6 @@ button {
 :root[data-theme="dark"] .field-summary,
 :root[data-theme="dark"] .filter-grid label,
 :root[data-theme="dark"] .profile-grid span,
-:root[data-theme="dark"] .account-status,
 :root[data-theme="dark"] .muted,
 :root[data-theme="dark"] .section-heading p,
 :root[data-theme="dark"] .filter-heading span,
@@ -2143,16 +2142,13 @@ td:nth-child(8) {
 :root[data-theme="dark"] .annual-account-box h4 span,
 :root[data-theme="dark"] .annual-account-box h4 strong,
 :root[data-theme="dark"] .annual-account-box h4 .income-text,
-:root[data-theme="dark"] .annual-account-box h4 .expense-text,
-:root[data-theme="dark"] .account-admin-row,
-:root[data-theme="dark"] .account-admin-row strong {
+:root[data-theme="dark"] .annual-account-box h4 .expense-text {
   color: var(--account-ink, #172033);
 }
 
 :root[data-theme="dark"] .account-balance small,
 :root[data-theme="dark"] .account-balance dt,
-:root[data-theme="dark"] .credit-card-row span,
-:root[data-theme="dark"] .account-admin-row .account-status {
+:root[data-theme="dark"] .credit-card-row span {
   color: var(--account-muted-ink, #4b5b70);
 }
 
@@ -4087,74 +4083,6 @@ td:nth-child(8) {
   font-weight: 900;
 }
 
-.account-admin-form {
-  display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(130px, 0.7fr) minmax(180px, 0.8fr) auto;
-  gap: 10px;
-  align-items: end;
-  margin-top: 14px;
-}
-
-.account-help-panel {
-  display: grid;
-  gap: 5px;
-  margin: 0 0 14px;
-  padding: 12px 14px;
-  border: 1px solid #d8e3e1;
-  border-left: 4px solid var(--brand);
-  border-radius: 8px;
-  background: #f6fbf9;
-}
-
-.account-help-panel strong {
-  color: var(--brand-strong);
-  font-size: 0.86rem;
-  font-weight: 900;
-}
-
-.account-help-panel p {
-  margin: 0;
-  color: #4d5d70;
-  font-size: 0.82rem;
-  line-height: 1.35;
-  font-weight: 700;
-}
-
-.account-admin-list {
-  display: grid;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.account-admin-row {
-  display: grid;
-  grid-template-columns: 34px minmax(160px, 1.2fr) minmax(120px, 0.7fr) minmax(150px, 0.85fr) minmax(110px, 0.7fr) auto auto 32px;
-  gap: 8px;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid #d8e3e1;
-  border-radius: 8px;
-  color: var(--account-ink, #172033);
-}
-
-.account-order-controls {
-  display: grid;
-  gap: 4px;
-}
-
-.account-order-controls .icon-button {
-  width: 30px;
-  height: 30px;
-  min-height: 30px;
-  padding: 0;
-}
-
-.account-admin-row input,
-.account-admin-row select {
-  min-height: 36px;
-  padding: 7px 9px;
-}
-
 .color-picker {
   display: grid;
   grid-template-columns: 42px minmax(92px, 1fr);
@@ -4216,12 +4144,6 @@ td:nth-child(8) {
   border-radius: 5px;
 }
 
-.account-status {
-  color: var(--account-muted-ink, #5b6b7c);
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-
 .responsible-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -4263,7 +4185,7 @@ td:nth-child(8) {
 }
 
 .modal-panel.account-admin-modal {
-  width: min(1480px, calc(100vw - 40px));
+  width: min(760px, calc(100vw - 40px));
   max-height: calc(100vh - 40px);
 }
 
@@ -4341,11 +4263,6 @@ td:nth-child(8) {
   }
 
   .filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .account-admin-form,
-  .account-admin-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -4816,9 +4733,7 @@ td:nth-child(8) {
   .responsible-form,
   .category-admin-form,
   .category-admin-grid,
-  .installment-grid,
-  .account-admin-form,
-  .account-admin-row {
+  .installment-grid {
     grid-template-columns: 1fr;
   }
 
@@ -5613,7 +5528,6 @@ td:nth-child(8) {
     border-radius: 14px 14px 0 0;
   }
 
-  .account-admin-list,
   .responsible-list {
     grid-template-columns: 1fr;
   }
@@ -5638,27 +5552,6 @@ td:nth-child(8) {
     font-size: 16px;
   }
 
-  .account-admin-row {
-    position: relative;
-    padding: 10px 52px 10px 10px;
-  }
-
-  .account-admin-row .account-order-controls {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: grid;
-    gap: 6px;
-  }
-
-  .account-admin-row .account-order-controls .icon-button {
-    width: 32px;
-    height: 32px;
-    min-height: 32px;
-    border-color: #c4d2de;
-    background: #ffffff;
-    color: var(--brand-strong);
-  }
 }
 .responsible-payment-cell {
   overflow: visible;
@@ -6054,4 +5947,365 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
     padding-right: 14px;
     padding-left: 14px;
   }
+}
+
+/* Gestion de cuentas y tarjetas */
+.account-help {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #d8e3e1;
+  border-radius: 10px;
+  background: #f6fbf9;
+  font-size: 0.84rem;
+}
+
+.account-help summary {
+  cursor: pointer;
+  color: var(--brand-strong);
+  font-weight: 800;
+}
+
+.account-help p {
+  margin: 8px 0 0;
+  color: #4d5d70;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.account-new-button {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.account-create-card {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 4px;
+  padding: 14px;
+  border: 1px dashed var(--brand);
+  border-radius: 12px;
+  background: #fbfdfc;
+}
+
+.account-field {
+  display: grid;
+  gap: 6px;
+  color: #46566d;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.account-type-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #e8eeed;
+}
+
+.account-type-switch label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.account-type-switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.account-type-switch label:has(input:checked) {
+  background: #ffffff;
+  color: var(--brand-strong);
+  box-shadow: 0 1px 3px rgba(15, 35, 40, 0.18);
+}
+
+.account-type-switch.disabled {
+  opacity: 0.6;
+}
+
+.account-type-switch.disabled label,
+.account-type-switch.disabled input {
+  cursor: not-allowed;
+}
+
+.account-group {
+  margin-top: 16px;
+}
+
+.account-group h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: #697789;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.account-group h3 span {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #e8eeed;
+  color: #475569;
+  letter-spacing: 0;
+}
+
+.account-group-empty {
+  margin: 0;
+  color: #697789;
+  font-size: 0.84rem;
+}
+
+.account-group-list {
+  display: grid;
+  gap: 8px;
+}
+
+.account-admin-item {
+  border: 1px solid #d8e3e1;
+  border-left: 5px solid var(--account-color, #94a3b8);
+  border-radius: 12px;
+  background: #ffffff;
+  transition: box-shadow 0.16s ease, opacity 0.16s ease;
+}
+
+.account-admin-item.expanded {
+  box-shadow: 0 6px 18px rgba(15, 35, 40, 0.1);
+}
+
+.account-admin-item.dragging {
+  opacity: 0.45;
+}
+
+.account-admin-item.drag-over {
+  outline: 2px dashed var(--brand);
+  outline-offset: 2px;
+}
+
+.account-admin-item.archived .account-admin-name strong {
+  opacity: 0.6;
+}
+
+.account-admin-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 2px;
+}
+
+.account-drag-handle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 44px;
+  color: #94a3b8;
+  cursor: grab;
+}
+
+.account-drag-handle:active {
+  cursor: grabbing;
+}
+
+.account-admin-main {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-swatch {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(15, 23, 42, 0.15);
+  border-radius: 50%;
+  background: var(--account-color, #94a3b8);
+}
+
+.account-admin-name {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.account-admin-name strong {
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-admin-name small {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.account-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8eeed;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.account-chip.has-movements {
+  background: #dcf3e4;
+  color: #15803d;
+}
+
+.account-chip.archived {
+  background: #e7e5e4;
+  color: #57534e;
+}
+
+.account-chevron {
+  flex: none;
+  margin-left: auto;
+  color: #94a3b8;
+  transition: color 0.16s ease;
+}
+
+.account-admin-item.expanded .account-chevron {
+  color: var(--brand);
+}
+
+.account-reorder {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.account-reorder .icon-button {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.account-admin-edit {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border-top: 1px solid #e5ecea;
+}
+
+.account-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-edit-actions .primary-action,
+.account-edit-actions .ghost-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+}
+
+.account-edit-actions .danger-action {
+  margin-left: auto;
+  border-color: #f1c4bf;
+  color: #b42318;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .account-drag-handle {
+    display: none;
+  }
+
+  .account-admin-summary {
+    padding-left: 8px;
+  }
+}
+
+@media (max-width: 720px) {
+  .account-edit-actions > * {
+    flex: 1 1 calc(50% - 8px);
+  }
+
+  .account-edit-actions .danger-action {
+    margin-left: 0;
+  }
+
+  .account-create-card .account-edit-actions > * {
+    flex: 1 1 0;
+  }
+}
+
+:root[data-theme="dark"] .account-help,
+:root[data-theme="dark"] .account-create-card,
+:root[data-theme="dark"] .account-admin-item {
+  border-color: #25434a;
+  background: #10292f;
+  color: #e7edf2;
+}
+
+:root[data-theme="dark"] .account-help p,
+:root[data-theme="dark"] .account-field,
+:root[data-theme="dark"] .account-admin-name small,
+:root[data-theme="dark"] .account-group h3,
+:root[data-theme="dark"] .account-group-empty {
+  color: #a6b7c4;
+}
+
+:root[data-theme="dark"] .account-group h3 span,
+:root[data-theme="dark"] .account-chip,
+:root[data-theme="dark"] .account-type-switch {
+  background: #173137;
+  color: #c4d2dc;
+}
+
+:root[data-theme="dark"] .account-type-switch label {
+  color: #a6b7c4;
+}
+
+:root[data-theme="dark"] .account-type-switch label:has(input:checked) {
+  background: #0b1f24;
+  color: #e7edf2;
+}
+
+:root[data-theme="dark"] .account-chip.has-movements {
+  background: #123d27;
+  color: #7be0a3;
+}
+
+:root[data-theme="dark"] .account-edit-actions .danger-action {
+  border-color: #6b2b27;
+  color: #ff9a92;
+}
+
+:root[data-theme="dark"] .account-admin-edit {
+  border-top-color: #25434a;
 }

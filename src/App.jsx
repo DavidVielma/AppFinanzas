@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Camera, ChevronDown, ChevronUp, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
+import { BookOpen, Camera, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
+import { AccountAdminModal } from "./components/AccountAdminModal";
 import { AccountBalances } from "./components/AccountBalances";
 import { AccountEvolutionChart } from "./components/AccountEvolutionChart";
 import { AccountLedgerSections } from "./components/AccountLedgerSections";
@@ -38,7 +39,6 @@ import {
   expenseCategories,
   resolveDynamicPayments
 } from "./lib/finance";
-import { getAccountColorStyle } from "./lib/colors";
 import { parseQuickAmount, parseQuickTextMovement } from "./lib/quickMovement";
 import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
@@ -1728,12 +1728,12 @@ export function App() {
 
     if (!name) {
       setNotice("Ingresa un nombre para la cuenta.");
-      return;
+      return false;
     }
 
     if (accounts.some((account) => account.name.toLowerCase() === name.toLowerCase())) {
       setNotice("Ya existe una cuenta o tarjeta con ese nombre.");
-      return;
+      return false;
     }
 
     const nextAccount = { name, type: accountDraft.type, color: accountDraft.color, archived: false, sort_order: getNextAccountSortValue(accounts) };
@@ -1742,7 +1742,7 @@ export function App() {
       const { data, error } = await supabase.from("accounts").insert(nextAccount).select().single();
       if (error) {
         setNotice(error.message);
-        return;
+        return false;
       }
       setAccounts((current) => hydrateAccounts([...current, data]));
     } else {
@@ -1751,6 +1751,7 @@ export function App() {
 
     setAccountDraft({ name: "", type: "principal", color: "#e2e8f0" });
     setNotice("Cuenta creada.");
+    return true;
   }
 
   async function updateAccount(account, patch) {
@@ -1803,34 +1804,34 @@ export function App() {
     setNotice("Cuenta actualizada.");
   }
 
-  async function moveAccount(accountName, direction) {
-    const orderedAccounts = sortAccounts(accounts);
-    const currentIndex = orderedAccounts.findIndex((account) => account.name === accountName);
-    const nextIndex = currentIndex + direction;
+  async function reorderAccounts(orderedNames) {
+    const group = orderedNames.map((name) => accounts.find((account) => account.name === name)).filter(Boolean);
+    if (group.length < 2) return;
 
-    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= orderedAccounts.length) {
-      return;
+    let slots = group.map((account, index) => getAccountSortValue(account, index)).sort((a, b) => a - b);
+    if (new Set(slots).size !== slots.length) {
+      slots = slots.map((_, index) => slots[0] + index);
     }
 
-    const currentAccount = orderedAccounts[currentIndex];
-    const targetAccount = orderedAccounts[nextIndex];
-    const nextCurrent = { ...currentAccount, sort_order: getAccountSortValue(targetAccount, nextIndex) };
-    const nextTarget = { ...targetAccount, sort_order: getAccountSortValue(currentAccount, currentIndex) };
+    const updates = group
+      .map((account, index) => ({ account, sort_order: slots[index] }))
+      .filter(({ account, sort_order }) => account.sort_order !== sort_order);
+    if (!updates.length) return;
 
     setAccounts((current) =>
       hydrateAccounts(current.map((account) => {
-        if (account.name === nextCurrent.name) return nextCurrent;
-        if (account.name === nextTarget.name) return nextTarget;
-        return account;
+        const update = updates.find((item) => item.account.name === account.name);
+        return update ? { ...account, sort_order: update.sort_order } : account;
       }))
     );
 
-    if (isRemote && currentAccount.id && targetAccount.id) {
-      const [currentUpdate, targetUpdate] = await Promise.all([
-        supabase.from("accounts").update({ sort_order: nextCurrent.sort_order }).eq("id", currentAccount.id),
-        supabase.from("accounts").update({ sort_order: nextTarget.sort_order }).eq("id", targetAccount.id)
-      ]);
-      const error = currentUpdate.error || targetUpdate.error;
+    if (isRemote) {
+      const results = await Promise.all(
+        updates
+          .filter(({ account }) => account.id)
+          .map(({ account, sort_order }) => supabase.from("accounts").update({ sort_order }).eq("id", account.id))
+      );
+      const error = results.find((result) => result.error)?.error;
       if (error) {
         setNotice(error.message);
         loadAccounts();
@@ -3140,90 +3141,18 @@ export function App() {
       )}
 
       {accountModalOpen && (
-        <div className="modal-backdrop" role="presentation">
-          <section className="modal-panel account-admin-modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
-            <header className="modal-header">
-              <div>
-                <h2 id="account-modal-title">Cuentas y tarjetas</h2>
-                <p>Administra dónde se registran tus movimientos y cómo se ordenan en la vista mensual.</p>
-              </div>
-              <button type="button" className="icon-button" onClick={() => setAccountModalOpen(false)} aria-label="Cerrar">
-                <X size={18} />
-              </button>
-            </header>
-            <div className="account-help-panel">
-              <strong>Cómo funciona</strong>
-              <p>Las cuentas principales suman ingresos, egresos y transferencias. Las tarjetas registran compras y se pagan con el flujo Pago Tarjeta. Si una tarjeta ya tiene movimientos, se archiva en vez de eliminarse para conservar el historial.</p>
-            </div>
-            <form className="account-admin-form" onSubmit={createAccount}>
-              <label>
-                Nombre
-                <input value={accountDraft.name} onChange={(event) => setAccountDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Ej: Cuenta viaje" required />
-              </label>
-              <label>
-                Tipo
-                <select value={accountDraft.type} onChange={(event) => setAccountDraft((current) => ({ ...current, type: event.target.value }))}>
-                  <option value="principal">Principal</option>
-                  <option value="tarjeta_credito">Tarjeta</option>
-                </select>
-              </label>
-              <label>
-                Color
-                <ColorPicker value={accountDraft.color} onChange={(color) => setAccountDraft((current) => ({ ...current, color }))} presets={accountColorOptions} />
-              </label>
-              <button type="submit" className="primary-action">
-                <Plus size={18} />
-                Crear cuenta
-              </button>
-            </form>
-            <div className="account-admin-list">
-              {accounts.map((account, index) => {
-                const hasMovements = accountHasMovements(account.name, movements);
-                return (
-                  <form
-                    className="account-admin-row"
-                    key={account.name}
-                    style={getAccountColorStyle(account.color, "#ffffff")}
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const form = new FormData(event.currentTarget);
-                      updateAccount(account, {
-                        name: String(form.get("name") || account.name),
-                        type: String(form.get("type") || account.type),
-                        color: String(form.get("color") || account.color)
-                      });
-                    }}
-                  >
-                    <div className="account-order-controls" aria-label={`Ordenar ${account.name}`}>
-                      <button type="button" className="icon-button" onClick={() => moveAccount(account.name, -1)} disabled={index === 0} aria-label={`Subir ${account.name}`}>
-                        <ChevronUp size={15} />
-                      </button>
-                      <button type="button" className="icon-button" onClick={() => moveAccount(account.name, 1)} disabled={index === accounts.length - 1} aria-label={`Bajar ${account.name}`}>
-                        <ChevronDown size={15} />
-                      </button>
-                    </div>
-                    <input name="name" defaultValue={account.name} />
-                    <select name="type" defaultValue={account.type === "ahorro" ? "principal" : account.type}>
-                      <option value="principal">Principal</option>
-                      <option value="tarjeta_credito">Tarjeta</option>
-                    </select>
-                    <ColorPicker defaultValue={account.color || "#e2e8f0"} compact />
-                    <span className="account-status">{account.archived ? "Archivada" : hasMovements ? "Con movimientos" : "Sin movimientos"}</span>
-                    <button type="submit" className="ghost-action account-save-action">Guardar</button>
-                    <button type="button" className="ghost-action account-archive-action" onClick={() => updateAccount(account, { archived: !account.archived })}>
-                      {account.archived ? "Restaurar" : "Archivar"}
-                    </button>
-                    {!account.locked && !hasMovements && (
-                      <button type="button" className="icon-button danger account-delete-action" onClick={() => deleteAccount(account)} aria-label={`Eliminar ${account.name}`}>
-                        <X size={16} />
-                      </button>
-                    )}
-                  </form>
-                );
-              })}
-            </div>
-          </section>
-        </div>
+        <AccountAdminModal
+          accounts={accounts}
+          hasMovements={(name) => accountHasMovements(name, movements)}
+          accountDraft={accountDraft}
+          onDraftChange={setAccountDraft}
+          colorOptions={accountColorOptions}
+          onCreate={createAccount}
+          onUpdate={updateAccount}
+          onReorder={reorderAccounts}
+          onDelete={deleteAccount}
+          onClose={() => setAccountModalOpen(false)}
+        />
       )}
 
       {responsibleModalOpen && (
