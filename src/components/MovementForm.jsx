@@ -114,6 +114,7 @@ export function PeriodSelector({ month, year, onChange }) {
 
 export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, responsibles, currentResponsible, categoryOptionsByType, draft, onChange, onSubmit, editingId, showTypeSummary = true }) {
   const amountInputRef = useRef(null);
+  const rememberedCategories = useRef({});
 
   function update(field, value) {
     const next = { ...draft, [field]: value };
@@ -143,9 +144,14 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
         next.installment_mode = "none";
         next.installment_count = "1";
       }
-      if (draft.installment_mode === "none" && getTypeFromAmount(draft.amount) !== nextType) {
-        next.category = (categoryOptionsByType?.[nextType] || getCategoryOptions(nextType))[0];
+      const previousType = getTypeFromAmount(draft.amount);
+      if (draft.installment_mode === "none" && previousType !== nextType) {
+        const nextOptions = categoryOptionsByType?.[nextType] || getCategoryOptions(nextType);
+        const remembered = rememberedCategories.current[nextType];
+        rememberedCategories.current[previousType] = draft.category;
+        next.category = remembered && nextOptions.includes(remembered) ? remembered : nextOptions[0];
       }
+      if (!String(value || "").trim()) rememberedCategories.current = {};
     }
 
     if (field === "installment_mode" && value !== "none") {
