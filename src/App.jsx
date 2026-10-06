@@ -1339,12 +1339,6 @@ export function App() {
 
   function filterByCategory(category) {
     setFilters((current) => ({ ...current, category: current.category === category ? "" : category }));
-    setFiltersOpen(true);
-  }
-
-  function filterByDashboardCategory(category) {
-    setFilters((current) => ({ ...current, category: current.category === category ? "" : category }));
-    setDashboardFiltersOpen(true);
   }
 
   function toggleStatusFilter(status) {
@@ -3006,7 +3000,7 @@ export function App() {
                   </button>
                 </div>
               </div>
-              <CategoryBreakdown movements={dashboardCategoryMovements} activeCategory={filters.category} onSelectCategory={filterByDashboardCategory} />
+              <CategoryBreakdown movements={dashboardCategoryMovements} activeCategory={filters.category} onSelectCategory={filterByCategory} />
             </div>
             <CategoryPieChart movements={dashboardCategoryMovements} scopeLabel={dashboardCategoryScope === "year" ? `Año ${selectedYear}` : monthLabels[selectedMonth - 1]} />
           </div>
