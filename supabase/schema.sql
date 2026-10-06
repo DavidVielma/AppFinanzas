@@ -78,6 +78,7 @@ create table if not exists public.responsibles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   name text not null,
+  archived boolean not null default false,
   created_at timestamptz not null default now(),
   unique (user_id, name)
 );

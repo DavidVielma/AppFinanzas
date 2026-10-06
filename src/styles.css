@@ -6309,3 +6309,170 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
 :root[data-theme="dark"] .account-admin-edit {
   border-top-color: #25434a;
 }
+
+
+/* Responsables: selector plegable y gestion */
+.responsible-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #cfd8e3;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #173d6d;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.responsible-trigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.responsible-trigger svg {
+  flex: none;
+  transition: transform 0.15s ease;
+}
+
+.responsible-trigger.open {
+  border-color: #1f6f78;
+}
+
+.responsible-trigger.open svg {
+  transform: rotate(180deg);
+}
+
+.responsible-picker > .responsible-menu {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #dbe4ee;
+  border-radius: 8px;
+  background: #f8fbfa;
+}
+
+.responsible-menu .responsible-search {
+  padding: 8px 10px;
+}
+
+.responsible-picker .responsible-options {
+  display: grid;
+  gap: 4px;
+  max-height: 220px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.responsible-picker .responsible-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.responsible-picker .responsible-options label.selected {
+  background: #e3f1ee;
+  border-color: #bcdcd5;
+}
+
+.responsible-picker .responsible-options input {
+  width: 18px;
+  height: 18px;
+  accent-color: #1f6f78;
+}
+
+.responsible-options p {
+  margin: 0;
+  padding: 8px 10px;
+  color: #697789;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.responsible-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.responsible-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e0e8e5;
+  border-radius: 10px;
+  background: #f8fbfa;
+}
+
+.responsible-row.archived {
+  opacity: 0.75;
+}
+
+.responsible-row-name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.responsible-row-name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.responsible-row-name small {
+  color: #697789;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .responsible-row {
+    flex-wrap: wrap;
+  }
+
+  .responsible-row .ghost-action {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+:root[data-theme="dark"] .responsible-trigger,
+:root[data-theme="dark"] .responsible-menu,
+:root[data-theme="dark"] .responsible-row {
+  background: #0f2429;
+  border-color: #25434a;
+  color: #e7edf2;
+}
+
+:root[data-theme="dark"] .responsible-trigger.open {
+  border-color: #4fb3bf;
+}
+
+:root[data-theme="dark"] .responsible-picker .responsible-options label {
+  color: #e7edf2;
+}
+
+:root[data-theme="dark"] .responsible-picker .responsible-options label.selected {
+  background: #1b3a40;
+  border-color: #2f6b73;
+}
+
+:root[data-theme="dark"] .responsible-row-name small,
+:root[data-theme="dark"] .responsible-options p {
+  color: #a9bcc4;
+}

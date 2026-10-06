@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, Save } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Plus, Save } from "lucide-react";
 import { CategorySelector } from "./CategoryVisuals";
 import { flowTypes, formatCurrency, getCategoryOptions, getTypeFromAmount, isCreditCardAccount, monthLabels } from "../lib/finance";
 
@@ -115,6 +115,21 @@ export function PeriodSelector({ month, year, onChange }) {
 export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, responsibles, currentResponsible, categoryOptionsByType, draft, onChange, onSubmit, editingId, showTypeSummary = true }) {
   const amountInputRef = useRef(null);
   const rememberedCategories = useRef({});
+  const responsibleRef = useRef(null);
+  const [responsibleOpen, setResponsibleOpen] = useState(false);
+  const [responsibleQuery, setResponsibleQuery] = useState("");
+
+  useEffect(() => {
+    if (!responsibleOpen) return undefined;
+    function handlePointerDown(event) {
+      if (!responsibleRef.current?.contains(event.target)) {
+        setResponsibleOpen(false);
+        setResponsibleQuery("");
+      }
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [responsibleOpen]);
 
   function update(field, value) {
     const next = { ...draft, [field]: value };
@@ -183,6 +198,18 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
   const isFullCreditCardPayment = draft.flow === "Pago Tarjeta" && draft.card_payment_mode !== "manual";
   const responsibleOptions = responsibles.length ? responsibles : [{ name: draft.responsible || "Yo" }];
   const selectedResponsibles = parseResponsibleNames(draft.responsible, currentResponsible);
+  const responsibleChoices = responsibleOptions
+    .filter((responsible) => !responsible.archived || selectedResponsibles.includes(normalizeResponsibleName(responsible.name, currentResponsible)))
+    .map((responsible) => normalizeResponsibleName(responsible.name, currentResponsible))
+    .concat(selectedResponsibles)
+    .filter((name, index, names) => names.indexOf(name) === index);
+  const visibleResponsibleChoices = responsibleChoices.filter((name) => (name === currentResponsible ? "Yo" : name).toLowerCase().includes(responsibleQuery.trim().toLowerCase()));
+  const responsibleLabels = selectedResponsibles.map((name) => (name === currentResponsible ? "Yo" : name));
+  const responsibleSummary = !responsibleLabels.length
+    ? "Selecciona responsables"
+    : responsibleLabels.length <= 2
+      ? responsibleLabels.join(", ")
+      : `${responsibleLabels.slice(0, 2).join(", ")} +${responsibleLabels.length - 2}`;
   const isCardMovement = isCreditCardAccount(draft.account, accounts);
   const installmentCount = Math.max(1, Number.parseInt(draft.installment_count, 10) || 1);
   const installmentPreview = draft.installment_mode === "total" && Number(draft.amount)
@@ -386,16 +413,28 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
           )}
         </fieldset>
       )}
-      <fieldset className="responsible-picker">
+      <fieldset className="responsible-picker" ref={responsibleRef}>
         <legend>Responsables</legend>
-        <div>
-          {responsibleOptions.map((responsible) => (
-            <label key={responsible.name}>
-              <input type="checkbox" checked={selectedResponsibles.includes(normalizeResponsibleName(responsible.name, currentResponsible))} onChange={() => toggleResponsible(normalizeResponsibleName(responsible.name, currentResponsible))} />
-              <span>{responsible.name === currentResponsible ? "Yo" : responsible.name}</span>
-            </label>
-          ))}
-        </div>
+        <button type="button" className={`responsible-trigger ${responsibleOpen ? "open" : ""}`} onClick={() => setResponsibleOpen((current) => !current)} aria-expanded={responsibleOpen} aria-haspopup="listbox">
+          <span>{responsibleSummary}</span>
+          <ChevronDown size={16} aria-hidden="true" />
+        </button>
+        {responsibleOpen && (
+          <div className="responsible-menu" role="listbox" aria-multiselectable="true">
+            {responsibleChoices.length > 8 && (
+              <input className="responsible-search" value={responsibleQuery} onChange={(event) => setResponsibleQuery(event.target.value)} placeholder="Buscar responsable..." />
+            )}
+            <div className="responsible-options">
+              {visibleResponsibleChoices.map((name) => (
+                <label key={name} className={selectedResponsibles.includes(name) ? "selected" : ""}>
+                  <input type="checkbox" checked={selectedResponsibles.includes(name)} onChange={() => toggleResponsible(name)} />
+                  <span>{name === currentResponsible ? "Yo" : name}</span>
+                </label>
+              ))}
+              {!visibleResponsibleChoices.length && <p>Sin resultados.</p>}
+            </div>
+          </div>
+        )}
       </fieldset>
       {editingId && selectedResponsibles.length > 1 && !isCardMovement && (
         <fieldset className="responsible-payment-editor">

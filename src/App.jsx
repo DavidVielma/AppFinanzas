@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Camera, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
 import { AccountAdminModal } from "./components/AccountAdminModal";
+import { ResponsibleAdminModal } from "./components/ResponsibleAdminModal";
 import { AccountBalances } from "./components/AccountBalances";
 import { AccountEvolutionChart } from "./components/AccountEvolutionChart";
 import { AccountLedgerSections } from "./components/AccountLedgerSections";
@@ -706,11 +707,11 @@ export function App() {
 
     if (!data?.length) {
       const { data: created } = await supabase.from("responsibles").insert({ name: fallback }).select();
-      setResponsibles(created?.length ? created : [{ name: fallback }]);
+      setResponsibles(created?.length ? created.map((item) => ({ ...item, archived: Boolean(item.archived) })) : [{ name: fallback }]);
       return;
     }
 
-    setResponsibles(data);
+    setResponsibles(data.map((item) => ({ ...item, archived: Boolean(item.archived) })));
   }
 
   async function loadCategories() {
@@ -2026,9 +2027,9 @@ export function App() {
         setNotice(error.message);
         return;
       }
-      setResponsibles((current) => [...current, data]);
+      setResponsibles((current) => [...current, { ...data, archived: Boolean(data.archived) }]);
     } else {
-      setResponsibles((current) => [...current, { name }]);
+      setResponsibles((current) => [...current, { name, archived: false }]);
     }
 
     setResponsibleDraft("");
@@ -2051,6 +2052,19 @@ export function App() {
     }
 
     setResponsibles((current) => current.filter((item) => item.name !== responsible.name));
+  }
+
+  async function archiveResponsible(responsible, archived) {
+    if (isRemote && responsible.id) {
+      const { error } = await supabase.from("responsibles").update({ archived }).eq("id", responsible.id);
+      if (error) {
+        setNotice(/archived/i.test(error.message) ? "Falta la columna 'archived' en la tabla responsibles de Supabase. Ejecuta la migración 20261006_responsible_archived.sql." : error.message);
+        return;
+      }
+    }
+
+    setResponsibles((current) => current.map((item) => (item.name === responsible.name ? { ...item, archived } : item)));
+    setNotice(archived ? "Responsable archivado." : "Responsable restaurado.");
   }
 
   async function signOut() {
@@ -2451,6 +2465,22 @@ export function App() {
     [accounts, resolvedMovements, selectedMonth, selectedYear]
   );
   const currentResponsible = profile?.username || getDefaultResponsible(session);
+  const responsibleUsage = useMemo(() => {
+    const usage = new Map();
+    movements.forEach((movement) => {
+      parseResponsibleNames(movement.responsible, currentResponsible).forEach((name) => usage.set(name, (usage.get(name) || 0) + 1));
+    });
+    return usage;
+  }, [movements, currentResponsible]);
+  const formResponsibles = useMemo(
+    () =>
+      [...responsibles].sort(
+        (a, b) =>
+          Number(normalizeResponsibleName(b.name, currentResponsible) === currentResponsible) - Number(normalizeResponsibleName(a.name, currentResponsible) === currentResponsible) ||
+          (responsibleUsage.get(b.name) || 0) - (responsibleUsage.get(a.name) || 0)
+      ),
+    [responsibles, responsibleUsage, currentResponsible]
+  );
   const selectedStatusFilters = Array.isArray(filters.status) ? filters.status : filters.status ? [filters.status] : [];
 
   function matchesMovementFilters(movement) {
@@ -3156,36 +3186,16 @@ export function App() {
       )}
 
       {responsibleModalOpen && (
-        <div className="modal-backdrop" role="presentation">
-          <section className="modal-panel responsible-admin-modal" role="dialog" aria-modal="true" aria-labelledby="responsible-modal-title">
-            <header className="modal-header">
-              <div>
-                <h2 id="responsible-modal-title">Responsables</h2>
-                <p>Administra las personas o grupos disponibles para asignar movimientos.</p>
-              </div>
-              <button type="button" className="icon-button" onClick={() => setResponsibleModalOpen(false)} aria-label="Cerrar">
-                <X size={18} />
-              </button>
-            </header>
-            <form className="responsible-form" onSubmit={createResponsible}>
-              <input value={responsibleDraft} onChange={(event) => setResponsibleDraft(event.target.value)} placeholder="Ej: David, Krish, Casa" />
-              <button type="submit" className="primary-action">
-                <Plus size={18} />
-                Agregar
-              </button>
-            </form>
-            <div className="responsible-list">
-              {responsibles.filter((responsible) => normalizeResponsibleName(responsible.name, currentResponsible) !== currentResponsible).map((responsible) => (
-                <div key={responsible.name}>
-                  <span>{responsible.name}</span>
-                  <button type="button" className="icon-button danger" onClick={() => deleteResponsible(responsible)} aria-label={`Eliminar ${responsible.name}`}>
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+        <ResponsibleAdminModal
+          responsibles={responsibles.filter((responsible) => normalizeResponsibleName(responsible.name, currentResponsible) !== currentResponsible)}
+          usageCount={(name) => responsibleUsage.get(name) || 0}
+          draft={responsibleDraft}
+          onDraftChange={setResponsibleDraft}
+          onCreate={createResponsible}
+          onArchive={archiveResponsible}
+          onDelete={deleteResponsible}
+          onClose={() => setResponsibleModalOpen(false)}
+        />
       )}
 
       {categoryModalOpen && (
@@ -3373,7 +3383,7 @@ export function App() {
                 <X size={18} />
               </button>
             </header>
-            <MovementForm accounts={selectableAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={draftCardFullPaymentTotals} responsibles={responsibles} currentResponsible={currentResponsible} categoryOptionsByType={categoryOptionsByType} draft={draft} onChange={setDraft} onSubmit={handleSubmit} editingId={editingId} showTypeSummary={false} />
+            <MovementForm accounts={selectableAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={draftCardFullPaymentTotals} responsibles={formResponsibles} currentResponsible={currentResponsible} categoryOptionsByType={categoryOptionsByType} draft={draft} onChange={setDraft} onSubmit={handleSubmit} editingId={editingId} showTypeSummary={false} />
           </section>
         </div>
       )}
