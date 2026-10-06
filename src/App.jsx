@@ -844,11 +844,18 @@ export function App() {
       description: draft.description,
       recurring_modified: true
     };
+    // Al dividir el total en cuotas se reparten pesos enteros: la diferencia se suma
+    // de a un peso a las primeras cuotas, asi la suma siempre calza con el total.
+    const installmentTotal = Math.round(Math.abs(fallbackAmount));
+    const installmentBase = Math.floor(installmentTotal / installmentCount);
+    const installmentRemainder = installmentTotal - installmentBase * installmentCount;
     const payloads = isInstallmentPurchase
       ? Array.from({ length: installmentCount }, (_, index) => {
           const period = addMonthsToPeriod(draftYear, draftMonth, index);
+          const evenAmount = draft.installment_mode === "total" ? installmentBase + (index < installmentRemainder ? 1 : 0) : Math.round(installmentAmount);
           return {
             ...basePayload,
+            amount: -evenAmount,
             description: `${draft.description} (${index + 1}/${installmentCount})`,
             sort_order: Date.now() + index,
             year: period.year,

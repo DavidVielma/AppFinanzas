@@ -36,8 +36,11 @@ function parseAmountInput(value) {
 }
 
 function formatAmountInput(value) {
-  const raw = String(value ?? "");
+  let raw = String(value ?? "");
   if (!raw || raw === "-") return raw;
+  // Montos guardados con decimales (ej. una cuota de 135619.33): se muestran en pesos enteros.
+  // Lo que escribe el usuario nunca lleva punto, asi que esto solo aplica a valores ya guardados.
+  if (raw.includes(".") && Number.isFinite(Number(raw))) raw = String(Math.round(Number(raw)));
   const isNegative = raw.startsWith("-");
   const digits = raw.replace(/\D/g, "");
   if (!digits) return "";
