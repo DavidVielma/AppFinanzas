@@ -1381,7 +1381,8 @@ export function App() {
   }
 
   function isInteractiveSwipeTarget(target) {
-    return Boolean(target?.closest("button, a, input, select, textarea, label, [role='button']"));
+    const interactive = target?.closest("button, a, input, select, textarea, label, [role='button']");
+    return Boolean(interactive) && !interactive.classList.contains("account-balance-link");
   }
 
   function handleMovementTouchStart(event) {
