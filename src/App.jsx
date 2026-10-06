@@ -2445,6 +2445,10 @@ export function App() {
   const selectedStatusFilters = Array.isArray(filters.status) ? filters.status : filters.status ? [filters.status] : [];
 
   function matchesMovementFilters(movement) {
+    return matchesFilters(movement, true);
+  }
+
+  function matchesFilters(movement, includeCategory) {
     const search = filters.search.trim().toLowerCase();
     const movementResponsibles = parseResponsibleNames(movement.responsible, currentResponsible);
     const movementResponsibleText = movementResponsibles.join(" ");
@@ -2461,7 +2465,7 @@ export function App() {
       (!filters.responsible || movementResponsibles.includes(filters.responsible)) &&
       (!filters.payment || (!isCardMovement && (filters.payment === "paid" ? selectedResponsiblePaid : !selectedResponsiblePaid))) &&
       (!filters.type || movement.type === filters.type) &&
-      (!filters.category || movement.category === filters.category) &&
+      (!includeCategory || !filters.category || movement.category === filters.category) &&
       (!selectedStatusFilters.length || selectedStatusFilters.includes(movement.status)) &&
       (!filters.flow || movement.flow === filters.flow)
     );
@@ -2483,20 +2487,30 @@ export function App() {
 
   const filteredMonthMovements = monthMovements.filter(matchesMovementFilters).map(applyResponsibleShare);
   const monthOperatingMovements = filteredMonthMovements.filter((item) => isSummaryMovement(item, accounts));
-  const monthCategoryMovements = expandCardPaymentCategories(
-    filteredMonthMovements.filter((item) => isCategoryChartMovement(item, accounts)),
-    resolvedMovements,
-    accounts
+  const keepActiveCategory = (items) => (filters.category ? items.filter((item) => item.category === filters.category) : items);
+  const categoryBaseMonthMovements = monthMovements.filter((item) => matchesFilters(item, false)).map(applyResponsibleShare);
+  const monthCategoryMovements = keepActiveCategory(
+    expandCardPaymentCategories(
+      categoryBaseMonthMovements.filter((item) => isCategoryChartMovement(item, accounts)),
+      resolvedMovements,
+      accounts
+    )
   );
   const filteredAccountMovements = resolvedMovements.filter(matchesMovementFilters).map(applyResponsibleShare);
   const filteredYearMovements = resolvedMovements
     .filter((item) => Number(item.year) === Number(selectedYear))
     .filter(matchesMovementFilters)
     .map(applyResponsibleShare);
-  const dashboardCategoryMovements = expandCardPaymentCategories(
-    (dashboardCategoryScope === "year" ? filteredYearMovements : filteredMonthMovements).filter((item) => isCategoryChartMovement(item, accounts)),
-    resolvedMovements,
-    accounts
+  const categoryBaseYearMovements = resolvedMovements
+    .filter((item) => Number(item.year) === Number(selectedYear))
+    .filter((item) => matchesFilters(item, false))
+    .map(applyResponsibleShare);
+  const dashboardCategoryMovements = keepActiveCategory(
+    expandCardPaymentCategories(
+      (dashboardCategoryScope === "year" ? categoryBaseYearMovements : categoryBaseMonthMovements).filter((item) => isCategoryChartMovement(item, accounts)),
+      resolvedMovements,
+      accounts
+    )
   );
   const movementModalType = draft.installment_mode && draft.installment_mode !== "none" ? "Egreso" : draft.flow === "Movimiento" ? getTypeFromAmount(draft.amount) : "Egreso";
   const filterOptions = {
