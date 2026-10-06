@@ -218,6 +218,16 @@ function comparePeriods(aYear, aMonth, bYear, bMonth) {
   return Number(aYear) * 12 + Number(aMonth) - (Number(bYear) * 12 + Number(bMonth));
 }
 
+function canScrollHorizontally(target, boundary, deltaX) {
+  for (let element = target; element && element !== boundary; element = element.parentElement) {
+    if (!/(auto|scroll)/.test(window.getComputedStyle(element).overflowX)) continue;
+    const maxScroll = element.scrollWidth - element.clientWidth;
+    if (maxScroll <= 0) continue;
+    if ((deltaX > 0 && element.scrollLeft < maxScroll - 1) || (deltaX < 0 && element.scrollLeft > 1)) return true;
+  }
+  return false;
+}
+
 function getDefaultResponsible(session) {
   return session?.user?.user_metadata?.username || session?.user?.email?.split("@")[0] || "Yo";
 }
@@ -427,6 +437,7 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [noticeAction, setNoticeAction] = useState(null);
   const movementSwipeRef = useRef(null);
+  const movementWheelRef = useRef({ total: 0, locked: false, timer: null });
   const movementFilterPanelRef = useRef(null);
 
   const isRemote = hasSupabaseConfig && session && !demoMode;
@@ -1415,6 +1426,28 @@ export function App() {
     if (!isHorizontalSwipe) return;
 
     moveSelectedMonth(deltaX < 0 ? 1 : -1);
+  }
+
+  // Trackpad: deslizar con dos dedos hacia los lados cambia de mes. Un gesto = un mes:
+  // se acumula el desplazamiento horizontal y se bloquea hasta que la inercia termina.
+  function handleMovementWheel(event) {
+    if (event.ctrlKey || Math.abs(event.deltaX) <= Math.abs(event.deltaY) * 1.2) return;
+    if (event.target.closest?.("input, textarea, select") || canScrollHorizontally(event.target, event.currentTarget, event.deltaX)) return;
+
+    const state = movementWheelRef.current;
+    window.clearTimeout(state.timer);
+    state.timer = window.setTimeout(() => {
+      state.total = 0;
+      state.locked = false;
+    }, 220);
+
+    if (state.locked) return;
+    state.total += event.deltaX;
+    if (Math.abs(state.total) < 100) return;
+
+    state.locked = true;
+    moveSelectedMonth(state.total > 0 ? 1 : -1);
+    state.total = 0;
   }
 
   async function applyMovementOrder(account, orderedRows) {
@@ -2773,7 +2806,7 @@ export function App() {
       )}
 
       {activeView === "movements" && (
-      <section className="work-area" onTouchStart={handleMovementTouchStart} onTouchEnd={handleMovementTouchEnd}>
+      <section className="work-area" onTouchStart={handleMovementTouchStart} onTouchEnd={handleMovementTouchEnd} onWheel={handleMovementWheel}>
         <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-mobile-only" />
         <div className={`ledger-panel month-transition-panel ${monthTransition ? `is-month-${monthTransition}` : ""}`} onAnimationEnd={() => setMonthTransition(null)}>
           <div className="section-heading">
