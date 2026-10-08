@@ -6686,7 +6686,18 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
 .shared-account-list table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto;
   font-size: 0.9rem;
+}
+
+.shared-account-list th,
+.shared-account-list td {
+  width: auto;
+  font-size: inherit;
+}
+
+.shared-account-list td:first-child {
+  white-space: normal;
 }
 
 .shared-account-list th,
@@ -6709,8 +6720,11 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
   font-weight: 800;
 }
 
-.shared-account-list .muted {
+.shared-account-list small {
+  display: block;
+  margin-top: 2px;
   color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .shared-account-list tfoot td {
@@ -6728,10 +6742,5 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
 @media (max-width: 560px) {
   .shared-account {
     padding: 12px;
-  }
-
-  .shared-account-list th:nth-child(2),
-  .shared-account-list tbody td:nth-child(2) {
-    display: none;
   }
 }
