@@ -283,3 +283,5 @@ drop trigger if exists create_profile_after_signup on auth.users;
 create trigger create_profile_after_signup
 after insert on auth.users
 for each row execute function public.create_profile_for_new_user();
+
+-- Vistas publicas de solo lectura de una cuenta: ver supabase/migrations/20261008_shared_account_views.sql
