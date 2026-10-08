@@ -278,14 +278,30 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
         )}
         {account.name === "Principal" && (
           <div className="principal-payment-strip">
-            <strong>Pagos de tarjeta</strong>
-            <div>
+            <span className="payment-strip-title">Pagos de tarjeta</span>
+            <div className="payment-strip-list">
               {creditCards.map((card) => {
                 const amount = cardFullPaymentTotals[card.name] || cardPaymentTotals[card.name] || 0;
                 const payment = paymentByCard[card.name];
+                const paymentAmount = payment ? Math.abs(Number(payment.amount) || 0) : amount;
+                const state = payment ? (payment.status === "Confirmado" ? "paid" : "scheduled") : amount ? "due" : "clear";
+                const stateLabel = { paid: "Pagado", scheduled: "Programado", due: "Pagar", clear: "Sin deuda" }[state];
                 return (
-                  <button type="button" className="icon-text" key={card.name} onClick={() => payment ? onEdit(payment) : onQuickPay(card, amount)} disabled={!amount && !payment}>
-                    {card.name}: {payment ? `pago ${formatCurrency(Math.abs(Number(payment.amount) || 0))}` : formatCurrency(amount)}
+                  <button
+                    type="button"
+                    className={`payment-strip-row ${state}`}
+                    key={card.name}
+                    onClick={() => payment ? onEdit(payment) : onQuickPay(card, amount)}
+                    disabled={state === "clear"}
+                    aria-label={payment ? `Editar pago de ${card.name}` : `Pagar ${card.name}`}
+                  >
+                    <span className="payment-strip-dot" style={{ background: getAccountColorToken(card).accent }} aria-hidden="true" />
+                    <span className="payment-strip-name">{card.name}</span>
+                    <span className="payment-strip-amount">{formatCurrency(paymentAmount)}</span>
+                    <span className="payment-strip-state">
+                      {state === "paid" && <Check size={13} aria-hidden="true" />}
+                      {stateLabel}
+                    </span>
                   </button>
                 );
               })}
