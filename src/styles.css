@@ -6572,3 +6572,166 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
 :root[data-theme="dark"] .responsible-options p {
   color: #a9bcc4;
 }
+
+/* Vista compartida de una cuenta (incrustable en Notion) */
+.shared-account {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 16px;
+  color: var(--ink);
+}
+
+.shared-account-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.shared-account-header h1 {
+  margin: 2px 0 0;
+  font-size: 1.4rem;
+}
+
+.shared-account-kicker {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.shared-account-period {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shared-account-period strong {
+  min-width: 128px;
+  text-align: center;
+}
+
+.shared-account-nav {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.shared-account-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.shared-account-totals > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.shared-account-totals span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.shared-account-totals strong {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.shared-account-totals .highlight {
+  border-color: var(--brand);
+}
+
+.shared-account .positive {
+  color: var(--leaf);
+}
+
+.shared-account .negative {
+  color: #d64545;
+}
+
+.shared-account-totals .positive strong,
+.shared-account-totals .negative strong {
+  color: inherit;
+}
+
+.shared-account-totals .positive span,
+.shared-account-totals .negative span {
+  color: var(--muted);
+}
+
+.shared-account-list {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.shared-account-list table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.shared-account-list th,
+.shared-account-list td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.shared-account-list th {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.shared-account-list .amount {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.shared-account-list .muted {
+  color: var(--muted);
+}
+
+.shared-account-list tfoot td {
+  border-bottom: 0;
+  font-weight: 900;
+}
+
+.shared-account-message {
+  margin: 0;
+  padding: 18px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .shared-account {
+    padding: 12px;
+  }
+
+  .shared-account-list th:nth-child(2),
+  .shared-account-list tbody td:nth-child(2) {
+    display: none;
+  }
+}
