@@ -3564,7 +3564,7 @@ export function App() {
           <section className="modal-panel delete-scope-modal" role="dialog" aria-modal="true" aria-labelledby="delete-scope-title">
             <header className="modal-header">
               <div>
-                <h2 id="delete-scope-title">{isInstallmentMovement(deleteCandidate) ? "Eliminar compra en cuotas" : hasMovementSeries(deleteCandidate, movements) ? "Eliminar movimiento recurrente" : "Eliminar movimiento"}</h2>
+                <h2 id="delete-scope-title">{!hasMovementSeries(deleteCandidate, movements) ? "Eliminar movimiento" : isInstallmentMovement(deleteCandidate) ? "Eliminar compra en cuotas" : "Eliminar movimiento recurrente"}</h2>
                 <p>{deleteCandidate.description}</p>
               </div>
               <button type="button" className="icon-button" onClick={() => setDeleteCandidate(null)} aria-label="Cerrar">
@@ -3574,7 +3574,7 @@ export function App() {
             {getLinkedReimbursements(getRecurringMovementScopeRows(deleteCandidate, "all")).length > 0 && (
               <label className="delete-reimbursements-toggle">
                 <input type="checkbox" checked={deleteWithReimbursements} onChange={(event) => setDeleteWithReimbursements(event.target.checked)} />
-                <span>Eliminar tambien los reembolsos de lo que se elimine</span>
+                <span>Eliminar también sus reembolsos</span>
               </label>
             )}
             <div className="delete-scope-actions">
