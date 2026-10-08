@@ -81,7 +81,6 @@ button {
 :root[data-theme="dark"] .month-cell,
 :root[data-theme="dark"] .category-admin-panel,
 :root[data-theme="dark"] .responsible-list > div,
-:root[data-theme="dark"] .credit-card-manager,
 :root[data-theme="dark"] .chart-card {
   background: #0f2429;
   border-color: #25434a;
@@ -2183,8 +2182,7 @@ td:nth-child(8) {
 }
 
 .breakdown,
-.balance-list,
-.card-manager {
+.balance-list {
   background: #ffffff;
   border: 1px solid #d8e3e1;
   border-radius: 8px;
@@ -2275,10 +2273,6 @@ td:nth-child(8) {
 :root[data-theme="dark"] .account-balance,
 :root[data-theme="dark"] .account-balance strong,
 :root[data-theme="dark"] .account-balance dd,
-:root[data-theme="dark"] .credit-card-row,
-:root[data-theme="dark"] .credit-card-row strong,
-:root[data-theme="dark"] .credit-card-row .income-text,
-:root[data-theme="dark"] .credit-card-row .expense-text,
 :root[data-theme="dark"] .annual-account-box h4,
 :root[data-theme="dark"] .annual-account-box h4 span,
 :root[data-theme="dark"] .annual-account-box h4 strong,
@@ -2288,14 +2282,12 @@ td:nth-child(8) {
 }
 
 :root[data-theme="dark"] .account-balance small,
-:root[data-theme="dark"] .account-balance dt,
-:root[data-theme="dark"] .credit-card-row span {
+:root[data-theme="dark"] .account-balance dt {
   color: var(--account-muted-ink, #4b5b70);
 }
 
 .breakdown h2,
 .balance-list h2,
-.card-manager h2,
 .section-heading h2 {
   font-size: 1.05rem;
   margin-bottom: 4px;
@@ -2303,45 +2295,6 @@ td:nth-child(8) {
 
 .compact-heading {
   margin-bottom: 10px;
-}
-
-.card-form {
-  display: grid;
-  grid-template-columns: 1fr 120px;
-  gap: 10px;
-}
-
-.card-form button {
-  grid-column: 1 / -1;
-}
-
-.card-list {
-  display: grid;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.credit-card-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid #dce8e4;
-  border-radius: 8px;
-  color: var(--account-ink, #172033);
-  padding: 10px;
-}
-
-.credit-card-row strong,
-.credit-card-row span {
-  display: block;
-}
-
-.credit-card-row span {
-  margin-top: 2px;
-  color: var(--account-muted-ink, #46566b);
-  font-size: 0.84rem;
-  font-weight: 800;
 }
 
 .bar-row {

@@ -14,7 +14,6 @@ import { CategoryBadge, CategoryIconPicker, CategorySelector, getCategoryStyle, 
 import { CategoryPieChart } from "./components/CategoryPieChart";
 import { ColorPicker } from "./components/ColorPicker";
 import { CreditCardAnalysis } from "./components/CreditCardAnalysis";
-import { CreditCardManager } from "./components/CreditCardManager";
 import { CreditCardMonthlyChart } from "./components/CreditCardMonthlyChart";
 import { MonthlyGrid } from "./components/MonthlyGrid";
 import { MovementForm, PeriodSelector } from "./components/MovementForm";
@@ -401,7 +400,6 @@ export function App() {
   const [categoryDraft, setCategoryDraft] = useState({ name: "", type: "Egreso", icon: "circle-help", color: "#475569" });
   const [filters, setFilters] = useState({ search: "", account: "", responsible: "", payment: "", type: "", category: "", status: "", flow: "" });
   const [accountDraft, setAccountDraft] = useState({ name: "", type: "principal", color: "#e2e8f0" });
-  const [cardDraft, setCardDraft] = useState({ name: "", color: "#cfe9d8" });
   const [movements, setMovements] = useState([]);
   const [recurringMovements, setRecurringMovements] = useState([]);
   const [selectedYear, setSelectedYear] = useState(initialPeriod.year);
@@ -2076,58 +2074,6 @@ export function App() {
     setNotice("Cuenta eliminada.");
   }
 
-  async function createCreditCard(event) {
-    event.preventDefault();
-    const name = cardDraft.name.trim();
-
-    if (!name) {
-      setNotice("Ingresa un nombre para la tarjeta.");
-      return;
-    }
-
-    if (accounts.some((account) => account.name.toLowerCase() === name.toLowerCase())) {
-      setNotice("Ya existe una cuenta o tarjeta con ese nombre.");
-      return;
-    }
-
-    const nextCard = { name, type: "tarjeta_credito", color: cardDraft.color, archived: false, sort_order: getNextAccountSortValue(accounts) };
-
-    if (isRemote) {
-      const { data, error } = await supabase.from("accounts").insert(nextCard).select().single();
-      if (error) {
-        setNotice(error.message);
-        return;
-      }
-      setAccounts((current) => hydrateAccounts([...current, data]));
-    } else {
-      setAccounts((current) => hydrateAccounts([...current, nextCard]));
-    }
-
-    setCardDraft({ name: "", color: "#cfe9d8" });
-    setNotice("Tarjeta creada.");
-  }
-
-  async function deleteCreditCard(card) {
-    const hasMovements = movements.some((movement) => movement.account === card.name || movement.target_account === card.name);
-
-    if (hasMovements) {
-      await updateAccount(card, { archived: true });
-      setNotice("Tarjeta archivada. Se seguira mostrando solo en meses con movimientos.");
-      return;
-    }
-
-    if (isRemote && card.id) {
-      const { error } = await supabase.from("accounts").delete().eq("id", card.id);
-      if (error) {
-        setNotice(error.message);
-        return;
-      }
-    }
-
-    setAccounts((current) => current.filter((account) => account.name !== card.name));
-    setNotice("Tarjeta eliminada.");
-  }
-
   async function createCategory(event) {
     event.preventDefault();
     const name = categoryDraft.name.trim();
@@ -3110,7 +3056,6 @@ export function App() {
         <aside className="side-panel">
           <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-desktop-only" />
           <CardPayments accounts={visibleAccounts} movements={monthMovements} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} onEdit={editMovement} onQuickPay={quickPayCreditCard} className="account-balances-desktop-only" />
-          <CreditCardManager accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardPaymentStats={cardPaymentStats} draft={cardDraft} onDraftChange={setCardDraft} onCreate={createCreditCard} onDelete={deleteCreditCard} />
           <CategoryBreakdown movements={monthCategoryMovements} activeCategory={filters.category} onSelectCategory={filterByCategory} />
           <section className="balance-list">
             <h2>Resumen anual</h2>
