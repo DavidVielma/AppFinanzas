@@ -60,7 +60,7 @@ const accountColorTokens = {
   "#fed7aa": { fill: "#fed7aa", accent: "#c2410c" }
 };
 
-function getAccountColorToken(account) {
+export function getAccountColorToken(account) {
   const color = String(account.color || "").toLowerCase();
   return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
 }
@@ -274,38 +274,6 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
             <span>Saldo anterior: <strong>{formatCurrency(-cardStats.openingDebt)}</strong></span>
             <span>Pagado: <strong>{formatCurrency(cardStats.payments)}</strong></span>
             <span>Pendiente: <strong>{formatCurrency(-cardStats.pending)}</strong></span>
-          </div>
-        )}
-        {account.name === "Principal" && (
-          <div className="principal-payment-strip">
-            <span className="payment-strip-title">Pagos de tarjeta</span>
-            <div className="payment-strip-list">
-              {creditCards.map((card) => {
-                const amount = cardFullPaymentTotals[card.name] || cardPaymentTotals[card.name] || 0;
-                const payment = paymentByCard[card.name];
-                const paymentAmount = payment ? Math.abs(Number(payment.amount) || 0) : amount;
-                const state = payment ? (payment.status === "Confirmado" ? "paid" : "scheduled") : amount ? "due" : "clear";
-                const stateLabel = { paid: "Pagado", scheduled: "Programado", due: "Pagar", clear: "Sin deuda" }[state];
-                return (
-                  <button
-                    type="button"
-                    className={`payment-strip-row ${state}`}
-                    key={card.name}
-                    onClick={() => payment ? onEdit(payment) : onQuickPay(card, amount)}
-                    disabled={state === "clear"}
-                    aria-label={payment ? `Editar pago de ${card.name}` : `Pagar ${card.name}`}
-                  >
-                    <span className="payment-strip-dot" style={{ background: getAccountColorToken(card).accent }} aria-hidden="true" />
-                    <span className="payment-strip-name">{card.name}</span>
-                    <span className="payment-strip-amount">{formatCurrency(paymentAmount)}</span>
-                    <span className="payment-strip-state">
-                      {state === "paid" && <Check size={13} aria-hidden="true" />}
-                      {stateLabel}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
           </div>
         )}
         <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} selectedResponsible={selectedResponsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} isCreditCardLedger={isCard} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onQuickUpdate={onQuickUpdate} onMove={onMove} onMoveToMovement={onMoveToMovement} onCreateReimbursement={onCreateReimbursement} onOpenTcDetail={onOpenTcDetail} />

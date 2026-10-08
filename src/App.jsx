@@ -8,6 +8,7 @@ import { AccountLedgerSections } from "./components/AccountLedgerSections";
 import { AnnualFlowChart } from "./components/AnnualFlowChart";
 import { AnnualSummaryView } from "./components/AnnualSummaryView";
 import { AuthPanel } from "./components/AuthPanel";
+import { CardPayments } from "./components/CardPayments";
 import { CategoryBreakdown } from "./components/CategoryBreakdown";
 import { CategoryBadge, CategoryIconPicker, CategorySelector, getCategoryStyle, setCustomCategoryVisuals } from "./components/CategoryVisuals";
 import { CategoryPieChart } from "./components/CategoryPieChart";
@@ -2984,6 +2985,7 @@ export function App() {
       {activeView === "movements" && (
       <section className="work-area" onTouchStart={handleMovementTouchStart} onTouchEnd={handleMovementTouchEnd} onWheel={handleMovementWheel}>
         <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-mobile-only" />
+        <CardPayments accounts={visibleAccounts} movements={monthMovements} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} onEdit={editMovement} onQuickPay={quickPayCreditCard} className="account-balances-mobile-only" />
         <div className={`ledger-panel month-transition-panel ${monthTransition ? `is-month-${monthTransition}` : ""}`} onAnimationEnd={() => setMonthTransition(null)}>
           <div className="section-heading">
             <div>
@@ -3107,6 +3109,7 @@ export function App() {
 
         <aside className="side-panel">
           <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-desktop-only" />
+          <CardPayments accounts={visibleAccounts} movements={monthMovements} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} onEdit={editMovement} onQuickPay={quickPayCreditCard} className="account-balances-desktop-only" />
           <CreditCardManager accounts={visibleAccounts} cardPaymentTotals={cardPaymentTotals} cardPaymentStats={cardPaymentStats} draft={cardDraft} onDraftChange={setCardDraft} onCreate={createCreditCard} onDelete={deleteCreditCard} />
           <CategoryBreakdown movements={monthCategoryMovements} activeCategory={filters.category} onSelectCategory={filterByCategory} />
           <section className="balance-list">

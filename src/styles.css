@@ -81,7 +81,6 @@ button {
 :root[data-theme="dark"] .month-cell,
 :root[data-theme="dark"] .category-admin-panel,
 :root[data-theme="dark"] .responsible-list > div,
-:root[data-theme="dark"] .principal-payment-strip,
 :root[data-theme="dark"] .credit-card-manager,
 :root[data-theme="dark"] .chart-card {
   background: #0f2429;
@@ -1746,24 +1745,13 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.principal-payment-strip {
-  display: grid;
-  gap: 6px;
-  padding: 10px 14px 12px;
-  border-bottom: 1px solid #edf1f5;
-  background: #fbfcfd;
+.card-payments h2 {
+  margin-bottom: 10px;
 }
 
-.payment-strip-title {
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.payment-strip-list {
+.card-payments .payment-strip-list {
   display: grid;
+  gap: 0;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
@@ -1806,11 +1794,26 @@ button:disabled {
 }
 
 .payment-strip-name {
+  display: grid;
+  min-width: 0;
+}
+
+.payment-strip-name strong,
+.payment-strip-name small {
   overflow: hidden;
-  font-size: 0.9rem;
-  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.payment-strip-name strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.card-payments .payment-strip-name small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 500;
 }
 
 .payment-strip-amount {
@@ -1852,7 +1855,7 @@ button:disabled {
 }
 
 .payment-strip-row.clear .payment-strip-amount,
-.payment-strip-row.clear .payment-strip-name {
+.payment-strip-row.clear .payment-strip-name strong {
   color: var(--muted);
 }
 
@@ -5102,10 +5105,6 @@ td:nth-child(8) {
 
   .account-section-actions .icon-text {
     flex: 1 1 auto;
-  }
-
-  .principal-payment-strip {
-    padding: 10px;
   }
 
   .payment-strip-row {
