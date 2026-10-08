@@ -156,7 +156,6 @@ export function SharedAccountView() {
                 <thead>
                   <tr>
                     <th>Descripcion</th>
-                    <th>Detalle</th>
                     <th>Estado</th>
                     <th className="amount">Monto</th>
                   </tr>
@@ -164,8 +163,10 @@ export function SharedAccountView() {
                 <tbody>
                   {ledger.movements.map((movement) => (
                     <tr key={movement.id}>
-                      <td>{movement.description}</td>
-                      <td className="muted">{getMovementLabel(movement)}</td>
+                      <td>
+                        {movement.description}
+                        <small className="muted">{getMovementLabel(movement)}</small>
+                      </td>
                       <td>
                         <span className={`status-pill ${getStatusClass(movement.status)}`}>{movement.status}</span>
                       </td>
@@ -175,7 +176,7 @@ export function SharedAccountView() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={3}>Total del mes</td>
+                    <td colSpan={2}>Total del mes</td>
                     <td className={`amount ${totals.net >= 0 ? "positive" : "negative"}`}>{formatCurrency(totals.net)}</td>
                   </tr>
                 </tfoot>
