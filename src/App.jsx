@@ -44,6 +44,7 @@ import { parseQuickAmount, parseQuickTextMovement } from "./lib/quickMovement";
 import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { getResponsibleAmount, parseResponsibleAmounts } from "./lib/responsibleAmounts";
+import { buildInstallmentDescription, getMonthOffset, getMovementSeriesRows, hasMovementSeries, isInstallmentMovement, parseInstallmentDescription, shiftPeriod, stripInstallmentSuffix } from "./lib/movementSeries";
 
 const initialPeriod = getCurrentPeriod();
 const quickMovementShortcutUrl = "https://www.icloud.com/shortcuts/45efc6dc3d8847c09c0ccb223d4abf03";
@@ -212,10 +213,6 @@ function getRecurringFrequencyLabel(frequency) {
   if (frequency === "quarterly") return "trimestral";
   if (frequency === "yearly") return "anual";
   return "mensual";
-}
-
-function comparePeriods(aYear, aMonth, bYear, bMonth) {
-  return Number(aYear) * 12 + Number(aMonth) - (Number(bYear) * 12 + Number(bMonth));
 }
 
 function canScrollHorizontally(target, boundary, deltaX) {
@@ -764,7 +761,8 @@ export function App() {
     const isInstallmentPurchase = !editingId && draft.flow === "Movimiento" && draft.installment_mode !== "none";
     const isRecurringMovement = !editingId && !isInstallmentPurchase && draft.flow !== "Pago Tarjeta" && draft.recurring_frequency !== "none";
     const recurringEditScope = draft.recurring_edit_scope || "one";
-    const isRecurringSeriesEdit = Boolean(editingId && draft.recurring_id && recurringEditScope !== "one");
+    const editingMovement = editingId ? movements.find((item) => item.id === editingId) : null;
+    const isRecurringSeriesEdit = Boolean(editingMovement && draft.series_editable && recurringEditScope !== "one");
     const installmentCount = Math.max(1, Number.parseInt(draft.installment_count, 10) || 1);
     const recurringCount = Math.max(1, Math.min(120, Number.parseInt(draft.recurring_count, 10) || 1));
     const draftYear = Number(draft.year) || Number(selectedYear);
@@ -793,6 +791,11 @@ export function App() {
 
     if (isInstallmentPurchase && (!fallbackAmount || installmentCount < 2)) {
       setNotice("Ingresa un monto y al menos 2 cuotas.");
+      return;
+    }
+
+    if (isInstallmentPurchase && installmentCount > 120) {
+      setNotice("El maximo es 120 cuotas.");
       return;
     }
 
@@ -856,10 +859,11 @@ export function App() {
           return {
             ...basePayload,
             amount: -evenAmount,
-            description: `${draft.description} (${index + 1}/${installmentCount})`,
+            description: buildInstallmentDescription(draft.description, index + 1, installmentCount),
             sort_order: Date.now() + index,
             year: period.year,
-            month: period.month
+            month: period.month,
+            recurring_occurrence: index + 1
           };
         })
       : isRecurringMovement
@@ -874,22 +878,25 @@ export function App() {
           };
         })
       : [payload];
-    const seriesTargetRows = isRecurringSeriesEdit
-      ? movements.filter((movement) => {
-          if (movement.recurring_id !== draft.recurring_id) return false;
-          if (recurringEditScope === "all") return true;
-
-          const draftOccurrence = Number(draft.original_recurring_occurrence || draft.recurring_occurrence);
-          const movementOccurrence = Number(movement.recurring_occurrence);
-
-          if (Number.isFinite(draftOccurrence) && draftOccurrence > 0 && Number.isFinite(movementOccurrence) && movementOccurrence > 0) {
-            return movementOccurrence >= draftOccurrence;
-          }
-
-          return comparePeriods(movement.year, movement.month, draft.original_year || draft.year, draft.original_month || draft.month) >= 0;
-        })
-      : [];
+    const seriesTargetRows = isRecurringSeriesEdit ? getMovementSeriesRows(editingMovement, movements, recurringEditScope) : [];
     const seriesTargetIds = seriesTargetRows.map((movement) => movement.id);
+    // En una serie de cuotas cada fila conserva su numero de cuota (n/N); si el monto
+    // no se cambio, tambien conserva su monto (las cuotas pueden diferir en un peso).
+    const seriesAmountChanged = Number(draft.amount) !== Number(draft.original_amount);
+    const seriesBaseDescription = stripInstallmentSuffix(draft.description);
+    const getSeriesRowPatch = (row) => {
+      const installment = parseInstallmentDescription(row.description);
+      if (!installment) return seriesPayload;
+
+      const keepAmount = !seriesAmountChanged;
+      return {
+        ...seriesPayload,
+        description: buildInstallmentDescription(seriesBaseDescription || installment.base, installment.index, installment.total),
+        amount: keepAmount ? row.amount : seriesPayload.amount,
+        type: keepAmount ? row.type : seriesPayload.type
+      };
+    };
+    const seriesHasInstallments = seriesTargetRows.some((row) => parseInstallmentDescription(row.description));
 
     if (isRecurringSeriesEdit && !seriesTargetIds.length) {
       setNotice("No se encontraron movimientos de esta serie para actualizar.");
@@ -899,7 +906,7 @@ export function App() {
     if (isRemote) {
       let recurringRule = null;
 
-      if (isRecurringMovement) {
+      if (isRecurringMovement || isInstallmentPurchase) {
         const rulePayload = {
           flow: basePayload.flow,
           type: basePayload.type,
@@ -912,8 +919,8 @@ export function App() {
           description: draft.description,
           start_year: draftYear,
           start_month: draftMonth,
-          frequency: draft.recurring_frequency,
-          occurrence_count: recurringCount,
+          frequency: isInstallmentPurchase ? "monthly" : draft.recurring_frequency,
+          occurrence_count: isInstallmentPurchase ? installmentCount : recurringCount,
           active: true
         };
         const { data: createdRule, error: recurringError } = await supabase.from("recurring_movements").insert(rulePayload).select().single();
@@ -930,7 +937,10 @@ export function App() {
       const rowsToSave = recurringRule
         ? payloads.map((item) => ({ ...item, recurring_id: recurringRule.id }))
         : payloads;
-      const request = isRecurringSeriesEdit
+      const request = isRecurringSeriesEdit && seriesHasInstallments
+        ? Promise.all(seriesTargetRows.map((row) => supabase.from("movements").update(getSeriesRowPatch(row)).eq("id", row.id).select().single()))
+            .then((results) => ({ data: results.map((result) => result.data).filter(Boolean), error: results.find((result) => result.error)?.error || null }))
+        : isRecurringSeriesEdit
         ? supabase.from("movements").update(seriesPayload).in("id", seriesTargetIds).select()
         : editingId
         ? supabase.from("movements").update(payload).eq("id", editingId).select().single()
@@ -953,7 +963,7 @@ export function App() {
       await loadMovements();
     } else {
       const now = new Date().toISOString();
-      const recurringId = isRecurringMovement ? buildLocalId() : null;
+      const recurringId = isRecurringMovement || isInstallmentPurchase ? buildLocalId() : null;
       const nextRows = payloads.map((item) => ({
         ...item,
         id: editingId || buildLocalId(),
@@ -962,7 +972,7 @@ export function App() {
         updated_at: now
       }));
 
-      if (isRecurringMovement) {
+      if (isRecurringMovement || isInstallmentPurchase) {
         setRecurringMovements((currentRecurring) => [
           {
             flow: basePayload.flow,
@@ -977,8 +987,8 @@ export function App() {
             description: draft.description,
             start_year: draftYear,
             start_month: draftMonth,
-            frequency: draft.recurring_frequency,
-            occurrence_count: recurringCount,
+            frequency: isInstallmentPurchase ? "monthly" : draft.recurring_frequency,
+            occurrence_count: isInstallmentPurchase ? installmentCount : recurringCount,
             active: true,
             created_at: now,
             updated_at: now
@@ -990,7 +1000,7 @@ export function App() {
       setMovements((current) => {
         if (isRecurringSeriesEdit) {
           const targetIds = new Set(seriesTargetIds);
-          return current.map((item) => (targetIds.has(item.id) ? { ...item, ...seriesPayload, updated_at: now } : item));
+          return current.map((item) => (targetIds.has(item.id) ? { ...item, ...getSeriesRowPatch(item), updated_at: now } : item));
         }
 
         return editingId ? current.map((item) => (item.id === editingId ? nextRows[0] : item)) : [...current, ...nextRows];
@@ -1005,7 +1015,9 @@ export function App() {
     setNotice(
       editingId
         ? isRecurringSeriesEdit
-          ? recurringEditScope === "all"
+          ? seriesHasInstallments
+            ? `${seriesTargetIds.length} cuotas actualizadas.`
+            : recurringEditScope === "all"
             ? "Serie recurrente actualizada."
             : "Movimientos recurrentes futuros actualizados."
           : "Movimiento actualizado."
@@ -1054,6 +1066,8 @@ export function App() {
       recurring_frequency: "none",
       recurring_count: "12",
       recurring_edit_scope: "one",
+      series_editable: hasMovementSeries(movement, movements),
+      series_kind: isInstallmentMovement(movement) ? "installment" : "recurring",
       card_payment_mode: movement.flow === "Pago Tarjeta" ? movement.card_payment_mode || paymentCoverage?.mode || "manual" : "auto",
       year: movement.year,
       month: movement.month
@@ -1086,9 +1100,14 @@ export function App() {
       ? otherNames
       : storedPaidNames.filter((name) => otherNames.includes(name));
 
+    const seriesCount = getMovementSeriesRows(sourceMovement, movements, "all").length;
+
     setReimbursementModal({
       sourceMovement,
       existing,
+      seriesCount,
+      isInstallment: isInstallmentMovement(sourceMovement),
+      scope: seriesCount > 1 && !existing ? "following" : "one",
       people: otherNames,
       amounts,
       paidNames,
@@ -1115,73 +1134,99 @@ export function App() {
     const activePeople = entries.map(([name]) => name);
     const paidNames = reimbursementModal.paidNames.filter((name) => activePeople.includes(name));
     const totalAmount = entries.reduce((sum, [, amount]) => sum + amount, 0);
-    const payload = {
-      flow: "Movimiento",
-      type: "Ingreso",
-      account: "Principal",
-      target_account: null,
-      category: normalizeCategory("Reembolso", "Ingreso", categoryOptionsByType.Ingreso),
-      description: existing?.description || `Reembolso: ${sourceMovement.description}`,
-      amount: totalAmount,
-      card_payment_mode: null,
-      status: paidNames.length === activePeople.length ? "Confirmado" : "Pendiente",
-      responsible: activePeople.join(", "),
-      paid_responsibles: JSON.stringify(paidNames),
-      responsible_amounts: JSON.stringify(amountByPerson),
-      reimbursement_source_id: sourceMovement.id,
-      recurring_modified: false,
-      sort_order: existing?.sort_order || Date.now(),
-      year: Number(reimbursementModal.year),
-      month: Number(reimbursementModal.month)
-    };
+    const scope = reimbursementModal.seriesCount > 1 ? reimbursementModal.scope || "one" : "one";
+    // Con una compra en cuotas o recurrente, el reembolso se replica en cada cuota del
+    // alcance elegido, manteniendo el mismo desfase de meses respecto de su compra.
+    const monthOffset = getMonthOffset(sourceMovement.year, sourceMovement.month, reimbursementModal.year, reimbursementModal.month);
+    const targetSources = scope === "one"
+      ? [sourceMovement]
+      : getMovementSeriesRows(sourceMovement, movements, scope).filter((target) => {
+          if (target.id === sourceMovement.id) return true;
+          const targetNames = parseResponsibleNames(target.responsible, currentResponsible);
+          return activePeople.some((name) => targetNames.includes(name));
+        });
+    if (!targetSources.some((target) => target.id === sourceMovement.id)) targetSources.unshift(sourceMovement);
 
-    let savedMovement;
+    const plannedRows = targetSources.map((target, index) => {
+      const isCurrent = target.id === sourceMovement.id;
+      const rowExisting = isCurrent ? existing : movements.find((item) => item.reimbursement_source_id === target.id) || null;
+      const rowPaidNames = isCurrent
+        ? paidNames
+        : rowExisting?.status === "Confirmado" && activePeople.length === 1
+        ? activePeople
+        : parsePaidResponsibleNames(rowExisting?.paid_responsibles, currentResponsible).filter((name) => activePeople.includes(name));
+      const period = isCurrent
+        ? { year: Number(reimbursementModal.year), month: Number(reimbursementModal.month) }
+        : shiftPeriod(target.year, target.month, monthOffset);
+
+      return {
+        existing: rowExisting,
+        payload: {
+          flow: "Movimiento",
+          type: "Ingreso",
+          account: "Principal",
+          target_account: null,
+          category: normalizeCategory("Reembolso", "Ingreso", categoryOptionsByType.Ingreso),
+          description: rowExisting?.description || `Reembolso: ${target.description}`,
+          amount: totalAmount,
+          card_payment_mode: null,
+          status: rowPaidNames.length === activePeople.length ? "Confirmado" : "Pendiente",
+          responsible: activePeople.join(", "),
+          paid_responsibles: JSON.stringify(rowPaidNames),
+          responsible_amounts: JSON.stringify(amountByPerson),
+          reimbursement_source_id: target.id,
+          recurring_modified: false,
+          sort_order: rowExisting?.sort_order || Date.now() + index,
+          year: period.year,
+          month: period.month
+        }
+      };
+    });
+
+    let savedRows;
     if (isRemote) {
-      const request = existing
-        ? supabase.from("movements").update(payload).eq("id", existing.id).select().single()
-        : supabase.from("movements").insert(payload).select().single();
-      const { data, error } = await request;
-      if (error) {
-        setNotice(error.message);
+      const newPayloads = plannedRows.filter((row) => !row.existing).map((row) => row.payload);
+      const updates = plannedRows.filter((row) => row.existing);
+      const results = await Promise.all([
+        newPayloads.length ? supabase.from("movements").insert(newPayloads).select() : Promise.resolve({ data: [], error: null }),
+        ...updates.map((row) => supabase.from("movements").update(row.payload).eq("id", row.existing.id).select())
+      ]);
+      const failed = results.find((result) => result.error);
+      if (failed) {
+        setNotice(failed.error.message);
+        await loadMovements();
         return;
       }
-      savedMovement = data;
+      savedRows = results.flatMap((result) => result.data || []);
     } else {
-      savedMovement = {
-        ...payload,
-        id: existing?.id || buildLocalId(),
-        created_at: existing?.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      const now = new Date().toISOString();
+      savedRows = plannedRows.map((row) => ({
+        ...row.payload,
+        id: row.existing?.id || buildLocalId(),
+        created_at: row.existing?.created_at || now,
+        updated_at: now
+      }));
     }
 
-    setMovements((current) => existing
-      ? current.map((item) => item.id === existing.id ? savedMovement : item)
-      : [...current, savedMovement]);
+    const savedById = new Map(savedRows.map((row) => [row.id, row]));
+    setMovements((current) => [
+      ...current.map((item) => savedById.get(item.id) || item),
+      ...savedRows.filter((row) => !current.some((item) => item.id === row.id))
+    ]);
     setSelectedYear(Number(reimbursementModal.year));
     setSelectedMonth(Number(reimbursementModal.month));
     setReimbursementModal(null);
-    setNotice(existing ? "Reembolso actualizado." : "Reembolso pendiente creado en Principal.");
+    const createdCount = plannedRows.filter((row) => !row.existing).length;
+    const updatedCount = plannedRows.length - createdCount;
+    setNotice(
+      plannedRows.length === 1
+        ? existing ? "Reembolso actualizado." : "Reembolso pendiente creado en Principal."
+        : [createdCount && `${createdCount} reembolsos creados`, updatedCount && `${updatedCount} actualizados`].filter(Boolean).join(", ") + "."
+    );
   }
 
   function getRecurringMovementScopeRows(movement, scope) {
-    if (!movement?.recurring_id || scope === "one") {
-      return movement ? [movement] : [];
-    }
-
-    return movements.filter((item) => {
-      if (item.recurring_id !== movement.recurring_id) return false;
-      if (scope === "all") return true;
-
-      const baseOccurrence = Number(movement.recurring_occurrence);
-      const itemOccurrence = Number(item.recurring_occurrence);
-
-      if (Number.isFinite(baseOccurrence) && baseOccurrence > 0 && Number.isFinite(itemOccurrence) && itemOccurrence > 0) {
-        return itemOccurrence >= baseOccurrence;
-      }
-
-      return comparePeriods(item.year, item.month, movement.year, movement.month) >= 0;
-    });
+    return getMovementSeriesRows(movement, movements, scope);
   }
 
   async function deleteMovement(id) {
@@ -1191,7 +1236,7 @@ export function App() {
       return;
     }
 
-    if (deletedMovement.recurring_id) {
+    if (hasMovementSeries(deletedMovement, movements)) {
       setDeleteCandidate(deletedMovement);
       return;
     }
@@ -3397,7 +3442,21 @@ export function App() {
                 <span>Total del reembolso</span>
                 <strong>{formatCurrency(reimbursementModal.people.reduce((sum, person) => sum + (Number(reimbursementModal.amounts[person]) || 0), 0))}</strong>
               </div>
-              <p className="reimbursement-help">Se creara un unico ingreso pendiente en Principal. Cada persona conservara su monto y estado de pago independiente.</p>
+              {reimbursementModal.seriesCount > 1 && (
+                <label className="reimbursement-scope">
+                  <span>{reimbursementModal.isInstallment ? "Aplicar a las cuotas" : "Aplicar a la serie"}</span>
+                  <select value={reimbursementModal.scope} onChange={(event) => setReimbursementModal((current) => ({ ...current, scope: event.target.value }))}>
+                    <option value="one">{reimbursementModal.isInstallment ? "Solo esta cuota" : "Solo este movimiento"}</option>
+                    <option value="following">{reimbursementModal.isInstallment ? "Esta y las siguientes" : "Este y los siguientes"} ({getMovementSeriesRows(reimbursementModal.sourceMovement, movements, "following").length})</option>
+                    <option value="all">{reimbursementModal.isInstallment ? "Todas las cuotas" : "Toda la serie"} ({reimbursementModal.seriesCount})</option>
+                  </select>
+                </label>
+              )}
+              <p className="reimbursement-help">
+                {reimbursementModal.seriesCount > 1 && reimbursementModal.scope !== "one"
+                  ? "Se creara un ingreso pendiente en Principal por cada mes, con los mismos montos por persona. Si un mes ya tiene reembolso, se actualiza."
+                  : "Se creara un unico ingreso pendiente en Principal. Cada persona conservara su monto y estado de pago independiente."}
+              </p>
               <button type="submit" className="primary-action form-action">
                 {reimbursementModal.existing ? "Guardar reembolso" : "Crear reembolso pendiente"}
               </button>
@@ -3433,7 +3492,7 @@ export function App() {
           <section className="modal-panel delete-scope-modal" role="dialog" aria-modal="true" aria-labelledby="delete-scope-title">
             <header className="modal-header">
               <div>
-                <h2 id="delete-scope-title">Eliminar movimiento recurrente</h2>
+                <h2 id="delete-scope-title">{isInstallmentMovement(deleteCandidate) ? "Eliminar compra en cuotas" : "Eliminar movimiento recurrente"}</h2>
                 <p>{deleteCandidate.description}</p>
               </div>
               <button type="button" className="icon-button" onClick={() => setDeleteCandidate(null)} aria-label="Cerrar">

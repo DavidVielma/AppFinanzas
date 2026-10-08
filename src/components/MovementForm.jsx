@@ -399,20 +399,22 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
           )}
         </fieldset>
       )}
-      {editingId && draft.recurring_id && (
+      {editingId && draft.series_editable && (
         <fieldset className="installment-box">
           <legend>Aplicar cambios</legend>
           <label>
             Alcance
             <select value={draft.recurring_edit_scope || "one"} onChange={(event) => update("recurring_edit_scope", event.target.value)}>
-              <option value="one">Solo este movimiento</option>
-              <option value="following">Este y los siguientes</option>
-              <option value="all">Toda la serie</option>
+              <option value="one">{draft.series_kind === "installment" ? "Solo esta cuota" : "Solo este movimiento"}</option>
+              <option value="following">{draft.series_kind === "installment" ? "Esta y las siguientes cuotas" : "Este y los siguientes"}</option>
+              <option value="all">{draft.series_kind === "installment" ? "Todas las cuotas" : "Toda la serie"}</option>
             </select>
           </label>
           {draft.recurring_edit_scope !== "one" && (
             <p>
-              Se actualizaran los datos comunes de la serie. Cada movimiento conservara su mes y año.
+              {draft.series_kind === "installment"
+                ? "Se actualizaran los datos comunes de las cuotas. Cada cuota conservara su mes y su numero (n/N); el monto solo cambia si lo modificas."
+                : "Se actualizaran los datos comunes de la serie. Cada movimiento conservara su mes y año."}
             </p>
           )}
         </fieldset>

@@ -5716,6 +5716,8 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
 .reimbursement-person-name button.paid { border-color: #86d5a4; background: #dcfce7; color: #166534; }
 .reimbursement-person-list input { width: 100%; min-height: 42px; border: 0; background: transparent; }
 .reimbursement-person-list input:focus { outline: 0; }
+.reimbursement-scope { display: grid; gap: 6px; margin: 12px 0 0; font-size: 0.82rem; font-weight: 700; }
+.reimbursement-scope select { width: 100%; }
 .reimbursement-help { margin: 12px 0; color: #64748b; font-size: 0.78rem; }
 .reimbursement-total { margin-top: 4px; background: #f8fafc; }
 .reimbursement-action { color: #0f766e; }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { FileSearch, HandCoins, Pencil, Trash2 } from "lucide-react";
 import { CategoryBadge } from "./CategoryVisuals";
 import { formatCurrency } from "../lib/finance";
+import { isInstallmentMovement } from "../lib/movementSeries";
 
 function getStatusClass(status) {
   if (status === "Confirmado") return "confirmed";
@@ -435,7 +436,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
                 <span className="description-content">
                   <span className="description-text">{movement.description}</span>
                   <span className="movement-badges">
-                    {movement.recurring_id && <span className="recurring-badge">Recurrente</span>}
+                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="recurring-badge">Recurrente</span>}
                     {paymentBadge && <span className={`payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
                     {movement.has_reimbursement && <span className="reimbursement-badge">Reembolso</span>}
                   </span>
@@ -520,7 +521,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
                 <div>
                   <strong className="description-text">{movement.description}</strong>
                   <span className="movement-badges">
-                    {movement.recurring_id && <span className="recurring-badge">Recurrente</span>}
+                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="recurring-badge">Recurrente</span>}
                     {paymentBadge && <span className={`payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
                     {movement.has_reimbursement && <span className="reimbursement-badge">Reembolso</span>}
                   </span>
