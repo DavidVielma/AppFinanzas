@@ -44,7 +44,7 @@ import { parseQuickAmount, parseQuickTextMovement } from "./lib/quickMovement";
 import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { getResponsibleAmount, parseResponsibleAmounts } from "./lib/responsibleAmounts";
-import { buildInstallmentDescription, getMonthOffset, getMovementSeriesRows, hasMovementSeries, isInstallmentMovement, parseInstallmentDescription, shiftPeriod, stripInstallmentSuffix } from "./lib/movementSeries";
+import { buildInstallmentDescription, getMonthOffset, getMovementSeriesRows, hasMovementSeries, isInstallmentMovement, parseInstallmentDescription, scaleReimbursement, shiftPeriod, stripInstallmentSuffix } from "./lib/movementSeries";
 
 const initialPeriod = getCurrentPeriod();
 const quickMovementShortcutUrl = "https://www.icloud.com/shortcuts/45efc6dc3d8847c09c0ccb223d4abf03";
@@ -413,6 +413,7 @@ export function App() {
   const [movementModalOpen, setMovementModalOpen] = useState(false);
   const [reimbursementModal, setReimbursementModal] = useState(null);
   const [deleteCandidate, setDeleteCandidate] = useState(null);
+  const [deleteWithReimbursements, setDeleteWithReimbursements] = useState(true);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [responsibleModalOpen, setResponsibleModalOpen] = useState(false);
@@ -903,6 +904,14 @@ export function App() {
       return;
     }
 
+    // Montos antes/despues de cada compra editada, para ajustar sus reembolsos.
+    const sourceAmountChanges = isRecurringSeriesEdit
+      ? seriesTargetRows.map((row) => ({ id: row.id, oldAmount: row.amount, newAmount: getSeriesRowPatch(row).amount }))
+      : editingMovement
+      ? [{ id: editingMovement.id, oldAmount: editingMovement.amount, newAmount: payload.amount }]
+      : [];
+    let reimbursementAdjustment = { count: 0, error: null };
+
     if (isRemote) {
       let recurringRule = null;
 
@@ -960,6 +969,7 @@ export function App() {
 
         return editingId ? current.map((item) => (item.id === editingId ? data : item)) : [...current, ...(data || [])];
       });
+      reimbursementAdjustment = await adjustLinkedReimbursements(sourceAmountChanges);
       await loadMovements();
     } else {
       const now = new Date().toISOString();
@@ -1005,6 +1015,7 @@ export function App() {
 
         return editingId ? current.map((item) => (item.id === editingId ? nextRows[0] : item)) : [...current, ...nextRows];
       });
+      reimbursementAdjustment = await adjustLinkedReimbursements(sourceAmountChanges);
     }
 
     setSelectedYear(draftYear);
@@ -1012,8 +1023,7 @@ export function App() {
     setDraft(emptyDraft);
     setEditingId(null);
     setMovementModalOpen(false);
-    setNotice(
-      editingId
+    const savedNotice = editingId
         ? isRecurringSeriesEdit
           ? seriesHasInstallments
             ? `${seriesTargetIds.length} cuotas actualizadas.`
@@ -1025,8 +1035,35 @@ export function App() {
         ? `Compra dividida en ${installmentCount} cuotas.`
         : isRecurringMovement
         ? `Movimiento recurrente creado ${getRecurringFrequencyLabel(draft.recurring_frequency)} por ${recurringCount} periodos.`
-        : "Movimiento agregado."
+        : "Movimiento agregado.";
+    setNotice(
+      reimbursementAdjustment.error
+        ? `${savedNotice} No se pudieron ajustar los reembolsos: ${reimbursementAdjustment.error}`
+        : reimbursementAdjustment.count
+        ? `${savedNotice} ${reimbursementAdjustment.count === 1 ? "Reembolso ajustado" : `${reimbursementAdjustment.count} reembolsos ajustados`} al nuevo monto.`
+        : savedNotice
     );
+  }
+
+  async function adjustLinkedReimbursements(changes) {
+    const updates = changes
+      .map(({ id, oldAmount, newAmount }) => {
+        const reimbursement = movements.find((item) => item.reimbursement_source_id === id);
+        const patch = scaleReimbursement(reimbursement, oldAmount, newAmount);
+        return patch ? { id: reimbursement.id, patch } : null;
+      })
+      .filter(Boolean);
+    if (!updates.length) return { count: 0, error: null };
+
+    if (isRemote) {
+      const results = await Promise.all(updates.map(({ id, patch }) => supabase.from("movements").update(patch).eq("id", id)));
+      const failed = results.find((result) => result.error);
+      if (failed) return { count: 0, error: failed.error.message };
+    }
+
+    const patchById = new Map(updates.map(({ id, patch }) => [id, patch]));
+    setMovements((current) => current.map((item) => (patchById.has(item.id) ? { ...item, ...patchById.get(item.id) } : item)));
+    return { count: updates.length, error: null };
   }
 
   function editMovement(movement) {
@@ -1236,7 +1273,8 @@ export function App() {
       return;
     }
 
-    if (hasMovementSeries(deletedMovement, movements)) {
+    if (hasMovementSeries(deletedMovement, movements) || getLinkedReimbursements([deletedMovement]).length) {
+      setDeleteWithReimbursements(true);
       setDeleteCandidate(deletedMovement);
       return;
     }
@@ -1244,9 +1282,28 @@ export function App() {
     await deleteMovementScope(deletedMovement, "one");
   }
 
-  async function deleteMovementScope(movement, scope) {
-    const rowsToDelete = getRecurringMovementScopeRows(movement, scope);
+  function getLinkedReimbursements(sourceRows) {
+    const sourceIds = new Set(sourceRows.map((item) => item.id));
+    return movements.filter((item) => item.reimbursement_source_id && sourceIds.has(item.reimbursement_source_id));
+  }
+
+  function describeDeleteScope(movement, scope) {
+    const sourceRows = getRecurringMovementScopeRows(movement, scope);
+    const reimbursementCount = deleteWithReimbursements ? getLinkedReimbursements(sourceRows).length : 0;
+    const movementText = sourceRows.length === 1 ? "1 movimiento" : `${sourceRows.length} movimientos`;
+    if (!reimbursementCount) return `Elimina ${movementText}.`;
+    return `Elimina ${movementText} y ${reimbursementCount === 1 ? "1 reembolso" : `${reimbursementCount} reembolsos`}.`;
+  }
+
+  async function deleteMovementScope(movement, scope, includeReimbursements = false) {
+    const sourceRows = getRecurringMovementScopeRows(movement, scope);
+    const reimbursementRows = includeReimbursements
+      ? getLinkedReimbursements(sourceRows).filter((item) => !sourceRows.some((source) => source.id === item.id))
+      : [];
+    // Las compras van antes que sus reembolsos para que "Deshacer" los restaure en orden.
+    const rowsToDelete = [...sourceRows, ...reimbursementRows];
     const idsToDelete = rowsToDelete.map((item) => item.id);
+    const detachedReimbursements = getLinkedReimbursements(sourceRows).filter((item) => !idsToDelete.includes(item.id));
 
     if (!idsToDelete.length) {
       setNotice("No se encontraron movimientos para eliminar.");
@@ -1262,12 +1319,18 @@ export function App() {
       }
     }
 
-    setMovements((current) => current.filter((item) => !idsToDelete.includes(item.id)));
+    // Sin borrar los reembolsos, la base deja su compra en null (on delete set null).
+    setMovements((current) => current
+      .filter((item) => !idsToDelete.includes(item.id))
+      .map((item) => (item.reimbursement_source_id && idsToDelete.includes(item.reimbursement_source_id) ? { ...item, reimbursement_source_id: null } : item)));
     setDeleteCandidate(null);
-    setNotice(idsToDelete.length === 1 ? "Movimiento eliminado." : `${idsToDelete.length} movimientos eliminados.`);
+    const movementNotice = sourceRows.length === 1 ? "Movimiento eliminado" : `${sourceRows.length} movimientos eliminados`;
+    setNotice(reimbursementRows.length
+      ? `${movementNotice} junto con ${reimbursementRows.length === 1 ? "su reembolso" : `${reimbursementRows.length} reembolsos`}.`
+      : `${movementNotice}.`);
     setNoticeAction({
       label: "Deshacer",
-      run: () => undoDeleteMovements(rowsToDelete)
+      run: () => undoDeleteMovements(rowsToDelete, detachedReimbursements)
     });
   }
 
@@ -1275,7 +1338,7 @@ export function App() {
     await undoDeleteMovements([movement]);
   }
 
-  async function undoDeleteMovements(deletedRows) {
+  async function undoDeleteMovements(deletedRows, detachedReimbursements = []) {
     setNoticeAction(null);
     const restoredRows = deletedRows.map((movement) => ({ ...movement }));
 
@@ -1292,6 +1355,15 @@ export function App() {
     } else {
       const restoredIds = new Set(restoredRows.map((item) => item.id));
       setMovements((current) => [...current.filter((item) => !restoredIds.has(item.id)), ...restoredRows]);
+    }
+
+    // Los reembolsos que no se eliminaron vuelven a quedar ligados a su compra.
+    if (detachedReimbursements.length) {
+      if (isRemote) {
+        await Promise.all(detachedReimbursements.map((item) => supabase.from("movements").update({ reimbursement_source_id: item.reimbursement_source_id }).eq("id", item.id)));
+      }
+      const sourceById = new Map(detachedReimbursements.map((item) => [item.id, item.reimbursement_source_id]));
+      setMovements((current) => current.map((item) => (sourceById.has(item.id) ? { ...item, reimbursement_source_id: sourceById.get(item.id) } : item)));
     }
 
     setNotice(restoredRows.length === 1 ? "Movimiento restaurado." : "Movimientos restaurados.");
@@ -3492,26 +3564,41 @@ export function App() {
           <section className="modal-panel delete-scope-modal" role="dialog" aria-modal="true" aria-labelledby="delete-scope-title">
             <header className="modal-header">
               <div>
-                <h2 id="delete-scope-title">{isInstallmentMovement(deleteCandidate) ? "Eliminar compra en cuotas" : "Eliminar movimiento recurrente"}</h2>
+                <h2 id="delete-scope-title">{isInstallmentMovement(deleteCandidate) ? "Eliminar compra en cuotas" : hasMovementSeries(deleteCandidate, movements) ? "Eliminar movimiento recurrente" : "Eliminar movimiento"}</h2>
                 <p>{deleteCandidate.description}</p>
               </div>
               <button type="button" className="icon-button" onClick={() => setDeleteCandidate(null)} aria-label="Cerrar">
                 <X size={18} />
               </button>
             </header>
+            {getLinkedReimbursements(getRecurringMovementScopeRows(deleteCandidate, "all")).length > 0 && (
+              <label className="delete-reimbursements-toggle">
+                <input type="checkbox" checked={deleteWithReimbursements} onChange={(event) => setDeleteWithReimbursements(event.target.checked)} />
+                <span>Eliminar tambien los reembolsos de lo que se elimine</span>
+              </label>
+            )}
             <div className="delete-scope-actions">
-              <button type="button" className="ghost-action" onClick={() => deleteMovementScope(deleteCandidate, "one")}>
-                Solo este movimiento
-                <small>Elimina 1 movimiento.</small>
-              </button>
-              <button type="button" className="ghost-action" onClick={() => deleteMovementScope(deleteCandidate, "following")}>
-                Este y los siguientes
-                <small>Elimina {getRecurringMovementScopeRows(deleteCandidate, "following").length} movimientos.</small>
-              </button>
-              <button type="button" className="ghost-action danger" onClick={() => deleteMovementScope(deleteCandidate, "all")}>
-                Toda la serie
-                <small>Elimina {getRecurringMovementScopeRows(deleteCandidate, "all").length} movimientos.</small>
-              </button>
+              {hasMovementSeries(deleteCandidate, movements) ? (
+                <>
+                  <button type="button" className="ghost-action" onClick={() => deleteMovementScope(deleteCandidate, "one", deleteWithReimbursements)}>
+                    {isInstallmentMovement(deleteCandidate) ? "Solo esta cuota" : "Solo este movimiento"}
+                    <small>{describeDeleteScope(deleteCandidate, "one")}</small>
+                  </button>
+                  <button type="button" className="ghost-action" onClick={() => deleteMovementScope(deleteCandidate, "following", deleteWithReimbursements)}>
+                    {isInstallmentMovement(deleteCandidate) ? "Esta y las siguientes" : "Este y los siguientes"}
+                    <small>{describeDeleteScope(deleteCandidate, "following")}</small>
+                  </button>
+                  <button type="button" className="ghost-action danger" onClick={() => deleteMovementScope(deleteCandidate, "all", deleteWithReimbursements)}>
+                    {isInstallmentMovement(deleteCandidate) ? "Todas las cuotas" : "Toda la serie"}
+                    <small>{describeDeleteScope(deleteCandidate, "all")}</small>
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="ghost-action danger" onClick={() => deleteMovementScope(deleteCandidate, "one", deleteWithReimbursements)}>
+                  Eliminar movimiento
+                  <small>{describeDeleteScope(deleteCandidate, "one")}</small>
+                </button>
+              )}
             </div>
           </section>
         </div>

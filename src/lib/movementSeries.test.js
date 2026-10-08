@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
+import { scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
 
 assert.deepEqual(parseInstallmentDescription("Notebook (2/12)"), { base: "Notebook", index: 2, total: 12 });
 assert.equal(parseInstallmentDescription("Notebook"), null);
@@ -28,5 +28,11 @@ assert.deepEqual(getMovementSeriesRows(linked[0], linked, "all").map((m) => m.id
 assert.deepEqual(shiftPeriod(2026, 12, 1), { year: 2027, month: 1 });
 assert.deepEqual(shiftPeriod(2026, 1, -1), { year: 2025, month: 12 });
 assert.equal(getMonthOffset(2026, 11, 2027, 2), 3);
+
+const reimbursement = { amount: 12500, responsible_amounts: JSON.stringify({ Ana: 12500 }) };
+assert.deepEqual(scaleReimbursement(reimbursement, -25000, -30000), { amount: 15000, responsible_amounts: JSON.stringify({ Ana: 15000 }) });
+assert.deepEqual(scaleReimbursement({ amount: 10000, responsible_amounts: JSON.stringify({ Ana: 6667, Luis: 3333 }) }, -20000, -10000), { amount: 5001, responsible_amounts: JSON.stringify({ Ana: 3334, Luis: 1667 }) });
+assert.equal(scaleReimbursement(reimbursement, -25000, -25000), null, "same amount leaves the reimbursement as is");
+assert.equal(scaleReimbursement(reimbursement, 0, -100), null);
 
 console.log("movement series tests passed");

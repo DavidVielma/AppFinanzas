@@ -433,6 +433,15 @@ button:disabled {
   width: min(560px, 100%);
 }
 
+.delete-reimbursements-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 .delete-scope-actions {
   display: grid;
   gap: 10px;
