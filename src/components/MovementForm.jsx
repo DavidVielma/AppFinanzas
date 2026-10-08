@@ -413,7 +413,7 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
           {draft.recurring_edit_scope !== "one" && (
             <p>
               {draft.series_kind === "installment"
-                ? "Se actualizaran los datos comunes de las cuotas. Cada cuota conservara su mes y su numero (n/N); el monto solo cambia si lo modificas."
+                ? "Se actualizaran los datos comunes de las cuotas. Cada cuota conservara su numero (n/N); el monto solo cambia si lo modificas. Si cambias el mes, te preguntaremos si mover solo esta cuota o todas."
                 : "Se actualizaran los datos comunes de la serie. Cada movimiento conservara su mes y año."}
             </p>
           )}

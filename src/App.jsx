@@ -414,6 +414,7 @@ export function App() {
   const [reimbursementModal, setReimbursementModal] = useState(null);
   const [deleteCandidate, setDeleteCandidate] = useState(null);
   const [deleteWithReimbursements, setDeleteWithReimbursements] = useState(true);
+  const [shiftPrompt, setShiftPrompt] = useState(null);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [responsibleModalOpen, setResponsibleModalOpen] = useState(false);
@@ -443,6 +444,7 @@ export function App() {
     movementModalOpen ||
     reimbursementModal ||
     deleteCandidate ||
+    shiftPrompt ||
     passwordModalOpen ||
     accountModalOpen ||
     responsibleModalOpen ||
@@ -756,8 +758,8 @@ export function App() {
     setDarkMode(data?.theme_mode === "dark");
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function handleSubmit(event, options = {}) {
+    event?.preventDefault();
     const fallbackAmount = Number(draft.amount) || 0;
     const isInstallmentPurchase = !editingId && draft.flow === "Movimiento" && draft.installment_mode !== "none";
     const isRecurringMovement = !editingId && !isInstallmentPurchase && draft.flow !== "Pago Tarjeta" && draft.recurring_frequency !== "none";
@@ -817,6 +819,21 @@ export function App() {
       setNotice(`${unavailableAccount} esta archivada y no tiene movimientos en este mes. Desarchivala para usarla.`);
       return;
     }
+
+    // Si cambia el mes de una cuota, se pregunta si mover solo esa o todas las cuotas.
+    // Los reembolsos de las compras movidas se desplazan los mismos meses.
+    const monthShift = editingMovement ? getMonthOffset(editingMovement.year, editingMovement.month, draftYear, draftMonth) : 0;
+    const isInstallmentShift = Boolean(monthShift && draft.series_editable && draft.series_kind === "installment");
+    if (isInstallmentShift && !options.shiftScope) {
+      setShiftPrompt({ offset: monthShift, movement: editingMovement });
+      return;
+    }
+    const shiftSourceRows = !monthShift || (isRecurringSeriesEdit && !isInstallmentShift)
+      ? []
+      : isInstallmentShift && options.shiftScope === "all"
+      ? getMovementSeriesRows(editingMovement, movements, "all")
+      : [editingMovement];
+    const shiftRows = [...shiftSourceRows, ...getLinkedReimbursements(shiftSourceRows)];
 
     const type = getTypeFromAmount(signedAmount);
     const serializedResponsibles = serializeResponsibleNames(draft.responsible, responsibles[0]?.name || getDefaultResponsible(session));
@@ -911,6 +928,7 @@ export function App() {
       ? [{ id: editingMovement.id, oldAmount: editingMovement.amount, newAmount: payload.amount }]
       : [];
     let reimbursementAdjustment = { count: 0, error: null };
+    let shiftResult = { count: 0, error: null };
 
     if (isRemote) {
       let recurringRule = null;
@@ -969,6 +987,7 @@ export function App() {
 
         return editingId ? current.map((item) => (item.id === editingId ? data : item)) : [...current, ...(data || [])];
       });
+      shiftResult = await shiftMovementRows(shiftRows, monthShift);
       reimbursementAdjustment = await adjustLinkedReimbursements(sourceAmountChanges);
       await loadMovements();
     } else {
@@ -1015,6 +1034,7 @@ export function App() {
 
         return editingId ? current.map((item) => (item.id === editingId ? nextRows[0] : item)) : [...current, ...nextRows];
       });
+      shiftResult = await shiftMovementRows(shiftRows, monthShift);
       reimbursementAdjustment = await adjustLinkedReimbursements(sourceAmountChanges);
     }
 
@@ -1023,7 +1043,12 @@ export function App() {
     setDraft(emptyDraft);
     setEditingId(null);
     setMovementModalOpen(false);
-    const savedNotice = editingId
+    const shiftNotice = shiftResult.error
+      ? ` No se pudieron mover todos los movimientos: ${shiftResult.error}`
+      : shiftResult.count > 1
+      ? ` ${shiftResult.count} movimientos desplazados ${Math.abs(monthShift) === 1 ? "1 mes" : `${Math.abs(monthShift)} meses`}.`
+      : "";
+    const savedNotice = (editingId
         ? isRecurringSeriesEdit
           ? seriesHasInstallments
             ? `${seriesTargetIds.length} cuotas actualizadas.`
@@ -1035,7 +1060,7 @@ export function App() {
         ? `Compra dividida en ${installmentCount} cuotas.`
         : isRecurringMovement
         ? `Movimiento recurrente creado ${getRecurringFrequencyLabel(draft.recurring_frequency)} por ${recurringCount} periodos.`
-        : "Movimiento agregado.";
+        : "Movimiento agregado.") + shiftNotice;
     setNotice(
       reimbursementAdjustment.error
         ? `${savedNotice} No se pudieron ajustar los reembolsos: ${reimbursementAdjustment.error}`
@@ -1043,6 +1068,33 @@ export function App() {
         ? `${savedNotice} ${reimbursementAdjustment.count === 1 ? "Reembolso ajustado" : `${reimbursementAdjustment.count} reembolsos ajustados`} al nuevo monto.`
         : savedNotice
     );
+  }
+
+  async function shiftMovementRows(rows, offset) {
+    if (!offset || !rows.length) return { count: 0, error: null };
+
+    const periodById = new Map(rows.map((row) => [row.id, shiftPeriod(row.year, row.month, offset)]));
+    if (isRemote) {
+      const results = await Promise.all([...periodById].map(([id, period]) => supabase.from("movements").update(period).eq("id", id)));
+      const failed = results.find((result) => result.error);
+      if (failed) return { count: 0, error: failed.error.message };
+    }
+
+    setMovements((current) => current.map((item) => (periodById.has(item.id) ? { ...item, ...periodById.get(item.id) } : item)));
+    return { count: periodById.size, error: null };
+  }
+
+  function describeShiftScope(movement, scope) {
+    const sourceRows = scope === "all" ? getMovementSeriesRows(movement, movements, "all") : [movement];
+    const reimbursementCount = getLinkedReimbursements(sourceRows).length;
+    const movementText = sourceRows.length === 1 ? "1 cuota" : `${sourceRows.length} cuotas`;
+    if (!reimbursementCount) return movementText;
+    return `${movementText} y ${reimbursementCount === 1 ? "1 reembolso" : `${reimbursementCount} reembolsos`}`;
+  }
+
+  function confirmShift(scope) {
+    setShiftPrompt(null);
+    handleSubmit(null, { shiftScope: scope });
   }
 
   async function adjustLinkedReimbursements(changes) {
@@ -3599,6 +3651,34 @@ export function App() {
                   <small>{describeDeleteScope(deleteCandidate, "one")}</small>
                 </button>
               )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {shiftPrompt && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-panel delete-scope-modal" role="dialog" aria-modal="true" aria-labelledby="shift-scope-title">
+            <header className="modal-header">
+              <div>
+                <h2 id="shift-scope-title">Mover compra en cuotas</h2>
+                <p>
+                  {shiftPrompt.movement.description}: {Math.abs(shiftPrompt.offset) === 1 ? "1 mes" : `${Math.abs(shiftPrompt.offset)} meses`} {shiftPrompt.offset > 0 ? "hacia adelante" : "hacia atrás"}
+                </p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setShiftPrompt(null)} aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </header>
+            <div className="delete-scope-actions">
+              <button type="button" className="ghost-action" onClick={() => confirmShift("one")}>
+                Solo esta cuota
+                <small>{describeShiftScope(shiftPrompt.movement, "one")}</small>
+              </button>
+              <button type="button" className="ghost-action" onClick={() => confirmShift("all")}>
+                Todas las cuotas
+                <small>{describeShiftScope(shiftPrompt.movement, "all")}</small>
+              </button>
             </div>
           </section>
         </div>

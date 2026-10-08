@@ -1,8 +1,7 @@
 import { parseResponsibleAmounts } from "./responsibleAmounts.js";
 
-// Series de movimientos: recurrentes (recurring_id) y compras en cuotas.
-// Las cuotas nuevas se guardan con recurring_id; las antiguas solo se reconocen
-// por el sufijo "(n/N)" de la descripcion, la cuenta y el mes de cada cuota.
+// Series de movimientos: recurrentes y compras en cuotas, enlazadas por recurring_id.
+// El sufijo "(n/N)" de la descripcion solo indica el numero de cuota.
 
 const installmentSuffixPattern = /\s*\((\d+)\/(\d+)\)\s*$/;
 
@@ -45,33 +44,12 @@ function getSeriesPosition(movement) {
   return null;
 }
 
-function getLegacyInstallmentSiblings(movement, movements) {
-  const installment = parseInstallmentDescription(movement.description);
-  if (!installment || movement.flow !== "Movimiento") return [movement];
-
-  const anchor = periodIndex(movement.year, movement.month) - installment.index;
-  const baseKey = installment.base.toLowerCase();
-
-  return movements.filter((item) => {
-    if (item.id === movement.id) return true;
-    if (item.recurring_id || item.reimbursement_source_id) return false;
-    if (item.flow !== "Movimiento" || item.account !== movement.account) return false;
-
-    const parsed = parseInstallmentDescription(item.description);
-    if (!parsed || parsed.total !== installment.total || parsed.base.toLowerCase() !== baseKey) return false;
-
-    return periodIndex(item.year, item.month) - parsed.index === anchor;
-  });
-}
-
 export function getMovementSeriesRows(movement, movements, scope = "all") {
   if (!movement) return [];
   if (scope === "one") return [movement];
 
   const siblings = movement.recurring_id
     ? movements.filter((item) => item.id === movement.id || item.recurring_id === movement.recurring_id)
-    : isInstallmentMovement(movement)
-    ? getLegacyInstallmentSiblings(movement, movements)
     : [movement];
 
   const sorted = [...siblings].sort((a, b) => periodIndex(a.year, a.month) - periodIndex(b.year, b.month));
@@ -85,10 +63,8 @@ export function getMovementSeriesRows(movement, movements, scope = "all") {
   });
 }
 
-export function hasMovementSeries(movement, movements) {
-  if (!movement) return false;
-  if (movement.recurring_id) return true;
-  return getMovementSeriesRows(movement, movements, "all").length > 1;
+export function hasMovementSeries(movement) {
+  return Boolean(movement?.recurring_id);
 }
 
 export function getMonthOffset(fromYear, fromMonth, toYear, toMonth) {
