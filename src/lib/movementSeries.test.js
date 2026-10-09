@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { formatCurrency } from "./finance.js";
-import { buildSeriesExtension, describeInstallment, describeRecurrence, buildReimbursementDescription, syncReimbursementDescription, scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
+import { buildSeriesExtension, getExtensionUntilYearEnd, describeInstallment, describeRecurrence, buildReimbursementDescription, syncReimbursementDescription, scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
 
 assert.deepEqual(parseInstallmentDescription("Notebook (2/12)"), { base: "Notebook", index: 2, total: 12 });
 assert.equal(parseInstallmentDescription("Notebook"), null);
@@ -59,3 +59,9 @@ const extension = buildSeriesExtension(bimonthly[0], bimonthly, [], 2, { amount:
 assert.deepEqual(extension.map((row) => [row.year, row.month, row.recurring_occurrence, row.amount, row.status]), [[2027, 3, 3, -9500, "Proyectado"], [2027, 5, 4, -9500, "Proyectado"]]);
 assert.equal(buildSeriesExtension(bimonthly[0], bimonthly, [{ id: "b", frequency: "monthly" }], 1)[0].month, 2);
 assert.deepEqual(buildSeriesExtension({ id: "x" }, bimonthly, [], 3), []);
+
+assert.deepEqual(getExtensionUntilYearEnd({ year: 2026, month: 10 }, 1), { year: 2026, count: 2 });
+assert.deepEqual(getExtensionUntilYearEnd({ year: 2026, month: 7 }, 2), { year: 2026, count: 2 });
+assert.deepEqual(getExtensionUntilYearEnd({ year: 2026, month: 12 }, 1), { year: 2027, count: 12 });
+assert.deepEqual(getExtensionUntilYearEnd({ year: 2026, month: 11 }, 2), { year: 2027, count: 6 });
+assert.equal(getExtensionUntilYearEnd(null), null);

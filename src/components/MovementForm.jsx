@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Plus, Save } from "lucide-react";
 import { CategorySelector } from "./CategoryVisuals";
+import { getExtensionUntilYearEnd } from "../lib/movementSeries";
 import { flowTypes, formatCurrency, getCategoryOptions, getTypeFromAmount, isCreditCardAccount, monthLabels } from "../lib/finance";
 
 function normalizeResponsibleName(name, currentResponsible) {
@@ -125,6 +126,7 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
   const [extendOpen, setExtendOpen] = useState(false);
 
   useEffect(() => setExtendOpen(false), [editingId]);
+  const yearEndExtension = getExtensionUntilYearEnd(draft.series_last_period, draft.series_step);
 
   useEffect(() => {
     if (!responsibleOpen) return undefined;
@@ -428,6 +430,11 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
                 <input type="number" min="1" max="120" step="1" inputMode="numeric" value={draft.recurring_extend_count || ""} onChange={(event) => update("recurring_extend_count", event.target.value)} placeholder="12" autoFocus />
               </label>
               <button type="button" className="series-extend-toggle" onClick={() => { setExtendOpen(false); update("recurring_extend_count", ""); }}>Cancelar</button>
+              {yearEndExtension?.count > 0 && (
+                <button type="button" className={`series-extend-shortcut${Number(draft.recurring_extend_count) === yearEndExtension.count ? " active" : ""}`} onClick={() => update("recurring_extend_count", String(yearEndExtension.count))}>
+                  Hasta diciembre {yearEndExtension.year} ({yearEndExtension.count})
+                </button>
+              )}
               <p>Se agregan al guardar, con la misma frecuencia y copiando la ultima repeticion.</p>
             </div>
           ) : (

@@ -44,7 +44,7 @@ import { parseQuickAmount, parseQuickTextMovement } from "./lib/quickMovement";
 import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { getResponsibleAmount, parseResponsibleAmounts } from "./lib/responsibleAmounts";
-import { buildInstallmentDescription, buildSeriesExtension, getMonthOffset, getMovementSeriesRows, hasMovementSeries, isInstallmentMovement, buildReimbursementDescription, parseInstallmentDescription, scaleReimbursement, shiftPeriod, stripInstallmentSuffix, syncReimbursementDescription } from "./lib/movementSeries";
+import { buildInstallmentDescription, buildSeriesExtension, getMonthOffset, getMovementSeriesRows, getRecurrenceStep, hasMovementSeries, isInstallmentMovement, buildReimbursementDescription, parseInstallmentDescription, scaleReimbursement, shiftPeriod, stripInstallmentSuffix, syncReimbursementDescription } from "./lib/movementSeries";
 
 const initialPeriod = getCurrentPeriod();
 const quickMovementShortcutUrl = "https://www.icloud.com/shortcuts/45efc6dc3d8847c09c0ccb223d4abf03";
@@ -1195,6 +1195,9 @@ export function App() {
       recurring_count: "12",
       recurring_edit_scope: "one",
       recurring_extend_count: "",
+      // Ultima repeticion y salto de la serie, para el atajo "hasta diciembre".
+      series_last_period: movement.recurring_id ? (({ year, month }) => ({ year, month }))(getMovementSeriesRows(movement, movements, "all").at(-1)) : null,
+      series_step: movement.recurring_id ? getRecurrenceStep(movement, movements, recurringMovements) : 1,
       series_editable: hasMovementSeries(movement, movements),
       series_kind: isInstallmentMovement(movement) ? "installment" : "recurring",
       card_payment_mode: movement.flow === "Pago Tarjeta" ? movement.card_payment_mode || paymentCoverage?.mode || "manual" : "auto",

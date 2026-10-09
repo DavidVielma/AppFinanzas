@@ -196,3 +196,14 @@ export function describeInstallment(movement, movements) {
     : Math.abs(Number(movement.amount) || 0) * installment.total;
   return `Cuota ${installment.index} de ${installment.total} · Total de la compra: ${isComplete ? "" : "aprox. "}${formatCurrency(total)}`;
 }
+
+// Repeticiones que faltan para llegar a diciembre desde la ultima de la serie. Si la serie
+// ya termina en el ultimo periodo posible del año, apunta a diciembre del año siguiente.
+export function getExtensionUntilYearEnd(lastPeriod, step = 1) {
+  if (!lastPeriod) return null;
+  const monthStep = Math.max(1, Number(step) || 1);
+  const year = Number(lastPeriod.year);
+  const count = Math.floor((12 - Number(lastPeriod.month)) / monthStep);
+  if (count > 0) return { year, count };
+  return { year: year + 1, count: Math.floor((24 - Number(lastPeriod.month)) / monthStep) };
+}
