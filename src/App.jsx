@@ -2850,6 +2850,12 @@ export function App() {
   ];
   const navOrder = ["movements", "annual-summary", "dashboard", "tc-analysis", "profile", "help"];
   const orderedNavItems = navOrder.map((id) => navItems.find((item) => item.id === id)).filter(Boolean);
+  const topbarTitle = navItems.find((item) => item.id === activeView)?.label || "Fluxa";
+  const topbarContext = activeView === "movements" || activeView === "dashboard"
+    ? `${monthLabels[Number(selectedMonth) - 1]} ${selectedYear}`
+    : activeView === "annual-summary"
+    ? `Año ${selectedYear}`
+    : "";
 
   return (
     <main className="app-layout">
@@ -2930,24 +2936,29 @@ export function App() {
       )}
 
       <section className="app-shell">
+      {/* Encabezado de pagina: en escritorio la marca ya esta en la barra lateral, asi que
+          muestra la seccion y su periodo; en movil agrega el logo y deja las acciones como iconos. */}
       <header className="topbar">
         <div className="topbar-title">
-          <img src={darkMode ? "/Fluxa_Blanco.png" : "/Fluxa_Verde.png"} alt="" />
-          <div>
-            <span className="eyebrow">Panel financiero</span>
-            <h1>Fluxa</h1>
+          <img className="topbar-logo" src={darkMode ? "/Fluxa_Blanco.png" : "/Fluxa_Verde.png"} alt="" />
+          <div className="topbar-heading">
+            <span className="topbar-kicker">
+              <span className="topbar-brand">Fluxa</span>
+              {topbarContext && <span className="topbar-context">{topbarContext}</span>}
+            </span>
+            <h1>{topbarTitle}</h1>
           </div>
         </div>
         <div className="topbar-actions">
           {(activeView === "movements" || activeView === "annual-summary") && (
-            <button type="button" className="icon-text" onClick={exportPdf}>
-              <FileText size={18} />
-              PDF
+            <button type="button" className="icon-text topbar-action" onClick={exportPdf} aria-label="Exportar PDF" title="Exportar PDF">
+              <FileText size={17} />
+              <span>PDF</span>
             </button>
           )}
-          <button type="button" className="icon-text" onClick={copyAutomationLink}>
-            <Link size={18} />
-            Link rapido
+          <button type="button" className="icon-text topbar-action" onClick={copyAutomationLink} aria-label="Copiar link rapido" title="Copiar link rapido">
+            <Link size={17} />
+            <span>Link rapido</span>
           </button>
         </div>
       </header>
