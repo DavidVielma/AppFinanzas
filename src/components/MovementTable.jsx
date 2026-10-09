@@ -98,7 +98,7 @@ const MOVEMENT_BADGE_TYPES = {
 function getMovementBadges(movement, paymentBadge, paymentBadgeMode) {
   const badges = [];
   const installment = isInstallmentMovement(movement) ? parseInstallmentDescription(movement.description) : null;
-  if (installment) badges.push({ ...MOVEMENT_BADGE_TYPES.installment, key: "installment", type: "installment", symbol: `${installment.index}/${installment.total}`, name: `Cuota ${installment.index}/${installment.total}`, hint: `Cuota ${installment.index} de ${installment.total}` });
+  if (installment) badges.push({ ...MOVEMENT_BADGE_TYPES.installment, key: "installment", type: "installment", symbol: `${installment.index}/${installment.total}`, hint: `Cuota ${installment.index} de ${installment.total}` });
   if (movement.recurring_id && !installment) badges.push({ ...MOVEMENT_BADGE_TYPES.recurring, key: "recurring", type: "recurring" });
   if (paymentBadge) {
     const type = paymentBadgeMode === "manual" ? "paymentPartial" : "paymentTotal";
@@ -162,9 +162,8 @@ function BadgeChip({ badge }) {
       onBlur={hide}
       onClick={(event) => { event.stopPropagation(); if (tooltip) hide(); else show(); }}
     >
-      {/* En escritorio se ve el simbolo; en movil, el nombre completo y el icono si lo hay (ver styles.css). */}
+      {/* Solo el simbolo, en escritorio y movil; el tooltip explica la etiqueta. */}
       <span className={`badge-symbol${badge.isIcon ? " is-icon" : ""}`} aria-hidden="true">{badge.symbol}</span>
-      <span className="badge-name" aria-hidden="true">{badge.name || badge.label}</span>
       {tooltip && (
         <span ref={tooltipRef} className={`badge-tooltip ${tooltip.above ? "above" : "below"}`} style={{ left: tooltip.left, top: tooltip.top }} role="tooltip">
           <strong>{badge.label}</strong>
@@ -615,7 +614,8 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
       <div className="mobile-movement-list">
         {mobileMovements.map((movement) => {
           const originalIndex = movements.findIndex((item) => getMovementKey(item) === getMovementKey(movement));
-          const accountText = `${movement.account || "Principal"}${movement.target_account ? ` -> ${movement.target_account}` : ""}`;
+          // La seccion ya indica la cuenta; solo las transferencias muestran origen y destino.
+          const transferText = movement.target_account ? `${movement.account || "Principal"} -> ${movement.target_account}` : "";
           const tcLink = getTcSummaryLink(movement);
           const paymentBadge = getPaymentBadge(movement);
           const paymentBadgeMode = getPaymentBadgeMode(movement);
@@ -636,14 +636,15 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
             >
               <header>
                 <div>
-                  <strong className="description-text">{getDisplayDescription(movement)}</strong>
-                  <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
-                  <span className="mobile-account-text">{accountText}</span>
+                  <div className="mobile-title-row">
+                    <strong className="description-text">{getDisplayDescription(movement)}</strong>
+                    <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
+                  </div>
+                  {transferText && <span className="mobile-account-text">{transferText}</span>}
                 </div>
                 <b className={movement.amount >= 0 ? "income-text" : "expense-text"}>{formatCurrency(movement.amount)}</b>
               </header>
               <div className="mobile-movement-meta">
-                <span className={`pill ${movement.type === "Ingreso" ? "income" : "expense"}`}>{movement.type}</span>
                 <button type="button" className="mobile-chip-button category-chip-button" onClick={() => toggleMobileEditor("category", movement)} aria-expanded={mobileEditor?.type === "category" && mobileEditor?.key === editorKey} aria-label={`Editar categoria de ${movement.description}`}>
                   <CategoryBadge category={movement.category} compact />
                 </button>
