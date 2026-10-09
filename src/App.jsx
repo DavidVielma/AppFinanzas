@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Camera, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
+import { BookOpen, Camera, ChevronRight, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
 import { AccountAdminModal } from "./components/AccountAdminModal";
 import { ResponsibleAdminModal } from "./components/ResponsibleAdminModal";
 import { AccountBalances } from "./components/AccountBalances";
@@ -44,7 +44,7 @@ import { parseQuickAmount, parseQuickTextMovement } from "./lib/quickMovement";
 import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { getResponsibleAmount, parseResponsibleAmounts } from "./lib/responsibleAmounts";
-import { buildInstallmentDescription, getMonthOffset, getMovementSeriesRows, hasMovementSeries, isInstallmentMovement, parseInstallmentDescription, scaleReimbursement, shiftPeriod, stripInstallmentSuffix } from "./lib/movementSeries";
+import { buildInstallmentDescription, getMonthOffset, getMovementSeriesRows, hasMovementSeries, isInstallmentMovement, buildReimbursementDescription, parseInstallmentDescription, scaleReimbursement, shiftPeriod, stripInstallmentSuffix, syncReimbursementDescription } from "./lib/movementSeries";
 
 const initialPeriod = getCurrentPeriod();
 const quickMovementShortcutUrl = "https://www.icloud.com/shortcuts/45efc6dc3d8847c09c0ccb223d4abf03";
@@ -921,11 +921,14 @@ export function App() {
       return;
     }
 
-    // Montos antes/despues de cada compra editada, para ajustar sus reembolsos.
+    // Monto y nombre nuevos de cada compra editada, para ajustar y renombrar sus reembolsos.
     const sourceAmountChanges = isRecurringSeriesEdit
-      ? seriesTargetRows.map((row) => ({ id: row.id, oldAmount: row.amount, newAmount: getSeriesRowPatch(row).amount }))
+      ? seriesTargetRows.map((row) => {
+          const patch = getSeriesRowPatch(row);
+          return { id: row.id, oldAmount: row.amount, newAmount: patch.amount, newDescription: patch.description };
+        })
       : editingMovement
-      ? [{ id: editingMovement.id, oldAmount: editingMovement.amount, newAmount: payload.amount }]
+      ? [{ id: editingMovement.id, oldAmount: editingMovement.amount, newAmount: payload.amount, newDescription: payload.description }]
       : [];
     let reimbursementAdjustment = { count: 0, error: null };
     let shiftResult = { count: 0, error: null };
@@ -1099,10 +1102,10 @@ export function App() {
 
   async function adjustLinkedReimbursements(changes) {
     const updates = changes
-      .map(({ id, oldAmount, newAmount }) => {
+      .map(({ id, oldAmount, newAmount, newDescription }) => {
         const reimbursement = movements.find((item) => item.reimbursement_source_id === id);
-        const patch = scaleReimbursement(reimbursement, oldAmount, newAmount);
-        return patch ? { id: reimbursement.id, patch } : null;
+        const patch = { ...scaleReimbursement(reimbursement, oldAmount, newAmount), ...syncReimbursementDescription(reimbursement, newDescription) };
+        return Object.keys(patch).length ? { id: reimbursement.id, patch } : null;
       })
       .filter(Boolean);
     if (!updates.length) return { count: 0, error: null };
@@ -1256,7 +1259,7 @@ export function App() {
           account: "Principal",
           target_account: null,
           category: normalizeCategory("Reembolso", "Ingreso", categoryOptionsByType.Ingreso),
-          description: rowExisting?.description || `Reembolso: ${target.description}`,
+          description: buildReimbursementDescription(target.description),
           amount: totalAmount,
           card_payment_mode: null,
           status: rowPaidNames.length === activePeople.length ? "Confirmado" : "Pendiente",
@@ -3533,10 +3536,23 @@ export function App() {
               </div>
               <button type="button" className="icon-button" onClick={() => setReimbursementModal(null)} aria-label="Cerrar"><X size={18} /></button>
             </header>
-            <div className="reimbursement-source-summary">
+            {/* Tocar la compra cierra el reembolso y abre el movimiento base. */}
+            <button
+              type="button"
+              className="reimbursement-source-summary"
+              onClick={() => {
+                const sourceMovement = reimbursementModal.sourceMovement;
+                setReimbursementModal(null);
+                editMovement(sourceMovement);
+              }}
+              aria-label={`Abrir la compra ${reimbursementModal.sourceMovement.description}`}
+            >
               <span>Compra en {reimbursementModal.sourceMovement.account}</span>
-              <strong>{formatCurrency(reimbursementModal.sourceMovement.amount)}</strong>
-            </div>
+              <span className="reimbursement-source-amount">
+                <strong>{formatCurrency(reimbursementModal.sourceMovement.amount)}</strong>
+                <ChevronRight size={16} aria-hidden="true" />
+              </span>
+            </button>
             <form onSubmit={saveCardReimbursement}>
               <div className="reimbursement-period-control">
                 <PeriodSelector month={reimbursementModal.month} year={reimbursementModal.year} onChange={({ month, year }) => setReimbursementModal((current) => ({ ...current, month, year }))} />
