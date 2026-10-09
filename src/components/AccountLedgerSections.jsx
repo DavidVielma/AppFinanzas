@@ -5,6 +5,7 @@ import { getMutedTextColor, getReadableTextColor } from "../lib/colors";
 import { MovementTable } from "./MovementTable";
 import { getResponsibleAmount } from "../lib/responsibleAmounts";
 import { describeInstallment, describeRecurrence } from "../lib/movementSeries";
+import { isMobileLayout } from "../lib/layout";
 
 function getVisibleSortValue(movement) {
   return Number(movement.visible_sort_order ?? movement.sort_order) || Date.parse(movement.created_at || "") || 0;
@@ -74,7 +75,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
     if (!debtSummaryOpen) return undefined;
 
     const scrollY = window.scrollY;
-    const shouldFreezeDocumentPosition = window.matchMedia("(max-width: 720px)").matches;
+    const shouldFreezeDocumentPosition = isMobileLayout();
 
     if (!shouldFreezeDocumentPosition) {
       const preventExteriorScroll = (event) => {
