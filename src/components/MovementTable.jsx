@@ -99,7 +99,7 @@ function getMovementBadges(movement, paymentBadge, paymentBadgeMode) {
   const badges = [];
   const installment = isInstallmentMovement(movement) ? parseInstallmentDescription(movement.description) : null;
   if (installment) badges.push({ ...MOVEMENT_BADGE_TYPES.installment, key: "installment", type: "installment", symbol: `${installment.index}/${installment.total}`, hint: `Cuota ${installment.index} de ${installment.total}` });
-  if (movement.recurring_id && !installment) badges.push({ ...MOVEMENT_BADGE_TYPES.recurring, key: "recurring", type: "recurring" });
+  if (movement.recurring_id && !installment) badges.push({ ...MOVEMENT_BADGE_TYPES.recurring, key: "recurring", type: "recurring", hint: movement.recurring_hint || MOVEMENT_BADGE_TYPES.recurring.hint });
   if (paymentBadge) {
     const type = paymentBadgeMode === "manual" ? "paymentPartial" : "paymentTotal";
     badges.push({ ...MOVEMENT_BADGE_TYPES[type], key: "payment", type, label: `Pago ${paymentBadge.toLowerCase()}` });

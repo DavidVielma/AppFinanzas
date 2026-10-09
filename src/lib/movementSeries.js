@@ -1,3 +1,4 @@
+import { monthLabels } from "./finance.js";
 import { parseResponsibleAmounts } from "./responsibleAmounts.js";
 
 // Series de movimientos: recurrentes y compras en cuotas, enlazadas por recurring_id.
@@ -106,4 +107,33 @@ export function scaleReimbursement(reimbursement, oldSourceAmount, newSourceAmou
     amount: Object.values(scaled).reduce((sum, value) => sum + value, 0),
     responsible_amounts: JSON.stringify(scaled)
   };
+}
+
+const frequencySteps = { monthly: 1, bimonthly: 2, quarterly: 3, yearly: 12 };
+
+function describeStep(step) {
+  if (step === 1) return "Cada mes";
+  if (step === 12) return "Cada año";
+  return `Cada ${step} meses`;
+}
+
+// Texto de ayuda de un movimiento recurrente: frecuencia, ultimo mes de la serie y
+// cuantas repeticiones quedan. Usa la regla guardada y, si no existe, la infiere de las filas.
+export function describeRecurrence(movement, movements, rules = []) {
+  if (!movement?.recurring_id) return null;
+  const indexes = Array.from(new Set(movements
+    .filter((item) => item.recurring_id === movement.recurring_id)
+    .map((item) => periodIndex(item.year, item.month))))
+    .sort((a, b) => a - b);
+  if (!indexes.length) return null;
+
+  const rule = rules.find((item) => item.id === movement.recurring_id);
+  const gaps = indexes.slice(1).map((value, index) => value - indexes[index]).filter((gap) => gap > 0);
+  const step = frequencySteps[rule?.frequency] || (gaps.length ? Math.min(...gaps) : 1);
+  const last = indexes[indexes.length - 1];
+  const current = periodIndex(movement.year, movement.month);
+  const remaining = indexes.filter((value) => value > current).length;
+  const lastLabel = `${monthLabels[last % 12].toLowerCase()} ${Math.floor(last / 12)}`;
+  const tail = remaining === 0 ? "esta es la última" : remaining === 1 ? "queda 1 más" : `quedan ${remaining} más`;
+  return `${describeStep(step)} hasta ${lastLabel} (${tail})`;
 }

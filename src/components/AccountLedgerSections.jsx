@@ -4,6 +4,7 @@ import { formatCurrency, getCreditCardPaymentCoverage } from "../lib/finance";
 import { getMutedTextColor, getReadableTextColor } from "../lib/colors";
 import { MovementTable } from "./MovementTable";
 import { getResponsibleAmount } from "../lib/responsibleAmounts";
+import { describeRecurrence } from "../lib/movementSeries";
 
 function getVisibleSortValue(movement) {
   return Number(movement.visible_sort_order ?? movement.sort_order) || Date.parse(movement.created_at || "") || 0;
@@ -65,7 +66,7 @@ export function getAccountColorToken(account) {
   return accountColorTokens[color] || { fill: account.color || "#e2e8f0", accent: account.color || "#64748b" };
 }
 
-export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onCreateReimbursement, onQuickAdd, onQuickPay, onOpenTcDetail, onToggleDebtPaid }) {
+export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, cardPaymentStats = {}, movements, allMovements = movements, recurringRules = [], currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, filterMovement, hasActiveFilters = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onCreateReimbursement, onQuickAdd, onQuickPay, onOpenTcDetail, onToggleDebtPaid }) {
   const [debtSummaryOpen, setDebtSummaryOpen] = useState(false);
   const [expandedDebtPerson, setExpandedDebtPerson] = useState("");
 
@@ -227,7 +228,8 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
         canMoveDown: visibleIndex >= 0 && visibleIndex < rows.length - 1,
         payment_badge: paymentCoverage?.label || null,
         payment_badge_mode: paymentCoverage?.mode || null,
-        has_reimbursement: allMovements.some((item) => item.reimbursement_source_id === (movement.source_movement?.id || movement.id))
+        has_reimbursement: allMovements.some((item) => item.reimbursement_source_id === (movement.source_movement?.id || movement.id)),
+        recurring_hint: describeRecurrence(movement, allMovements, recurringRules)
       };
     });
     const total = rows.reduce((sum, movement) => sum + Number(movement.amount || 0), 0);
