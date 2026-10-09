@@ -435,7 +435,8 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [noticeAction, setNoticeAction] = useState(null);
   const movementSwipeRef = useRef(null);
-  const movementWheelRef = useRef({ total: 0, locked: false, timer: null });
+  const movementWheelRef = useRef({ total: 0, locked: false, timer: null, lastMagnitude: 0, lockDirection: 0 });
+  const movementWheelHandlerRef = useRef(null);
   const movementFilterPanelRef = useRef(null);
 
   const isRemote = hasSupabaseConfig && session && !demoMode;
@@ -1604,26 +1605,52 @@ export function App() {
   }
 
   // Trackpad: deslizar con dos dedos hacia los lados cambia de mes. Un gesto = un mes:
-  // se acumula el desplazamiento horizontal y se bloquea hasta que la inercia termina.
+  // se acumula el desplazamiento horizontal y se bloquea mientras dura la inercia. Un gesto
+  // nuevo (el desplazamiento vuelve a crecer o cambia de sentido) desbloquea aunque la
+  // inercia del anterior no haya terminado, para no ignorar deslizamientos seguidos.
   function handleMovementWheel(event) {
     if (event.ctrlKey || Math.abs(event.deltaX) <= Math.abs(event.deltaY) * 1.2) return;
-    if (event.target.closest?.("input, textarea, select") || canScrollHorizontally(event.target, event.currentTarget, event.deltaX)) return;
+    if (hasOpenModal || !event.target?.closest) return;
+    if (event.target.closest("input, textarea, select, .modal-backdrop, .category-option-list")) return;
+    if (canScrollHorizontally(event.target, document.documentElement, event.deltaX)) return;
 
     const state = movementWheelRef.current;
+    const magnitude = Math.abs(event.deltaX);
+    const direction = Math.sign(event.deltaX);
     window.clearTimeout(state.timer);
     state.timer = window.setTimeout(() => {
       state.total = 0;
       state.locked = false;
+      state.lastMagnitude = 0;
     }, 220);
 
-    if (state.locked) return;
+    if (state.locked) {
+      const isNewGesture = magnitude >= 6 && (direction !== state.lockDirection || magnitude > state.lastMagnitude * 1.6);
+      state.lastMagnitude = magnitude;
+      if (!isNewGesture) return;
+      state.locked = false;
+      state.total = 0;
+    }
+
+    state.lastMagnitude = magnitude;
     state.total += event.deltaX;
     if (Math.abs(state.total) < 100) return;
 
     state.locked = true;
+    state.lockDirection = Math.sign(state.total);
     moveSelectedMonth(state.total > 0 ? 1 : -1);
     state.total = 0;
   }
+
+  // Se escucha en toda la ventana (no solo en la lista) para que el gesto funcione con el
+  // puntero sobre el resumen, la grilla de meses o donde quede tras cambiar de mes.
+  movementWheelHandlerRef.current = handleMovementWheel;
+  useEffect(() => {
+    if (activeView !== "movements") return undefined;
+    const onWheel = (event) => movementWheelHandlerRef.current?.(event);
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [activeView]);
 
   async function applyMovementOrder(account, orderedRows) {
     const baseOrder = Date.now();
@@ -2929,7 +2956,7 @@ export function App() {
       )}
 
       {activeView === "movements" && (
-      <section className="work-area" onTouchStart={handleMovementTouchStart} onTouchEnd={handleMovementTouchEnd} onWheel={handleMovementWheel}>
+      <section className="work-area" onTouchStart={handleMovementTouchStart} onTouchEnd={handleMovementTouchEnd}>
         <AccountBalances accounts={visibleAccounts} movements={filteredAccountMovements} year={Number(selectedYear)} month={Number(selectedMonth)} className="account-balances-mobile-only" />
         <CardPayments accounts={visibleAccounts} movements={monthMovements} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={cardFullPaymentTotals} onEdit={editMovement} onQuickPay={quickPayCreditCard} className="account-balances-mobile-only" />
         <div className={`ledger-panel month-transition-panel ${monthTransition ? `is-month-${monthTransition}` : ""}`} onAnimationEnd={() => setMonthTransition(null)}>
