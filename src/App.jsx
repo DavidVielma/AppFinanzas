@@ -435,7 +435,7 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [noticeAction, setNoticeAction] = useState(null);
   const movementSwipeRef = useRef(null);
-  const movementWheelRef = useRef({ total: 0, locked: false, timer: null, lastMagnitude: 0, lockDirection: 0 });
+  const movementWheelRef = useRef({ total: 0, locked: false, timer: null, lockedAt: 0, tailEvents: 0 });
   const movementWheelHandlerRef = useRef(null);
   const movementFilterPanelRef = useRef(null);
 
@@ -1604,10 +1604,9 @@ export function App() {
     moveSelectedMonth(deltaX < 0 ? 1 : -1);
   }
 
-  // Trackpad: deslizar con dos dedos hacia los lados cambia de mes. Un gesto = un mes:
-  // se acumula el desplazamiento horizontal y se bloquea mientras dura la inercia. Un gesto
-  // nuevo (el desplazamiento vuelve a crecer o cambia de sentido) desbloquea aunque la
-  // inercia del anterior no haya terminado, para no ignorar deslizamientos seguidos.
+  // Trackpad: deslizar con dos dedos hacia los lados cambia de mes, un mes por gesto.
+  // Tras cambiar, el gesto queda "usado" hasta soltarlo: una pausa breve sin eventos o la
+  // inercia ya apagada (varios eventos minimos seguidos). Mantener el gesto no avanza mas.
   function handleMovementWheel(event) {
     if (event.ctrlKey || Math.abs(event.deltaX) <= Math.abs(event.deltaY) * 1.2) return;
     if (hasOpenModal || !event.target?.closest) return;
@@ -1615,29 +1614,28 @@ export function App() {
     if (canScrollHorizontally(event.target, document.documentElement, event.deltaX)) return;
 
     const state = movementWheelRef.current;
-    const magnitude = Math.abs(event.deltaX);
-    const direction = Math.sign(event.deltaX);
     window.clearTimeout(state.timer);
     state.timer = window.setTimeout(() => {
       state.total = 0;
       state.locked = false;
-      state.lastMagnitude = 0;
-    }, 220);
+      state.tailEvents = 0;
+    }, 140);
 
     if (state.locked) {
-      const isNewGesture = magnitude >= 6 && (direction !== state.lockDirection || magnitude > state.lastMagnitude * 1.6);
-      state.lastMagnitude = magnitude;
-      if (!isNewGesture) return;
+      state.tailEvents = Math.abs(event.deltaX) <= 2 ? state.tailEvents + 1 : 0;
+      const inertiaEnded = state.tailEvents >= 3 && event.timeStamp - state.lockedAt > 350;
+      if (!inertiaEnded) return;
       state.locked = false;
       state.total = 0;
+      return;
     }
 
-    state.lastMagnitude = magnitude;
     state.total += event.deltaX;
     if (Math.abs(state.total) < 100) return;
 
     state.locked = true;
-    state.lockDirection = Math.sign(state.total);
+    state.lockedAt = event.timeStamp;
+    state.tailEvents = 0;
     moveSelectedMonth(state.total > 0 ? 1 : -1);
     state.total = 0;
   }
