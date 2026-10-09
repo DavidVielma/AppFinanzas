@@ -614,7 +614,8 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
       <div className="mobile-movement-list">
         {mobileMovements.map((movement) => {
           const originalIndex = movements.findIndex((item) => getMovementKey(item) === getMovementKey(movement));
-          const accountText = `${movement.account || "Principal"}${movement.target_account ? ` -> ${movement.target_account}` : ""}`;
+          // La seccion ya indica la cuenta; solo las transferencias muestran origen y destino.
+          const transferText = movement.target_account ? `${movement.account || "Principal"} -> ${movement.target_account}` : "";
           const tcLink = getTcSummaryLink(movement);
           const paymentBadge = getPaymentBadge(movement);
           const paymentBadgeMode = getPaymentBadgeMode(movement);
@@ -639,7 +640,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
                     <strong className="description-text">{getDisplayDescription(movement)}</strong>
                     <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
                   </div>
-                  <span className="mobile-account-text">{accountText}</span>
+                  {transferText && <span className="mobile-account-text">{transferText}</span>}
                 </div>
                 <b className={movement.amount >= 0 ? "income-text" : "expense-text"}>{formatCurrency(movement.amount)}</b>
               </header>
