@@ -44,7 +44,7 @@ import { parseQuickAmount, parseQuickTextMovement } from "./lib/quickMovement";
 import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { getResponsibleAmount, parseResponsibleAmounts } from "./lib/responsibleAmounts";
-import { buildInstallmentDescription, getMonthOffset, getMovementSeriesRows, hasMovementSeries, isInstallmentMovement, buildReimbursementDescription, parseInstallmentDescription, scaleReimbursement, shiftPeriod, stripInstallmentSuffix, syncReimbursementDescription } from "./lib/movementSeries";
+import { buildInstallmentDescription, buildSeriesExtension, getMonthOffset, getMovementSeriesRows, hasMovementSeries, isInstallmentMovement, buildReimbursementDescription, parseInstallmentDescription, scaleReimbursement, shiftPeriod, stripInstallmentSuffix, syncReimbursementDescription } from "./lib/movementSeries";
 
 const initialPeriod = getCurrentPeriod();
 const quickMovementShortcutUrl = "https://www.icloud.com/shortcuts/45efc6dc3d8847c09c0ccb223d4abf03";
