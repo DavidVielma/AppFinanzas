@@ -6035,6 +6035,10 @@ button.movement-badge:focus-visible {
 }
 
 table tbody tr[draggable="true"] { cursor: grab; transition: transform 160ms ease, opacity 160ms ease, background-color 160ms ease; }
+/* La fila completa abre el editor: cursor de enlace y un leve realce al pasar. */
+table tbody tr[draggable="true"] { cursor: pointer; }
+table tbody tr[draggable="true"]:hover { background-color: color-mix(in srgb, var(--brand) 5%, transparent); }
+.mobile-movement-card { cursor: pointer; }
 table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e0f2fe; }
 
 .responsible-chip-button,

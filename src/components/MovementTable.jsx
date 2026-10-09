@@ -221,6 +221,8 @@ function reorderMovementsForDrag(items, fromIndex, toIndex) {
 export function MovementTable({ movements, currentResponsible, selectedResponsible = "", responsibles = [], categoryOptionsByType = {}, isCreditCardLedger = false, onEdit, onDelete, onStatusChange, onQuickUpdate, onMove, onMoveToMovement, onCreateReimbursement, onOpenTcDetail }) {
   const longPressTimerRef = useRef(null);
   const dragRef = useRef(null);
+  // Tras un arrastre en movil el navegador puede disparar "click": se ignora un instante.
+  const suppressOpenUntilRef = useRef(0);
   const dragFrameRef = useRef(null);
   const autoScrollFrameRef = useRef(null);
   const scrollLockRef = useRef(null);
@@ -415,6 +417,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
     dragRef.current = null;
     setDragState(null);
     unlockPageScroll();
+    if (drag.active) suppressOpenUntilRef.current = Date.now() + 500;
 
     if (!drag.active || drag.overIndex === drag.startIndex) return;
 
@@ -434,6 +437,15 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
     dragRef.current = null;
     setDragState(null);
     unlockPageScroll();
+  }
+
+  // Tocar la tarjeta o la fila abre el editor, salvo que se toque un control propio
+  // (botones, selector de estado, chips, editores en linea) o se este seleccionando texto.
+  function openEditorFromRow(event, movement) {
+    if (Date.now() < suppressOpenUntilRef.current) return;
+    if (isInteractiveTarget(event.target) || event.target.closest?.(".mobile-inline-editor")) return;
+    if (window.getSelection?.()?.toString()) return;
+    onEdit(movement.source_movement || movement);
   }
 
   function getMobileEditorKey(movement) {
@@ -551,7 +563,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
             const paymentBadgeMode = getPaymentBadgeMode(movement);
             const responsiblePayment = getSelectedResponsiblePayment(movement);
             return (
-            <tr key={movement.row_key || movement.id} draggable className={desktopDragKey === getMovementKey(movement) ? "desktop-dragging" : ""} onDragStart={(event) => startDesktopDrag(event, movement)} onDragEnter={() => previewDesktopMovement(movement)} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropDesktopMovement} onDragEnd={() => { setDesktopDragKey(null); setDesktopDragOrder(null); desktopDragOrderRef.current = null; }}>
+            <tr key={movement.row_key || movement.id} draggable className={desktopDragKey === getMovementKey(movement) ? "desktop-dragging" : ""} onDragStart={(event) => startDesktopDrag(event, movement)} onDragEnter={() => previewDesktopMovement(movement)} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropDesktopMovement} onDragEnd={() => { setDesktopDragKey(null); setDesktopDragOrder(null); desktopDragOrderRef.current = null; }} onClick={(event) => openEditorFromRow(event, movement)}>
               <td data-label="Descripcion" className="description-cell">
                 <span className="description-content">
                   <span className="description-text" title={movement.description}>{getDisplayDescription(movement)}</span>
@@ -632,6 +644,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
               onTouchMove={updateMobileDrag}
               onTouchEnd={endMobileDrag}
               onTouchCancel={cancelMobileDrag}
+              onClick={(event) => openEditorFromRow(event, movement)}
               onContextMenu={(event) => event.preventDefault()}
             >
               <header>
