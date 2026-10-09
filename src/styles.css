@@ -1367,6 +1367,18 @@ button:disabled {
   }
 }
 
+@keyframes modal-backdrop-in {
+  from {
+    background-color: rgba(15, 23, 42, 0);
+  }
+}
+
+@keyframes modal-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .month-transition-panel.is-month-next,
   .month-transition-panel.is-month-prev,
@@ -7128,5 +7140,18 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 
   .filter-action-button {
     bottom: calc(114px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Movil (misma condicion que el resto del diseño movil): los modales entran como hoja
+   inferior, subiendo desde el borde mientras el fondo se oscurece. Se omite si el sistema
+   pide reducir animaciones. */
+@media (max-width: 720px) and (prefers-reduced-motion: no-preference), (max-height: 500px) and (pointer: coarse) and (prefers-reduced-motion: no-preference) {
+  .modal-backdrop {
+    animation: modal-backdrop-in 220ms ease-out;
+  }
+
+  .modal-backdrop > .modal-panel {
+    animation: modal-sheet-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
