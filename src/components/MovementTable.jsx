@@ -436,9 +436,9 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
                 <span className="description-content">
                   <span className="description-text">{movement.description}</span>
                   <span className="movement-badges">
-                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="recurring-badge">Recurrente</span>}
-                    {paymentBadge && <span className={`payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
-                    {movement.has_reimbursement && <span className="reimbursement-badge">Reembolso</span>}
+                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="movement-badge recurring-badge">Recurrente</span>}
+                    {paymentBadge && <span className={`movement-badge payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
+                    {movement.has_reimbursement && <span className="movement-badge reimbursement-badge">Reembolso</span>}
                   </span>
                 </span>
               </td>
@@ -521,9 +521,9 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
                 <div>
                   <strong className="description-text">{movement.description}</strong>
                   <span className="movement-badges">
-                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="recurring-badge">Recurrente</span>}
-                    {paymentBadge && <span className={`payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
-                    {movement.has_reimbursement && <span className="reimbursement-badge">Reembolso</span>}
+                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="movement-badge recurring-badge">Recurrente</span>}
+                    {paymentBadge && <span className={`movement-badge payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
+                    {movement.has_reimbursement && <span className="movement-badge reimbursement-badge">Reembolso</span>}
                   </span>
                   <span className="mobile-account-text">{accountText}</span>
                 </div>

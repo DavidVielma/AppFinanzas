@@ -1993,22 +1993,46 @@ td:nth-child(8) {
 .description-content {
   min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .description-text {
+  display: block;
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Etiquetas de un movimiento (Recurrente, Total/Parcial, Reembolso).
+   Van bajo la descripcion y hacen wrap para no recortar el texto. */
 .movement-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.movement-badges:empty {
+  display: none;
+}
+
+.movement-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
   flex: 0 0 auto;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 .actions-col {
@@ -2040,25 +2064,8 @@ td:nth-child(8) {
 }
 
 .recurring-badge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  border-radius: 999px;
-  padding: 2px 7px;
   background: #e8f4ff;
   color: #155e75;
-  font-size: 0.66rem;
-  font-weight: 900;
-}
-
-.payment-mode-badge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  border-radius: 999px;
-  padding: 2px 7px;
-  font-size: 0.66rem;
-  font-weight: 900;
 }
 
 .payment-mode-badge.auto {
@@ -5454,13 +5461,27 @@ td:nth-child(8) {
     white-space: nowrap;
   }
 
-  .mobile-movement-card header .recurring-badge {
-    display: inline-flex;
-    margin: 4px 0 0;
-    color: #155e75;
-    font-size: 0.64rem;
+  .mobile-movement-card header .movement-badges {
+    display: flex;
+    margin: 4px 0 2px;
     overflow: visible;
   }
+
+  .mobile-movement-card header .movement-badges:empty {
+    display: none;
+  }
+
+  .mobile-movement-card header .movement-badge {
+    display: inline-flex;
+    margin: 0;
+    font-size: 0.62rem;
+    overflow: visible;
+  }
+
+  .mobile-movement-card header .recurring-badge { color: #155e75; }
+  .mobile-movement-card header .reimbursement-badge { color: #0f766e; }
+  .mobile-movement-card header .payment-mode-badge.auto { color: #17633d; }
+  .mobile-movement-card header .payment-mode-badge.manual { color: #8a5a00; }
 
   .mobile-movement-card header b {
     flex: 0 0 auto;
@@ -5811,14 +5832,8 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
 .reimbursement-total { margin-top: 4px; background: #f8fafc; }
 .reimbursement-action { color: #0f766e; }
 .reimbursement-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 2px 6px;
   background: #ccfbf1;
   color: #0f766e;
-  font-size: 0.62rem;
-  font-weight: 900;
 }
 
 @media (max-width: 560px) {
