@@ -81,6 +81,21 @@ function getPaymentBadgeMode(movement) {
   return movement.payment_badge_mode || (movement.card_payment_mode === "manual" ? "manual" : "auto");
 }
 
+function MovementBadges({ movement, paymentBadge, paymentBadgeMode }) {
+  const badges = [];
+  if (movement.recurring_id && !isInstallmentMovement(movement)) badges.push({ key: "recurring", className: "recurring-badge", symbol: "\u21bb", label: "Recurrente" });
+  if (paymentBadge) badges.push({ key: "payment", className: `payment-mode-badge ${paymentBadgeMode}`, symbol: paymentBadge.charAt(0).toUpperCase(), label: `Pago ${paymentBadge.toLowerCase()}` });
+  if (movement.has_reimbursement) badges.push({ key: "reimbursement", className: "reimbursement-badge", symbol: "$", label: "Reembolso" });
+  if (!badges.length) return null;
+  return (
+    <span className="movement-badges">
+      {badges.map((badge) => (
+        <span key={badge.key} className={`movement-badge ${badge.className}`} title={badge.label} aria-label={badge.label} role="img">{badge.symbol}</span>
+      ))}
+    </span>
+  );
+}
+
 function isInteractiveTarget(target) {
   return Boolean(target?.closest("button, a, input, select, textarea, label, [role='button']"));
 }
@@ -435,11 +450,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
               <td data-label="Descripcion" className="description-cell" title={movement.description}>
                 <span className="description-content">
                   <span className="description-text">{movement.description}</span>
-                  <span className="movement-badges">
-                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="movement-badge recurring-badge">Recurrente</span>}
-                    {paymentBadge && <span className={`movement-badge payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
-                    {movement.has_reimbursement && <span className="movement-badge reimbursement-badge">Reembolso</span>}
-                  </span>
+                  <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
                 </span>
               </td>
               <td data-label="Cuenta" className="account-cell" title={`${movement.account || "Principal"}${movement.target_account ? ` -> ${movement.target_account}` : ""}`}>
@@ -520,11 +531,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
               <header>
                 <div>
                   <strong className="description-text">{movement.description}</strong>
-                  <span className="movement-badges">
-                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="movement-badge recurring-badge">Recurrente</span>}
-                    {paymentBadge && <span className={`movement-badge payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
-                    {movement.has_reimbursement && <span className="movement-badge reimbursement-badge">Reembolso</span>}
-                  </span>
+                  <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
                   <span className="mobile-account-text">{accountText}</span>
                 </div>
                 <b className={movement.amount >= 0 ? "income-text" : "expense-text"}>{formatCurrency(movement.amount)}</b>

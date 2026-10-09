@@ -1993,46 +1993,38 @@ td:nth-child(8) {
 .description-content {
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: 5px;
 }
 
 .description-text {
-  display: block;
-  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Etiquetas de un movimiento (Recurrente, Total/Parcial, Reembolso).
-   Van bajo la descripcion y hacen wrap para no recortar el texto. */
+/* Etiquetas de un movimiento (Recurrente, Total/Parcial, Reembolso) como
+   chips de un caracter: ocupan poco y nunca le quitan espacio a la descripcion. */
 .movement-badges {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  min-width: 0;
-}
-
-.movement-badges:empty {
-  display: none;
+  gap: 3px;
+  flex: 0 0 auto;
 }
 
 .movement-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  width: fit-content;
+  width: 17px;
+  height: 17px;
   border-radius: 999px;
-  padding: 1px 6px;
-  font-size: 0.62rem;
+  font-size: 0.66rem;
   font-weight: 900;
-  line-height: 1.35;
-  white-space: nowrap;
+  line-height: 1;
+  cursor: help;
 }
 
 .actions-col {
@@ -5463,12 +5455,8 @@ td:nth-child(8) {
 
   .mobile-movement-card header .movement-badges {
     display: flex;
-    margin: 4px 0 2px;
+    margin: 4px 0 0;
     overflow: visible;
-  }
-
-  .mobile-movement-card header .movement-badges:empty {
-    display: none;
   }
 
   .mobile-movement-card header .movement-badge {
