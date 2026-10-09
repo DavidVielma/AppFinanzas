@@ -78,6 +78,17 @@ export function shiftPeriod(year, month, offset) {
 
 // Cuando cambia el monto de una compra, su reembolso se ajusta en la misma proporcion,
 // persona por persona y en pesos enteros. Devuelve null si no hay nada que ajustar.
+// Nombre del reembolso de una compra; se recalcula cuando la compra cambia de nombre.
+export function buildReimbursementDescription(sourceDescription) {
+  return `Reembolso: ${String(sourceDescription || "").trim()}`;
+}
+
+export function syncReimbursementDescription(reimbursement, newSourceDescription) {
+  if (!reimbursement || newSourceDescription == null) return null;
+  const description = buildReimbursementDescription(newSourceDescription);
+  return reimbursement.description === description ? null : { description };
+}
+
 export function scaleReimbursement(reimbursement, oldSourceAmount, newSourceAmount) {
   const oldAbs = Math.abs(Number(oldSourceAmount) || 0);
   const newAbs = Math.abs(Number(newSourceAmount) || 0);

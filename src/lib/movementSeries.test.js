@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
+import { buildReimbursementDescription, syncReimbursementDescription, scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
 
 assert.deepEqual(parseInstallmentDescription("Notebook (2/12)"), { base: "Notebook", index: 2, total: 12 });
 assert.equal(parseInstallmentDescription("Notebook"), null);
@@ -35,3 +35,8 @@ assert.equal(scaleReimbursement(reimbursement, -25000, -25000), null, "same amou
 assert.equal(scaleReimbursement(reimbursement, 0, -100), null);
 
 console.log("movement series tests passed");
+
+assert.equal(buildReimbursementDescription("INACAP (3/3)"), "Reembolso: INACAP (3/3)");
+assert.deepEqual(syncReimbursementDescription({ description: "Reembolso: Bencina" }, "Bencina Mayo"), { description: "Reembolso: Bencina Mayo" });
+assert.equal(syncReimbursementDescription({ description: "Reembolso: Bencina" }, "Bencina"), null);
+assert.equal(syncReimbursementDescription(null, "Bencina"), null);
