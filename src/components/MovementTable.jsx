@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { FileSearch, HandCoins, Pencil, Trash2 } from "lucide-react";
 import { CategoryBadge } from "./CategoryVisuals";
 import { formatCurrency } from "../lib/finance";
-import { isInstallmentMovement } from "../lib/movementSeries";
+import { isInstallmentMovement, parseInstallmentDescription, stripInstallmentSuffix } from "../lib/movementSeries";
 
 function getStatusClass(status) {
   if (status === "Confirmado") return "confirmed";
@@ -81,8 +81,15 @@ function getPaymentBadgeMode(movement) {
   return movement.payment_badge_mode || (movement.card_payment_mode === "manual" ? "manual" : "auto");
 }
 
+// La cuota se muestra en su propio chip, asi que se quita "(n/N)" del texto.
+function getDisplayDescription(movement) {
+  return isInstallmentMovement(movement) ? stripInstallmentSuffix(movement.description) : movement.description;
+}
+
 function MovementBadges({ movement, paymentBadge, paymentBadgeMode }) {
   const badges = [];
+  const installment = isInstallmentMovement(movement) ? parseInstallmentDescription(movement.description) : null;
+  if (installment) badges.push({ key: "installment", className: "installment-badge", symbol: `${installment.index}/${installment.total}`, label: `Cuota ${installment.index} de ${installment.total}` });
   if (movement.recurring_id && !isInstallmentMovement(movement)) badges.push({ key: "recurring", className: "recurring-badge", symbol: "\u21bb", label: "Recurrente" });
   if (paymentBadge) badges.push({ key: "payment", className: `payment-mode-badge ${paymentBadgeMode}`, symbol: paymentBadge.charAt(0).toUpperCase(), label: `Pago ${paymentBadge.toLowerCase()}` });
   if (movement.has_reimbursement) badges.push({ key: "reimbursement", className: "reimbursement-badge", symbol: "$", label: "Reembolso" });
@@ -449,7 +456,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
             <tr key={movement.row_key || movement.id} draggable className={desktopDragKey === getMovementKey(movement) ? "desktop-dragging" : ""} onDragStart={(event) => startDesktopDrag(event, movement)} onDragEnter={() => previewDesktopMovement(movement)} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropDesktopMovement} onDragEnd={() => { setDesktopDragKey(null); setDesktopDragOrder(null); desktopDragOrderRef.current = null; }}>
               <td data-label="Descripcion" className="description-cell" title={movement.description}>
                 <span className="description-content">
-                  <span className="description-text">{movement.description}</span>
+                  <span className="description-text">{getDisplayDescription(movement)}</span>
                   <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
                 </span>
               </td>
@@ -530,7 +537,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
             >
               <header>
                 <div>
-                  <strong className="description-text">{movement.description}</strong>
+                  <strong className="description-text">{getDisplayDescription(movement)}</strong>
                   <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
                   <span className="mobile-account-text">{accountText}</span>
                 </div>

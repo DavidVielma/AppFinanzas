@@ -2055,6 +2055,15 @@ td:nth-child(8) {
   color: #a62219;
 }
 
+.movement-badge.installment-badge {
+  width: auto;
+  min-width: 17px;
+  padding: 0 5px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-variant-numeric: tabular-nums;
+}
+
 .recurring-badge {
   background: #e8f4ff;
   color: #155e75;
@@ -5466,6 +5475,7 @@ td:nth-child(8) {
     overflow: visible;
   }
 
+  .mobile-movement-card header .installment-badge { color: #5b21b6; }
   .mobile-movement-card header .recurring-badge { color: #155e75; }
   .mobile-movement-card header .reimbursement-badge { color: #0f766e; }
   .mobile-movement-card header .payment-mode-badge.auto { color: #17633d; }
