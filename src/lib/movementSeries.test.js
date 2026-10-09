@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { formatCurrency } from "./finance.js";
-import { describeInstallment, describeRecurrence, buildReimbursementDescription, syncReimbursementDescription, scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
+import { buildSeriesExtension, describeInstallment, describeRecurrence, buildReimbursementDescription, syncReimbursementDescription, scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
 
 assert.deepEqual(parseInstallmentDescription("Notebook (2/12)"), { base: "Notebook", index: 2, total: 12 });
 assert.equal(parseInstallmentDescription("Notebook"), null);
@@ -53,3 +53,9 @@ const cuotas = [1, 2, 3].map((index) => ({ id: `c${index}`, recurring_id: "c", f
 assert.equal(describeInstallment(cuotas[1], cuotas), `Cuota 2 de 3 · Total de la compra: ${formatCurrency(60001)}`);
 assert.equal(describeInstallment(cuotas[1], cuotas.slice(1)), `Cuota 2 de 3 · Total de la compra: aprox. ${formatCurrency(60000)}`);
 assert.equal(describeInstallment({ description: "Sin cuotas" }, cuotas), null);
+
+const bimonthly = [11, 1].map((month, index) => ({ id: `b${index}`, recurring_id: "b", recurring_occurrence: index + 1, flow: "Movimiento", type: "Egreso", account: "Principal", category: "Hogar", description: "Gas", amount: -9000, status: "Confirmado", responsible: "Yo", year: index ? 2027 : 2026, month }));
+const extension = buildSeriesExtension(bimonthly[0], bimonthly, [], 2, { amount: -9500 });
+assert.deepEqual(extension.map((row) => [row.year, row.month, row.recurring_occurrence, row.amount, row.status]), [[2027, 3, 3, -9500, "Proyectado"], [2027, 5, 4, -9500, "Proyectado"]]);
+assert.equal(buildSeriesExtension(bimonthly[0], bimonthly, [{ id: "b", frequency: "monthly" }], 1)[0].month, 2);
+assert.deepEqual(buildSeriesExtension({ id: "x" }, bimonthly, [], 3), []);

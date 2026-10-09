@@ -117,6 +117,54 @@ function describeStep(step) {
   return `Cada ${step} meses`;
 }
 
+// Meses entre repeticiones de una serie: de la regla guardada o, si no existe, del menor
+// salto entre filas consecutivas.
+export function getRecurrenceStep(movement, movements, rules = []) {
+  const rule = rules.find((item) => item.id === movement?.recurring_id);
+  if (frequencySteps[rule?.frequency]) return frequencySteps[rule.frequency];
+  const indexes = Array.from(new Set(movements
+    .filter((item) => item.recurring_id && item.recurring_id === movement?.recurring_id)
+    .map((item) => periodIndex(item.year, item.month))))
+    .sort((a, b) => a - b);
+  const gaps = indexes.slice(1).map((value, index) => value - indexes[index]).filter((gap) => gap > 0);
+  return gaps.length ? Math.min(...gaps) : 1;
+}
+
+// Filas nuevas para alargar una serie recurrente: copian la ultima fila (con los cambios
+// de "overrides") y siguen despues de ella con el mismo salto de meses.
+export function buildSeriesExtension(movement, movements, rules, count, overrides = {}) {
+  if (!movement?.recurring_id || !(count > 0)) return [];
+  const rows = getMovementSeriesRows(movement, movements, "all");
+  const last = rows[rows.length - 1];
+  const step = getRecurrenceStep(movement, movements, rules);
+  const lastOccurrence = Math.max(0, ...rows.map((item) => Number(item.recurring_occurrence) || 0));
+  return Array.from({ length: count }, (_, index) => {
+    const period = shiftPeriod(last.year, last.month, step * (index + 1));
+    return {
+      flow: last.flow,
+      type: last.type,
+      account: last.account,
+      target_account: last.target_account || null,
+      category: last.category,
+      description: last.description,
+      amount: last.amount,
+      card_payment_mode: last.card_payment_mode || null,
+      responsible: last.responsible,
+      responsible_amounts: last.responsible_amounts || null,
+      ...overrides,
+      status: "Proyectado",
+      paid_responsibles: "[]",
+      reimbursement_source_id: null,
+      recurring_id: movement.recurring_id,
+      recurring_modified: false,
+      recurring_occurrence: (lastOccurrence || rows.length) + index + 1,
+      sort_order: Date.now() + index,
+      year: period.year,
+      month: period.month
+    };
+  });
+}
+
 // Texto de ayuda de un movimiento recurrente: frecuencia, ultimo mes de la serie y
 // cuantas repeticiones quedan. Usa la regla guardada y, si no existe, la infiere de las filas.
 export function describeRecurrence(movement, movements, rules = []) {
@@ -127,9 +175,7 @@ export function describeRecurrence(movement, movements, rules = []) {
     .sort((a, b) => a - b);
   if (!indexes.length) return null;
 
-  const rule = rules.find((item) => item.id === movement.recurring_id);
-  const gaps = indexes.slice(1).map((value, index) => value - indexes[index]).filter((gap) => gap > 0);
-  const step = frequencySteps[rule?.frequency] || (gaps.length ? Math.min(...gaps) : 1);
+  const step = getRecurrenceStep(movement, movements, rules);
   const last = indexes[indexes.length - 1];
   const current = periodIndex(movement.year, movement.month);
   const remaining = indexes.filter((value) => value > current).length;
