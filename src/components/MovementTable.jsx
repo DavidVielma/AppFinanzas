@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FileSearch, HandCoins, Pencil, Trash2 } from "lucide-react";
 import { CategoryBadge } from "./CategoryVisuals";
 import { formatCurrency } from "../lib/finance";
@@ -86,20 +86,115 @@ function getDisplayDescription(movement) {
   return isInstallmentMovement(movement) ? stripInstallmentSuffix(movement.description) : movement.description;
 }
 
-function MovementBadges({ movement, paymentBadge, paymentBadgeMode }) {
+// Fuente unica de las etiquetas: la usan los chips y la leyenda.
+const MOVEMENT_BADGE_TYPES = {
+  installment: { className: "installment-badge", symbol: "n/N", label: "Compra en cuotas", hint: "Cuota actual / total de cuotas" },
+  recurring: { className: "recurring-badge", symbol: "\u21bb", label: "Recurrente", hint: "Se repite cada mes" },
+  paymentTotal: { className: "payment-mode-badge auto", symbol: "T", label: "Pago total", hint: "Pago de tarjeta por el total" },
+  paymentPartial: { className: "payment-mode-badge manual", symbol: "P", label: "Pago parcial", hint: "Pago de tarjeta por un monto parcial" },
+  reimbursement: { className: "reimbursement-badge", symbol: "$", label: "Reembolso", hint: "Tiene un reembolso asociado" }
+};
+
+function getMovementBadges(movement, paymentBadge, paymentBadgeMode) {
   const badges = [];
   const installment = isInstallmentMovement(movement) ? parseInstallmentDescription(movement.description) : null;
-  if (installment) badges.push({ key: "installment", className: "installment-badge", symbol: `${installment.index}/${installment.total}`, label: `Cuota ${installment.index} de ${installment.total}` });
-  if (movement.recurring_id && !isInstallmentMovement(movement)) badges.push({ key: "recurring", className: "recurring-badge", symbol: "\u21bb", label: "Recurrente" });
-  if (paymentBadge) badges.push({ key: "payment", className: `payment-mode-badge ${paymentBadgeMode}`, symbol: paymentBadge.charAt(0).toUpperCase(), label: `Pago ${paymentBadge.toLowerCase()}` });
-  if (movement.has_reimbursement) badges.push({ key: "reimbursement", className: "reimbursement-badge", symbol: "$", label: "Reembolso" });
+  if (installment) badges.push({ ...MOVEMENT_BADGE_TYPES.installment, key: "installment", type: "installment", symbol: `${installment.index}/${installment.total}`, hint: `Cuota ${installment.index} de ${installment.total}` });
+  if (movement.recurring_id && !installment) badges.push({ ...MOVEMENT_BADGE_TYPES.recurring, key: "recurring", type: "recurring" });
+  if (paymentBadge) {
+    const type = paymentBadgeMode === "manual" ? "paymentPartial" : "paymentTotal";
+    badges.push({ ...MOVEMENT_BADGE_TYPES[type], key: "payment", type, label: `Pago ${paymentBadge.toLowerCase()}` });
+  }
+  if (movement.has_reimbursement) badges.push({ ...MOVEMENT_BADGE_TYPES.reimbursement, key: "reimbursement", type: "reimbursement" });
+  return badges;
+}
+
+// Chip con tooltip propio: aparece con hover, foco o toque (el title nativo no funciona en movil).
+// Usa position: fixed para no quedar recortado por las celdas con overflow: hidden.
+function BadgeChip({ badge }) {
+  const chipRef = useRef(null);
+  const tooltipRef = useRef(null);
+  const [tooltip, setTooltip] = useState(null);
+
+  const show = () => {
+    const rect = chipRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const above = rect.top > 56;
+    setTooltip({ left: rect.left + rect.width / 2, top: above ? rect.top - 6 : rect.bottom + 6, above });
+  };
+  const hide = () => setTooltip(null);
+
+  // Mantiene el tooltip dentro de la pantalla cuando el chip esta cerca de un borde.
+  useLayoutEffect(() => {
+    const node = tooltipRef.current;
+    if (!tooltip || !node) return;
+    const margin = 8;
+    const width = node.offsetWidth;
+    const centered = Math.min(Math.max(tooltip.left, margin + width / 2), window.innerWidth - margin - width / 2);
+    node.style.left = `${centered}px`;
+  }, [tooltip]);
+
+  useEffect(() => {
+    if (!tooltip) return undefined;
+    const hideOnOutside = (event) => {
+      if (!chipRef.current?.contains(event.target)) hide();
+    };
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
+    document.addEventListener("pointerdown", hideOnOutside);
+    return () => {
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
+      document.removeEventListener("pointerdown", hideOnOutside);
+    };
+  }, [tooltip]);
+
+  return (
+    <button
+      type="button"
+      ref={chipRef}
+      className={`movement-badge ${badge.className}`}
+      aria-label={`${badge.label}: ${badge.hint}`}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={(event) => { if (event.currentTarget.matches(":focus-visible")) show(); }}
+      onBlur={hide}
+      onClick={(event) => { event.stopPropagation(); if (tooltip) hide(); else show(); }}
+    >
+      {badge.symbol}
+      {tooltip && (
+        <span ref={tooltipRef} className={`badge-tooltip ${tooltip.above ? "above" : "below"}`} style={{ left: tooltip.left, top: tooltip.top }} role="tooltip">
+          <strong>{badge.label}</strong>
+          <span>{badge.hint}</span>
+        </span>
+      )}
+    </button>
+  );
+}
+
+function MovementBadges({ movement, paymentBadge, paymentBadgeMode }) {
+  const badges = getMovementBadges(movement, paymentBadge, paymentBadgeMode);
   if (!badges.length) return null;
   return (
     <span className="movement-badges">
-      {badges.map((badge) => (
-        <span key={badge.key} className={`movement-badge ${badge.className}`} title={badge.label} aria-label={badge.label} role="img">{badge.symbol}</span>
-      ))}
+      {badges.map((badge) => <BadgeChip key={badge.key} badge={badge} />)}
     </span>
+  );
+}
+
+// Leyenda con las etiquetas que aparecen en la tabla, en el orden de MOVEMENT_BADGE_TYPES.
+function MovementBadgeLegend({ movements }) {
+  const present = new Set(movements.flatMap((movement) => getMovementBadges(movement, getPaymentBadge(movement), getPaymentBadgeMode(movement)).map((badge) => badge.type)));
+  if (!present.size) return null;
+  return (
+    <div className="movement-badge-legend" aria-label="Leyenda de etiquetas">
+      <span className="movement-badge-legend-title">Etiquetas</span>
+      {Object.entries(MOVEMENT_BADGE_TYPES).filter(([key]) => present.has(key)).map(([key, badge]) => (
+        <span key={key} className="movement-badge-legend-item">
+          <span className={`movement-badge ${badge.className}`} aria-hidden="true">{badge.symbol}</span>
+          {badge.label}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -454,9 +549,9 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
             const responsiblePayment = getSelectedResponsiblePayment(movement);
             return (
             <tr key={movement.row_key || movement.id} draggable className={desktopDragKey === getMovementKey(movement) ? "desktop-dragging" : ""} onDragStart={(event) => startDesktopDrag(event, movement)} onDragEnter={() => previewDesktopMovement(movement)} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropDesktopMovement} onDragEnd={() => { setDesktopDragKey(null); setDesktopDragOrder(null); desktopDragOrderRef.current = null; }}>
-              <td data-label="Descripcion" className="description-cell" title={movement.description}>
+              <td data-label="Descripcion" className="description-cell">
                 <span className="description-content">
-                  <span className="description-text">{getDisplayDescription(movement)}</span>
+                  <span className="description-text" title={movement.description}>{getDisplayDescription(movement)}</span>
                   <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
                 </span>
               </td>
@@ -608,6 +703,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
         })}
         {movements.length === 0 && <p className="empty-row">Sin movimientos para este mes.</p>}
       </div>
+      <MovementBadgeLegend movements={movements} />
     </div>
   );
 }
