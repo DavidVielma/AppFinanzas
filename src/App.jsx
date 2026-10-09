@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Camera, ChevronRight, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
+import { BookOpen, Camera, ChevronLeft, ChevronRight, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
 import { AccountAdminModal } from "./components/AccountAdminModal";
 import { ResponsibleAdminModal } from "./components/ResponsibleAdminModal";
 import { AccountBalances } from "./components/AccountBalances";
@@ -2990,37 +2990,29 @@ export function App() {
 
       {activeView !== "profile" && activeView !== "annual-summary" && activeView !== "tc-analysis" && (
         <>
-      <section className="controls-row">
-        <PeriodSelector month={selectedMonth} year={selectedYear} onChange={({ month, year }) => updateSelectedPeriod(month, year)} />
-        <label>
-          Año
-          <select value={selectedYear} onChange={(event) => updateSelectedPeriod(selectedMonth, event.target.value)}>
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Mes
-          <select value={selectedMonth} onChange={(event) => updateSelectedPeriod(event.target.value, selectedYear)}>
-            {monthLabels.map((month, index) => (
-              <option key={month} value={index + 1}>
-                {month}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* Periodo como control segmentado (mes anterior / selector / mes siguiente). "Pegar"
+          solo aparece cuando hay un mes copiado. */}
+      <section className="controls-row period-toolbar">
+        <div className="period-stepper">
+          <button type="button" className="period-step" onClick={() => { const prev = shiftPeriod(Number(selectedYear), Number(selectedMonth), -1); updateSelectedPeriod(prev.month, prev.year, -1); }} aria-label="Mes anterior" title="Mes anterior">
+            <ChevronLeft size={18} />
+          </button>
+          <PeriodSelector month={selectedMonth} year={selectedYear} onChange={({ month, year }) => updateSelectedPeriod(month, year)} />
+          <button type="button" className="period-step" onClick={() => { const next = shiftPeriod(Number(selectedYear), Number(selectedMonth), 1); updateSelectedPeriod(next.month, next.year, 1); }} aria-label="Mes siguiente" title="Mes siguiente">
+            <ChevronRight size={18} />
+          </button>
+        </div>
         <div className="copy-actions">
-          <button type="button" className="icon-text" onClick={openCopyModal}>
-            <ClipboardCopy size={18} />
-            Copiar mes
+          <button type="button" className="toolbar-action" onClick={openCopyModal} aria-label="Copiar mes" title="Copiar los movimientos de este mes">
+            <ClipboardCopy size={17} />
+            <span>Copiar mes</span>
           </button>
-          <button type="button" className="icon-text" onClick={pasteMonthMovements} disabled={!copiedMonth?.movements?.length}>
-            <ClipboardPaste size={18} />
-            Pegar
-          </button>
+          {copiedMonth?.movements?.length > 0 && (
+            <button type="button" className="toolbar-action is-highlighted" onClick={pasteMonthMovements} title="Pegar los movimientos copiados en este mes">
+              <ClipboardPaste size={17} />
+              <span>Pegar ({copiedMonth.movements.length})</span>
+            </button>
+          )}
         </div>
       </section>
 

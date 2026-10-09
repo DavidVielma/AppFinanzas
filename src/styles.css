@@ -1033,20 +1033,6 @@ button:disabled {
   }
 }
 
-.controls-row {
-  align-items: end;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
-.controls-row label {
-  min-width: 170px;
-}
-
-.controls-row > label {
-  display: none;
-}
-
 .month-total {
   margin-left: auto;
   min-width: 250px;
@@ -1056,11 +1042,103 @@ button:disabled {
   border-radius: 8px;
 }
 
+/* Barra del periodo: control segmentado a la izquierda y acciones livianas a la derecha. */
+.period-toolbar {
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.period-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 1px 2px rgba(15, 35, 40, 0.05);
+}
+
+.period-stepper .period-picker legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.period-stepper .period-trigger {
+  min-width: 180px;
+  min-height: 40px;
+  justify-content: center;
+  border: 0;
+  border-inline: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.period-stepper .period-trigger.open,
+.period-stepper .period-trigger:hover {
+  background: color-mix(in srgb, var(--brand) 7%, transparent);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.period-step {
+  width: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.period-step:first-child {
+  border-radius: 9px 0 0 9px;
+}
+
+.period-step:last-child {
+  border-radius: 0 9px 9px 0;
+}
+
+.period-step:hover {
+  background: color-mix(in srgb, var(--brand) 7%, transparent);
+  color: var(--brand);
+}
+
 .copy-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.toolbar-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.toolbar-action:hover {
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  color: var(--brand);
+}
+
+.toolbar-action.is-highlighted {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
 }
 
 .check-control {
@@ -4659,16 +4737,6 @@ button.movement-badge:focus-visible {
     white-space: nowrap;
   }
 
-  .copy-actions {
-    display: grid;
-    width: 100%;
-    gap: 8px;
-  }
-
-  .copy-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .topbar-actions {
     display: flex;
     width: auto;
@@ -4685,6 +4753,46 @@ button.movement-badge:focus-visible {
 
   .topbar-actions .topbar-action span {
     display: none;
+  }
+
+  .period-toolbar {
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .period-stepper {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .period-stepper .period-picker {
+    flex: 1 1 auto;
+  }
+
+  .period-stepper .period-trigger {
+    min-width: 0;
+    min-height: 42px;
+  }
+
+  .period-step {
+    width: 42px;
+  }
+
+  /* "Copiar mes" queda como icono; "Pegar" mantiene su texto porque aparece solo a veces. */
+  .toolbar-action:not(.is-highlighted) {
+    width: 42px;
+    min-height: 42px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .toolbar-action:not(.is-highlighted) span {
+    display: none;
+  }
+
+  .toolbar-action.is-highlighted {
+    min-height: 42px;
   }
 
   .quick-action-button {
@@ -4782,57 +4890,10 @@ button.movement-badge:focus-visible {
     width: auto;
   }
 
-  .copy-actions .icon-text,
   .primary-action {
     width: 100%;
     min-width: 0;
     min-height: 44px;
-  }
-
-  .controls-row {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
-    gap: 8px;
-    align-items: stretch;
-  }
-
-  .controls-row .period-picker {
-    grid-column: 1;
-  }
-
-  .controls-row .period-picker legend {
-    min-height: 18px;
-    margin-bottom: 5px;
-  }
-
-  .controls-row .period-trigger,
-  .controls-row .copy-actions .icon-text {
-    min-height: 43px;
-    height: 43px;
-  }
-
-  .controls-row .copy-actions {
-    display: contents;
-  }
-
-  .controls-row .copy-actions .icon-text {
-    align-self: end;
-    padding: 6px 8px;
-    justify-content: center;
-    gap: 5px;
-    font-size: 0.78rem;
-    line-height: 1.05;
-    text-align: center;
-  }
-
-  .controls-row .copy-actions .icon-text svg {
-    width: 15px;
-    height: 15px;
-    flex: 0 0 auto;
-  }
-
-  .controls-row label {
-    min-width: 0;
   }
 
   .side-panel,
