@@ -328,6 +328,27 @@ label {
   gap: 6px 10px;
 }
 
+.series-extend-shortcut {
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px solid #cfd8e3;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #405168;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.series-extend-shortcut.active {
+  border-color: var(--brand);
+  background: #e4f4ef;
+  color: var(--brand-strong);
+}
+
 .series-extend p {
   grid-column: 1 / -1;
 }
