@@ -2031,6 +2031,10 @@ td:nth-child(8) {
   cursor: help;
 }
 
+.movement-badge .badge-name {
+  display: none;
+}
+
 button.movement-badge:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 1px;
@@ -5560,9 +5564,43 @@ button.movement-badge:focus-visible {
 
   .mobile-movement-card header .movement-badge {
     display: inline-flex;
+    width: auto;
+    height: auto;
     margin: 0;
-    font-size: 0.62rem;
+    padding: 2px 7px;
+    font-size: 0.64rem;
+    line-height: 1.2;
     overflow: visible;
+    cursor: pointer;
+  }
+
+  /* En movil la etiqueta muestra su nombre completo; el simbolo solo si es un icono (↻, $). */
+  .mobile-movement-card header .movement-badge .badge-symbol {
+    display: none;
+  }
+
+  .mobile-movement-card header .movement-badge .badge-symbol.is-icon {
+    display: inline;
+    margin: 0 3px 0 0;
+    color: inherit;
+    font-size: inherit;
+    font-weight: 900;
+    overflow: visible;
+  }
+
+  .mobile-movement-card header .movement-badge .badge-name {
+    display: inline;
+    margin: 0;
+    color: inherit;
+    font-size: inherit;
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: visible;
+  }
+
+  /* Con nombres completos la leyenda sobra. */
+  .movement-badge-legend {
+    display: none;
   }
 
   .mobile-movement-card header .installment-badge { color: #5b21b6; }
