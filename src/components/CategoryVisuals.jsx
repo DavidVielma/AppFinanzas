@@ -311,9 +311,18 @@ export function CategoryIconPicker({ value = "", onChange, variant = "button" })
   );
 }
 
+// Normaliza para comparar lo escrito con el nombre: sin tildes ni mayusculas.
+function normalizeSearchText(text) {
+  return String(text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 export function CategorySelector({ categories, value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const pickerRef = useRef(null);
+  const triggerRef = useRef(null);
+  const optionRefs = useRef([]);
+  const typeaheadRef = useRef({ text: "", timer: null });
+  const pendingFocusRef = useRef(null);
   const selectedCategory = categories.includes(value) ? value : categories[0] || value || "Sin definir";
 
   useEffect(() => {
@@ -324,26 +333,98 @@ export function CategorySelector({ categories, value, onChange }) {
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      clearTimeout(typeaheadRef.current.timer);
+    };
   }, []);
+
+  // Al abrir con el teclado, enfoca la opcion buscada una vez que la lista existe.
+  useEffect(() => {
+    if (!isOpen || pendingFocusRef.current === null) return;
+    focusOption(pendingFocusRef.current);
+    pendingFocusRef.current = null;
+  }, [isOpen]);
 
   function selectCategory(category) {
     onChange(category);
     setIsOpen(false);
   }
 
+  function focusOption(index) {
+    const node = optionRefs.current[index];
+    if (!node) return;
+    node.focus({ preventScroll: true });
+    node.scrollIntoView({ block: "nearest" });
+  }
+
+  function moveToOption(index) {
+    if (index < 0) return;
+    if (isOpen) {
+      focusOption(index);
+    } else {
+      pendingFocusRef.current = index;
+      setIsOpen(true);
+    }
+  }
+
+  // Escribir con la lista abierta salta a la categoria que coincide, como en un select nativo.
+  function findTypedCategory(key) {
+    const typeahead = typeaheadRef.current;
+    clearTimeout(typeahead.timer);
+    typeahead.text += normalizeSearchText(key);
+    typeahead.timer = setTimeout(() => { typeahead.text = ""; }, 800);
+
+    const names = categories.map(normalizeSearchText);
+    const query = typeahead.text;
+    // Repetir la misma letra recorre las categorias que empiezan con ella.
+    if (query.length > 1 && [...query].every((char) => char === query[0])) {
+      const matches = names.map((name, index) => (name.startsWith(query[0]) ? index : -1)).filter((index) => index >= 0);
+      const current = optionRefs.current.findIndex((node) => node === document.activeElement);
+      const position = matches.indexOf(current);
+      return matches.length ? matches[(position + 1) % matches.length] : -1;
+    }
+    const startIndex = names.findIndex((name) => name.startsWith(query));
+    if (startIndex >= 0) return startIndex;
+    return names.findIndex((name) => name.includes(query));
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Escape") {
+      if (isOpen) {
+        event.stopPropagation();
+        setIsOpen(false);
+        triggerRef.current?.focus();
+      }
+      return;
+    }
+
+    const current = optionRefs.current.findIndex((node) => node === document.activeElement);
+    const selectedIndex = categories.indexOf(selectedCategory);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const base = current >= 0 ? current : selectedIndex;
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      const next = current >= 0 || isOpen ? base + step : Math.max(selectedIndex, 0);
+      moveToOption(Math.min(Math.max(next, 0), categories.length - 1));
+      return;
+    }
+
+    if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (event.key === " " && !typeaheadRef.current.text) return;
+      event.preventDefault();
+      moveToOption(findTypedCategory(event.key));
+    }
+  }
+
   return (
-    <fieldset className="category-picker" ref={pickerRef}>
+    <fieldset className="category-picker" ref={pickerRef} onKeyDown={handleKeyDown}>
       <legend>Categoria</legend>
       <button
         type="button"
+        ref={triggerRef}
         className={`category-select-trigger ${isOpen ? "open" : ""}`}
         onClick={() => setIsOpen((current) => !current)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            setIsOpen(false);
-          }
-        }}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
       >
@@ -352,7 +433,7 @@ export function CategorySelector({ categories, value, onChange }) {
       </button>
       {isOpen && (
         <div className="category-option-list" role="listbox" aria-label="Categoria">
-          {categories.map((category) => {
+          {categories.map((category, index) => {
             const { color } = getCategoryMeta(category);
             const isActive = category === selectedCategory;
             return (
@@ -360,6 +441,7 @@ export function CategorySelector({ categories, value, onChange }) {
                 type="button"
                 className={`category-option ${isActive ? "active" : ""}`}
                 key={category}
+                ref={(node) => { optionRefs.current[index] = node; }}
                 onClick={() => selectCategory(category)}
                 role="option"
                 aria-selected={isActive}
