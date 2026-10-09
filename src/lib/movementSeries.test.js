@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { describeRecurrence, buildReimbursementDescription, syncReimbursementDescription, scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
+import { formatCurrency } from "./finance.js";
+import { describeInstallment, describeRecurrence, buildReimbursementDescription, syncReimbursementDescription, scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
 
 assert.deepEqual(parseInstallmentDescription("Notebook (2/12)"), { base: "Notebook", index: 2, total: 12 });
 assert.equal(parseInstallmentDescription("Notebook"), null);
@@ -47,3 +48,8 @@ assert.equal(describeRecurrence(plan[3], plan, [{ id: "r", frequency: "monthly" 
 const yearly = [{ id: "y1", recurring_id: "y", year: 2026, month: 12 }, { id: "y2", recurring_id: "y", year: 2027, month: 12 }];
 assert.equal(describeRecurrence(yearly[0], yearly), "Cada año hasta diciembre 2027 (queda 1 más)");
 assert.equal(describeRecurrence({ id: "n" }, plan), null);
+
+const cuotas = [1, 2, 3].map((index) => ({ id: `c${index}`, recurring_id: "c", flow: "Movimiento", description: `Zapatillas (${index}/3)`, amount: index === 1 ? -20001 : -20000, year: 2026, month: 9 + index }));
+assert.equal(describeInstallment(cuotas[1], cuotas), `Cuota 2 de 3 · Total de la compra: ${formatCurrency(60001)}`);
+assert.equal(describeInstallment(cuotas[1], cuotas.slice(1)), `Cuota 2 de 3 · Total de la compra: aprox. ${formatCurrency(60000)}`);
+assert.equal(describeInstallment({ description: "Sin cuotas" }, cuotas), null);
