@@ -121,6 +121,10 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
   const responsibleRef = useRef(null);
   const [responsibleOpen, setResponsibleOpen] = useState(false);
   const [responsibleQuery, setResponsibleQuery] = useState("");
+  // "Extender serie" queda plegado para no recargar el formulario de edicion.
+  const [extendOpen, setExtendOpen] = useState(false);
+
+  useEffect(() => setExtendOpen(false), [editingId]);
 
   useEffect(() => {
     if (!responsibleOpen) return undefined;
@@ -417,6 +421,20 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
                 : "Se actualizaran los datos comunes de la serie. Cada movimiento conservara su mes y año."}
             </p>
           )}
+          {draft.series_kind !== "installment" && (extendOpen ? (
+            <div className="series-extend">
+              <label>
+                Agregar repeticiones al final
+                <input type="number" min="1" max="120" step="1" inputMode="numeric" value={draft.recurring_extend_count || ""} onChange={(event) => update("recurring_extend_count", event.target.value)} placeholder="12" autoFocus />
+              </label>
+              <button type="button" className="series-extend-toggle" onClick={() => { setExtendOpen(false); update("recurring_extend_count", ""); }}>Cancelar</button>
+              <p>Se agregan al guardar, con la misma frecuencia y copiando la ultima repeticion.</p>
+            </div>
+          ) : (
+            <button type="button" className="series-extend-toggle" onClick={() => setExtendOpen(true)}>
+              <Plus size={14} aria-hidden="true" /> Extender serie
+            </button>
+          ))}
         </fieldset>
       )}
       <fieldset className="responsible-picker" ref={responsibleRef}>

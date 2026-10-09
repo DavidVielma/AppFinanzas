@@ -74,6 +74,7 @@ const emptyDraft = {
   recurring_frequency: "none",
   recurring_count: "12",
   recurring_edit_scope: "one",
+  recurring_extend_count: "",
   card_payment_mode: "auto",
   year: initialPeriod.year,
   month: initialPeriod.month
@@ -932,6 +933,15 @@ export function App() {
       : [];
     let reimbursementAdjustment = { count: 0, error: null };
     let shiftResult = { count: 0, error: null };
+    // Repeticiones nuevas al final de una serie recurrente; copian la ultima fila con los
+    // cambios de este guardado si el alcance la incluye (o si se edita justo esa fila).
+    const extendCount = editingMovement && draft.series_editable && draft.series_kind !== "installment"
+      ? Math.max(0, Math.min(120, Number.parseInt(draft.recurring_extend_count, 10) || 0))
+      : 0;
+    const seriesLastRow = extendCount ? getMovementSeriesRows(editingMovement, movements, "all").at(-1) : null;
+    const extensionOverrides = isRecurringSeriesEdit ? seriesPayload : seriesLastRow?.id === editingMovement?.id ? payload : {};
+    const extensionRows = extendCount ? buildSeriesExtension(editingMovement, movements, recurringMovements, extendCount, extensionOverrides) : [];
+    let extensionResult = { count: 0, error: null };
 
     if (isRemote) {
       let recurringRule = null;
@@ -992,6 +1002,7 @@ export function App() {
       });
       shiftResult = await shiftMovementRows(shiftRows, monthShift);
       reimbursementAdjustment = await adjustLinkedReimbursements(sourceAmountChanges);
+      extensionResult = await extendRecurringSeries(extensionRows);
       await loadMovements();
     } else {
       const now = new Date().toISOString();
@@ -1039,6 +1050,7 @@ export function App() {
       });
       shiftResult = await shiftMovementRows(shiftRows, monthShift);
       reimbursementAdjustment = await adjustLinkedReimbursements(sourceAmountChanges);
+      extensionResult = await extendRecurringSeries(extensionRows);
     }
 
     setSelectedYear(draftYear);
@@ -1050,6 +1062,11 @@ export function App() {
       ? ` No se pudieron mover todos los movimientos: ${shiftResult.error}`
       : shiftResult.count > 1
       ? ` ${shiftResult.count} movimientos desplazados ${Math.abs(monthShift) === 1 ? "1 mes" : `${Math.abs(monthShift)} meses`}.`
+      : "";
+    const extensionNotice = extensionResult.error
+      ? ` No se pudo extender la serie: ${extensionResult.error}`
+      : extensionResult.count
+      ? ` Serie extendida en ${extensionResult.count === 1 ? "1 repeticion" : `${extensionResult.count} repeticiones`}.`
       : "";
     const savedNotice = (editingId
         ? isRecurringSeriesEdit
@@ -1063,7 +1080,7 @@ export function App() {
         ? `Compra dividida en ${installmentCount} cuotas.`
         : isRecurringMovement
         ? `Movimiento recurrente creado ${getRecurringFrequencyLabel(draft.recurring_frequency)} por ${recurringCount} periodos.`
-        : "Movimiento agregado.") + shiftNotice;
+        : "Movimiento agregado.") + shiftNotice + extensionNotice;
     setNotice(
       reimbursementAdjustment.error
         ? `${savedNotice} No se pudieron ajustar los reembolsos: ${reimbursementAdjustment.error}`
@@ -1098,6 +1115,25 @@ export function App() {
   function confirmShift(scope) {
     setShiftPrompt(null);
     handleSubmit(null, { shiftScope: scope });
+  }
+
+  async function extendRecurringSeries(rows) {
+    if (!rows.length) return { count: 0, error: null };
+    const recurringId = rows[0].recurring_id;
+    const rule = recurringMovements.find((item) => item.id === recurringId);
+    const nextCount = rule ? (Number(rule.occurrence_count) || 0) + rows.length : null;
+
+    if (isRemote) {
+      const { data, error } = await supabase.from("movements").insert(rows).select();
+      if (error) return { count: 0, error: error.message };
+      setMovements((current) => [...current, ...(data || [])]);
+      if (rule) await supabase.from("recurring_movements").update({ occurrence_count: nextCount }).eq("id", recurringId);
+    } else {
+      const now = new Date().toISOString();
+      setMovements((current) => [...current, ...rows.map((row) => ({ ...row, id: buildLocalId(), created_at: now, updated_at: now }))]);
+    }
+    if (rule) setRecurringMovements((current) => current.map((item) => (item.id === recurringId ? { ...item, occurrence_count: nextCount } : item)));
+    return { count: rows.length, error: null };
   }
 
   async function adjustLinkedReimbursements(changes) {
@@ -1158,6 +1194,7 @@ export function App() {
       recurring_frequency: "none",
       recurring_count: "12",
       recurring_edit_scope: "one",
+      recurring_extend_count: "",
       series_editable: hasMovementSeries(movement, movements),
       series_kind: isInstallmentMovement(movement) ? "installment" : "recurring",
       card_payment_mode: movement.flow === "Pago Tarjeta" ? movement.card_payment_mode || paymentCoverage?.mode || "manual" : "auto",
