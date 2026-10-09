@@ -104,7 +104,9 @@ function getMovementBadges(movement, paymentBadge, paymentBadgeMode) {
     const type = paymentBadgeMode === "manual" ? "paymentPartial" : "paymentTotal";
     badges.push({ ...MOVEMENT_BADGE_TYPES[type], key: "payment", type, label: `Pago ${paymentBadge.toLowerCase()}` });
   }
+  // "$" marca tanto la compra que tiene reembolso como el ingreso que la reembolsa.
   if (movement.has_reimbursement) badges.push({ ...MOVEMENT_BADGE_TYPES.reimbursement, key: "reimbursement", type: "reimbursement" });
+  else if (movement.source_movement?.reimbursement_source_id || movement.reimbursement_source_id) badges.push({ ...MOVEMENT_BADGE_TYPES.reimbursement, key: "reimbursement", type: "reimbursement", hint: "Ingreso que reembolsa una compra" });
   return badges;
 }
 
