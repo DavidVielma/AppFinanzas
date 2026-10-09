@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildReimbursementDescription, syncReimbursementDescription, scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
+import { describeRecurrence, buildReimbursementDescription, syncReimbursementDescription, scaleReimbursement, getMovementSeriesRows, hasMovementSeries, parseInstallmentDescription, buildInstallmentDescription, shiftPeriod, getMonthOffset } from "./movementSeries.js";
 
 assert.deepEqual(parseInstallmentDescription("Notebook (2/12)"), { base: "Notebook", index: 2, total: 12 });
 assert.equal(parseInstallmentDescription("Notebook"), null);
@@ -40,3 +40,10 @@ assert.equal(buildReimbursementDescription("INACAP (3/3)"), "Reembolso: INACAP (
 assert.deepEqual(syncReimbursementDescription({ description: "Reembolso: Bencina" }, "Bencina Mayo"), { description: "Reembolso: Bencina Mayo" });
 assert.equal(syncReimbursementDescription({ description: "Reembolso: Bencina" }, "Bencina"), null);
 assert.equal(syncReimbursementDescription(null, "Bencina"), null);
+
+const plan = [1, 3, 5, 7].map((month) => ({ id: `p${month}`, recurring_id: "r", year: 2026, month }));
+assert.equal(describeRecurrence(plan[1], plan), "Cada 2 meses hasta julio 2026 (quedan 2 más)");
+assert.equal(describeRecurrence(plan[3], plan, [{ id: "r", frequency: "monthly" }]), "Cada mes hasta julio 2026 (esta es la última)");
+const yearly = [{ id: "y1", recurring_id: "y", year: 2026, month: 12 }, { id: "y2", recurring_id: "y", year: 2027, month: 12 }];
+assert.equal(describeRecurrence(yearly[0], yearly), "Cada año hasta diciembre 2027 (queda 1 más)");
+assert.equal(describeRecurrence({ id: "n" }, plan), null);
