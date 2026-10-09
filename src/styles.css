@@ -5669,27 +5669,37 @@ button.movement-badge:focus-visible {
     color: var(--brand-strong);
   }
 
+  /* Fila compacta: estado ajustado a su texto y acciones pequenas, sin linea divisoria. */
   .mobile-movement-card footer {
-    display: grid;
-    grid-template-columns: minmax(116px, 1fr) auto;
+    display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding-top: 7px;
-    border-top: 1px solid #e6edf0;
+  }
+
+  .mobile-movement-card footer .status-select {
+    min-width: 0;
+    min-height: 24px;
+    padding: 2px 22px 2px 9px;
+    font-size: 0.66rem;
   }
 
   .mobile-card-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 5px;
+    gap: 4px;
   }
 
   .mobile-card-actions .icon-button {
-    width: 34px;
-    height: 34px;
-    min-height: 34px;
+    width: 28px;
+    height: 28px;
+    min-height: 28px;
     border-radius: 6px;
+  }
+
+  .mobile-card-actions .icon-button svg {
+    width: 14px;
+    height: 14px;
   }
 
   .mobile-card-actions .mobile-reorder-action {
