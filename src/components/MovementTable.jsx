@@ -89,16 +89,16 @@ function getDisplayDescription(movement) {
 // Fuente unica de las etiquetas: la usan los chips y la leyenda.
 const MOVEMENT_BADGE_TYPES = {
   installment: { className: "installment-badge", symbol: "n/N", label: "Compra en cuotas", hint: "Cuota actual / total de cuotas" },
-  recurring: { className: "recurring-badge", symbol: "\u21bb", label: "Recurrente", hint: "Se repite cada mes" },
+  recurring: { className: "recurring-badge", symbol: "\u21bb", isIcon: true, label: "Recurrente", hint: "Se repite cada mes" },
   paymentTotal: { className: "payment-mode-badge auto", symbol: "T", label: "Pago total", hint: "Pago de tarjeta por el total" },
   paymentPartial: { className: "payment-mode-badge manual", symbol: "P", label: "Pago parcial", hint: "Pago de tarjeta por un monto parcial" },
-  reimbursement: { className: "reimbursement-badge", symbol: "$", label: "Reembolso", hint: "Tiene un reembolso asociado" }
+  reimbursement: { className: "reimbursement-badge", symbol: "$", isIcon: true, label: "Reembolso", hint: "Tiene un reembolso asociado" }
 };
 
 function getMovementBadges(movement, paymentBadge, paymentBadgeMode) {
   const badges = [];
   const installment = isInstallmentMovement(movement) ? parseInstallmentDescription(movement.description) : null;
-  if (installment) badges.push({ ...MOVEMENT_BADGE_TYPES.installment, key: "installment", type: "installment", symbol: `${installment.index}/${installment.total}`, hint: `Cuota ${installment.index} de ${installment.total}` });
+  if (installment) badges.push({ ...MOVEMENT_BADGE_TYPES.installment, key: "installment", type: "installment", symbol: `${installment.index}/${installment.total}`, name: `Cuota ${installment.index}/${installment.total}`, hint: `Cuota ${installment.index} de ${installment.total}` });
   if (movement.recurring_id && !installment) badges.push({ ...MOVEMENT_BADGE_TYPES.recurring, key: "recurring", type: "recurring" });
   if (paymentBadge) {
     const type = paymentBadgeMode === "manual" ? "paymentPartial" : "paymentTotal";
@@ -162,7 +162,9 @@ function BadgeChip({ badge }) {
       onBlur={hide}
       onClick={(event) => { event.stopPropagation(); if (tooltip) hide(); else show(); }}
     >
-      {badge.symbol}
+      {/* En escritorio se ve el simbolo; en movil, el nombre completo y el icono si lo hay (ver styles.css). */}
+      <span className={`badge-symbol${badge.isIcon ? " is-icon" : ""}`} aria-hidden="true">{badge.symbol}</span>
+      <span className="badge-name" aria-hidden="true">{badge.name || badge.label}</span>
       {tooltip && (
         <span ref={tooltipRef} className={`badge-tooltip ${tooltip.above ? "above" : "below"}`} style={{ left: tooltip.left, top: tooltip.top }} role="tooltip">
           <strong>{badge.label}</strong>
