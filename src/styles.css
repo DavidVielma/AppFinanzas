@@ -1379,6 +1379,28 @@ button:disabled {
   }
 }
 
+@keyframes modal-backdrop-out {
+  to {
+    background-color: rgba(15, 23, 42, 0);
+  }
+}
+
+@keyframes modal-sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* Copia visual del modal que se esta cerrando (ver lib/modalExitAnimation.js). */
+.modal-backdrop.is-closing {
+  pointer-events: none;
+  animation: modal-backdrop-out 260ms ease-in forwards;
+}
+
+.modal-backdrop.is-closing > .modal-panel {
+  animation: modal-sheet-out 260ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .month-transition-panel.is-month-next,
   .month-transition-panel.is-month-prev,

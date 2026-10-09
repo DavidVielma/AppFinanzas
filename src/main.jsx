@@ -2,7 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App.jsx";
 import { SharedAccountView } from "./components/SharedAccountView.jsx";
+import { installModalExitAnimation } from "./lib/modalExitAnimation.js";
 import "./styles.css";
+
+installModalExitAnimation();
 
 const isSharedAccountView = window.location.pathname.replace(/\/$/, "") === "/cuenta-compartida";
 
