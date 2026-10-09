@@ -1642,12 +1642,34 @@ export function App() {
 
   // Se escucha en toda la ventana (no solo en la lista) para que el gesto funcione con el
   // puntero sobre el resumen, la grilla de meses o donde quede tras cambiar de mes.
+  //
+  // Chrome amarra los eventos de un gesto de trackpad al elemento que estaba bajo el puntero
+  // y, en Windows, mantiene ese amarre hasta que el mouse se mueve. Al cambiar de mes React
+  // quita esa fila del DOM, y los eventos siguientes van a un nodo desconectado que nunca
+  // llega a window: el gesto "no hacia nada" hasta mover el mouse. Por eso tambien se escucha
+  // en el nodo bajo el puntero y se procesan ahi los eventos que llegan ya desconectado.
   movementWheelHandlerRef.current = handleMovementWheel;
   useEffect(() => {
     if (activeView !== "movements") return undefined;
-    const onWheel = (event) => movementWheelHandlerRef.current?.(event);
+    let latchedNode = null;
+    const onDetachedWheel = (event) => {
+      if (!event.currentTarget.isConnected) movementWheelHandlerRef.current?.(event);
+    };
+    const watchNode = (node) => {
+      if (node === latchedNode) return;
+      latchedNode?.removeEventListener("wheel", onDetachedWheel);
+      latchedNode = node;
+      latchedNode?.addEventListener("wheel", onDetachedWheel, { passive: true });
+    };
+    const onWheel = (event) => {
+      watchNode(event.target instanceof Node ? event.target : null);
+      movementWheelHandlerRef.current?.(event);
+    };
     window.addEventListener("wheel", onWheel, { passive: true });
-    return () => window.removeEventListener("wheel", onWheel);
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      watchNode(null);
+    };
   }, [activeView]);
 
   async function applyMovementOrder(account, orderedRows) {
