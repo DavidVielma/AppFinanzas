@@ -45,6 +45,7 @@ import { seedMovements } from "./lib/sampleData";
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { getResponsibleAmount, parseResponsibleAmounts } from "./lib/responsibleAmounts";
 import { buildInstallmentDescription, buildSeriesExtension, getMonthOffset, getMovementSeriesRows, getRecurrenceStep, hasMovementSeries, isInstallmentMovement, buildReimbursementDescription, parseInstallmentDescription, scaleReimbursement, shiftPeriod, stripInstallmentSuffix, syncReimbursementDescription } from "./lib/movementSeries";
+import { isMobileLayout } from "./lib/layout";
 
 const initialPeriod = getCurrentPeriod();
 const quickMovementShortcutUrl = "https://www.icloud.com/shortcuts/45efc6dc3d8847c09c0ccb223d4abf03";
@@ -464,7 +465,7 @@ export function App() {
     if (!hasOpenModal) return undefined;
 
     const scrollY = window.scrollY;
-    const shouldFreezeDocumentPosition = window.matchMedia("(max-width: 720px)").matches;
+    const shouldFreezeDocumentPosition = isMobileLayout();
 
     if (!shouldFreezeDocumentPosition) {
       return undefined;
@@ -498,7 +499,7 @@ export function App() {
     const shouldFreezeForMobileFilters =
       activeView === "movements" &&
       filtersOpen &&
-      window.matchMedia("(max-width: 720px)").matches;
+      isMobileLayout();
 
     if (!shouldFreezeForMobileFilters) return undefined;
 
@@ -1619,7 +1620,7 @@ export function App() {
   }
 
   function handleMovementTouchStart(event) {
-    if (window.innerWidth > 720 || isInteractiveSwipeTarget(event.target) || event.touches.length !== 1) {
+    if (!isMobileLayout() || isInteractiveSwipeTarget(event.target) || event.touches.length !== 1) {
       movementSwipeRef.current = null;
       return;
     }

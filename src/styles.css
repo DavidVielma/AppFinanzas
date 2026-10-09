@@ -1023,7 +1023,7 @@ button:disabled {
   display: none;
 }
 
-@media (min-width: 721px) and (max-width: 940px) {
+@media (min-width: 721px) and (max-width: 940px) and (min-height: 501px), (min-width: 721px) and (max-width: 940px) and (pointer: fine) {
   .nav-label-full {
     display: none;
   }
@@ -1938,7 +1938,8 @@ button:disabled {
 }
 
 /* En movil se mantienen las 4 columnas: letra mas chica y etiqueta abreviada. */
-@media (max-width: 720px) {
+/* Movil: pantallas angostas o celulares en horizontal (bajos y tactiles). */
+@media (max-width: 720px), (max-height: 500px) and (pointer: coarse) {
   /* Cada columna toma el ancho de su monto y la letra se ajusta al ancho de la tarjeta. */
   .credit-card-payment-summary {
     container-type: inline-size;
@@ -4715,7 +4716,8 @@ button.movement-badge:focus-visible {
   }
 }
 
-@media (max-width: 720px) {
+/* Movil: pantallas angostas o celulares en horizontal (bajos y tactiles). */
+@media (max-width: 720px), (max-height: 500px) and (pointer: coarse) {
   html,
   body {
     width: 100%;
@@ -6333,7 +6335,7 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   border-radius: 10px;
 }
 
-@media (min-width: 721px) {
+@media (min-width: 721px) and (min-height: 501px), (min-width: 721px) and (pointer: fine) {
   .quick-action-button,
   .sync-action-button,
   .filter-action-button {
@@ -6362,7 +6364,8 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   .filter-action-button:hover { background: #d8ebe7; }
 }
 
-@media (max-width: 720px) {
+/* Movil: pantallas angostas o celulares en horizontal (bajos y tactiles). */
+@media (max-width: 720px), (max-height: 500px) and (pointer: coarse) {
   .movement-filter-panel {
     right: 0;
     left: auto;
@@ -6686,7 +6689,8 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   }
 }
 
-@media (max-width: 720px) {
+/* Movil: pantallas angostas o celulares en horizontal (bajos y tactiles). */
+@media (max-width: 720px), (max-height: 500px) and (pointer: coarse) {
   .account-edit-actions > * {
     flex: 1 1 calc(50% - 8px);
   }
@@ -6876,7 +6880,8 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   font-weight: 700;
 }
 
-@media (max-width: 720px) {
+/* Movil: pantallas angostas o celulares en horizontal (bajos y tactiles). */
+@media (max-width: 720px), (max-height: 500px) and (pointer: coarse) {
   .responsible-row {
     flex-wrap: wrap;
   }
@@ -7082,5 +7087,42 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 @media (max-width: 560px) {
   .shared-account {
     padding: 12px;
+  }
+}
+
+/* Celular en horizontal: usa el diseño movil, pero con la barra inferior y los botones
+   flotantes mas bajos para no comerse la poca altura disponible. */
+@media (max-height: 500px) and (pointer: coarse) and (orientation: landscape) {
+  .app-sidebar {
+    padding: 4px 10px calc(4px + env(safe-area-inset-bottom));
+  }
+
+  .sidebar-nav button {
+    min-height: 40px;
+    flex-direction: row;
+    gap: 6px;
+    padding: 4px 8px;
+    font-size: 0.74rem;
+  }
+
+  .app-shell {
+    padding-bottom: 64px;
+  }
+
+  .quick-action-button,
+  .sync-action-button,
+  .filter-action-button {
+    width: 46px;
+    height: 46px;
+    min-height: 46px;
+  }
+
+  .quick-action-button,
+  .sync-action-button {
+    bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  .filter-action-button {
+    bottom: calc(114px + env(safe-area-inset-bottom));
   }
 }
