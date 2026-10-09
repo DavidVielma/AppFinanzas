@@ -1993,46 +1993,128 @@ td:nth-child(8) {
 .description-content {
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: 5px;
 }
 
 .description-text {
-  display: block;
-  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Etiquetas de un movimiento (Recurrente, Total/Parcial, Reembolso).
-   Van bajo la descripcion y hacen wrap para no recortar el texto. */
+/* Etiquetas de un movimiento (Recurrente, Total/Parcial, Reembolso) como
+   chips de un caracter: ocupan poco y nunca le quitan espacio a la descripcion. */
 .movement-badges {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  min-width: 0;
-}
-
-.movement-badges:empty {
-  display: none;
+  gap: 3px;
+  flex: 0 0 auto;
 }
 
 .movement-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  width: fit-content;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
-  padding: 1px 6px;
-  font-size: 0.62rem;
+  font: inherit;
+  font-size: 0.66rem;
   font-weight: 900;
-  line-height: 1.35;
-  white-space: nowrap;
+  line-height: 1;
+  cursor: help;
+}
+
+button.movement-badge:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+.movement-badge .badge-tooltip {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  max-width: 220px;
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: #172033;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.22);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  white-space: normal;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.movement-badge .badge-tooltip.above {
+  transform: translate(-50%, -100%);
+}
+
+.movement-badge .badge-tooltip.below {
+  transform: translate(-50%, 0);
+}
+
+.movement-badge .badge-tooltip strong {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.movement-badge .badge-tooltip span {
+  display: block;
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: normal;
+  overflow: visible;
+}
+
+:root[data-theme="dark"] .movement-badge .badge-tooltip {
+  background: #e7edf2;
+  color: #07171a;
+}
+
+:root[data-theme="dark"] .movement-badge .badge-tooltip span {
+  color: #475569;
+}
+
+.movement-badge-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 10px 8px 4px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.movement-badge-legend-title {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.movement-badge-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.movement-badge-legend .movement-badge {
+  cursor: default;
 }
 
 .actions-col {
@@ -2061,6 +2143,15 @@ td:nth-child(8) {
 .pill.expense {
   background: #ffe1e1;
   color: #a62219;
+}
+
+.movement-badge.installment-badge {
+  width: auto;
+  min-width: 17px;
+  padding: 0 5px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-variant-numeric: tabular-nums;
 }
 
 .recurring-badge {
@@ -5463,12 +5554,8 @@ td:nth-child(8) {
 
   .mobile-movement-card header .movement-badges {
     display: flex;
-    margin: 4px 0 2px;
+    margin: 4px 0 0;
     overflow: visible;
-  }
-
-  .mobile-movement-card header .movement-badges:empty {
-    display: none;
   }
 
   .mobile-movement-card header .movement-badge {
@@ -5478,6 +5565,7 @@ td:nth-child(8) {
     overflow: visible;
   }
 
+  .mobile-movement-card header .installment-badge { color: #5b21b6; }
   .mobile-movement-card header .recurring-badge { color: #155e75; }
   .mobile-movement-card header .reimbursement-badge { color: #0f766e; }
   .mobile-movement-card header .payment-mode-badge.auto { color: #17633d; }

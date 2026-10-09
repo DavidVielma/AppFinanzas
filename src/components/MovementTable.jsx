@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FileSearch, HandCoins, Pencil, Trash2 } from "lucide-react";
 import { CategoryBadge } from "./CategoryVisuals";
 import { formatCurrency } from "../lib/finance";
-import { isInstallmentMovement } from "../lib/movementSeries";
+import { isInstallmentMovement, parseInstallmentDescription, stripInstallmentSuffix } from "../lib/movementSeries";
 
 function getStatusClass(status) {
   if (status === "Confirmado") return "confirmed";
@@ -79,6 +79,123 @@ function getPaymentBadge(movement) {
 function getPaymentBadgeMode(movement) {
   if (movement.flow !== "Pago Tarjeta") return null;
   return movement.payment_badge_mode || (movement.card_payment_mode === "manual" ? "manual" : "auto");
+}
+
+// La cuota se muestra en su propio chip, asi que se quita "(n/N)" del texto.
+function getDisplayDescription(movement) {
+  return isInstallmentMovement(movement) ? stripInstallmentSuffix(movement.description) : movement.description;
+}
+
+// Fuente unica de las etiquetas: la usan los chips y la leyenda.
+const MOVEMENT_BADGE_TYPES = {
+  installment: { className: "installment-badge", symbol: "n/N", label: "Compra en cuotas", hint: "Cuota actual / total de cuotas" },
+  recurring: { className: "recurring-badge", symbol: "\u21bb", label: "Recurrente", hint: "Se repite cada mes" },
+  paymentTotal: { className: "payment-mode-badge auto", symbol: "T", label: "Pago total", hint: "Pago de tarjeta por el total" },
+  paymentPartial: { className: "payment-mode-badge manual", symbol: "P", label: "Pago parcial", hint: "Pago de tarjeta por un monto parcial" },
+  reimbursement: { className: "reimbursement-badge", symbol: "$", label: "Reembolso", hint: "Tiene un reembolso asociado" }
+};
+
+function getMovementBadges(movement, paymentBadge, paymentBadgeMode) {
+  const badges = [];
+  const installment = isInstallmentMovement(movement) ? parseInstallmentDescription(movement.description) : null;
+  if (installment) badges.push({ ...MOVEMENT_BADGE_TYPES.installment, key: "installment", type: "installment", symbol: `${installment.index}/${installment.total}`, hint: `Cuota ${installment.index} de ${installment.total}` });
+  if (movement.recurring_id && !installment) badges.push({ ...MOVEMENT_BADGE_TYPES.recurring, key: "recurring", type: "recurring" });
+  if (paymentBadge) {
+    const type = paymentBadgeMode === "manual" ? "paymentPartial" : "paymentTotal";
+    badges.push({ ...MOVEMENT_BADGE_TYPES[type], key: "payment", type, label: `Pago ${paymentBadge.toLowerCase()}` });
+  }
+  if (movement.has_reimbursement) badges.push({ ...MOVEMENT_BADGE_TYPES.reimbursement, key: "reimbursement", type: "reimbursement" });
+  return badges;
+}
+
+// Chip con tooltip propio: aparece con hover, foco o toque (el title nativo no funciona en movil).
+// Usa position: fixed para no quedar recortado por las celdas con overflow: hidden.
+function BadgeChip({ badge }) {
+  const chipRef = useRef(null);
+  const tooltipRef = useRef(null);
+  const [tooltip, setTooltip] = useState(null);
+
+  const show = () => {
+    const rect = chipRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const above = rect.top > 56;
+    setTooltip({ left: rect.left + rect.width / 2, top: above ? rect.top - 6 : rect.bottom + 6, above });
+  };
+  const hide = () => setTooltip(null);
+
+  // Mantiene el tooltip dentro de la pantalla cuando el chip esta cerca de un borde.
+  useLayoutEffect(() => {
+    const node = tooltipRef.current;
+    if (!tooltip || !node) return;
+    const margin = 8;
+    const width = node.offsetWidth;
+    const centered = Math.min(Math.max(tooltip.left, margin + width / 2), window.innerWidth - margin - width / 2);
+    node.style.left = `${centered}px`;
+  }, [tooltip]);
+
+  useEffect(() => {
+    if (!tooltip) return undefined;
+    const hideOnOutside = (event) => {
+      if (!chipRef.current?.contains(event.target)) hide();
+    };
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
+    document.addEventListener("pointerdown", hideOnOutside);
+    return () => {
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
+      document.removeEventListener("pointerdown", hideOnOutside);
+    };
+  }, [tooltip]);
+
+  return (
+    <button
+      type="button"
+      ref={chipRef}
+      className={`movement-badge ${badge.className}`}
+      aria-label={`${badge.label}: ${badge.hint}`}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={(event) => { if (event.currentTarget.matches(":focus-visible")) show(); }}
+      onBlur={hide}
+      onClick={(event) => { event.stopPropagation(); if (tooltip) hide(); else show(); }}
+    >
+      {badge.symbol}
+      {tooltip && (
+        <span ref={tooltipRef} className={`badge-tooltip ${tooltip.above ? "above" : "below"}`} style={{ left: tooltip.left, top: tooltip.top }} role="tooltip">
+          <strong>{badge.label}</strong>
+          <span>{badge.hint}</span>
+        </span>
+      )}
+    </button>
+  );
+}
+
+function MovementBadges({ movement, paymentBadge, paymentBadgeMode }) {
+  const badges = getMovementBadges(movement, paymentBadge, paymentBadgeMode);
+  if (!badges.length) return null;
+  return (
+    <span className="movement-badges">
+      {badges.map((badge) => <BadgeChip key={badge.key} badge={badge} />)}
+    </span>
+  );
+}
+
+// Leyenda con las etiquetas que aparecen en la tabla, en el orden de MOVEMENT_BADGE_TYPES.
+function MovementBadgeLegend({ movements }) {
+  const present = new Set(movements.flatMap((movement) => getMovementBadges(movement, getPaymentBadge(movement), getPaymentBadgeMode(movement)).map((badge) => badge.type)));
+  if (!present.size) return null;
+  return (
+    <div className="movement-badge-legend" aria-label="Leyenda de etiquetas">
+      <span className="movement-badge-legend-title">Etiquetas</span>
+      {Object.entries(MOVEMENT_BADGE_TYPES).filter(([key]) => present.has(key)).map(([key, badge]) => (
+        <span key={key} className="movement-badge-legend-item">
+          <span className={`movement-badge ${badge.className}`} aria-hidden="true">{badge.symbol}</span>
+          {badge.label}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 function isInteractiveTarget(target) {
@@ -432,14 +549,10 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
             const responsiblePayment = getSelectedResponsiblePayment(movement);
             return (
             <tr key={movement.row_key || movement.id} draggable className={desktopDragKey === getMovementKey(movement) ? "desktop-dragging" : ""} onDragStart={(event) => startDesktopDrag(event, movement)} onDragEnter={() => previewDesktopMovement(movement)} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropDesktopMovement} onDragEnd={() => { setDesktopDragKey(null); setDesktopDragOrder(null); desktopDragOrderRef.current = null; }}>
-              <td data-label="Descripcion" className="description-cell" title={movement.description}>
+              <td data-label="Descripcion" className="description-cell">
                 <span className="description-content">
-                  <span className="description-text">{movement.description}</span>
-                  <span className="movement-badges">
-                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="movement-badge recurring-badge">Recurrente</span>}
-                    {paymentBadge && <span className={`movement-badge payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
-                    {movement.has_reimbursement && <span className="movement-badge reimbursement-badge">Reembolso</span>}
-                  </span>
+                  <span className="description-text" title={movement.description}>{getDisplayDescription(movement)}</span>
+                  <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
                 </span>
               </td>
               <td data-label="Cuenta" className="account-cell" title={`${movement.account || "Principal"}${movement.target_account ? ` -> ${movement.target_account}` : ""}`}>
@@ -519,12 +632,8 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
             >
               <header>
                 <div>
-                  <strong className="description-text">{movement.description}</strong>
-                  <span className="movement-badges">
-                    {movement.recurring_id && !isInstallmentMovement(movement) && <span className="movement-badge recurring-badge">Recurrente</span>}
-                    {paymentBadge && <span className={`movement-badge payment-mode-badge ${paymentBadgeMode}`}>{paymentBadge}</span>}
-                    {movement.has_reimbursement && <span className="movement-badge reimbursement-badge">Reembolso</span>}
-                  </span>
+                  <strong className="description-text">{getDisplayDescription(movement)}</strong>
+                  <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
                   <span className="mobile-account-text">{accountText}</span>
                 </div>
                 <b className={movement.amount >= 0 ? "income-text" : "expense-text"}>{formatCurrency(movement.amount)}</b>
@@ -594,6 +703,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
         })}
         {movements.length === 0 && <p className="empty-row">Sin movimientos para este mes.</p>}
       </div>
+      <MovementBadgeLegend movements={movements} />
     </div>
   );
 }
