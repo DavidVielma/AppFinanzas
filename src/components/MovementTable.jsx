@@ -648,10 +648,13 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
                 <button type="button" className="mobile-chip-button category-chip-button" onClick={() => toggleMobileEditor("category", movement)} aria-expanded={mobileEditor?.type === "category" && mobileEditor?.key === editorKey} aria-label={`Editar categoria de ${movement.description}`}>
                   <CategoryBadge category={movement.category} compact />
                 </button>
+                {/* Tocar cualquier participante abre el editor de responsables. */}
                 {selectedResponsibles.map((responsible) => (
-                  <span className="mobile-chip-button responsible-chip-button" key={responsible}>{displayResponsibleName(responsible, currentResponsible)}</span>
+                  <button type="button" className="mobile-chip-button responsible-chip-button" key={responsible} onClick={() => toggleMobileEditor("responsible", movement)} aria-expanded={mobileEditor?.type === "responsible" && mobileEditor?.key === editorKey} aria-label={`Editar responsables de ${movement.description}`}>{displayResponsibleName(responsible, currentResponsible)}</button>
                 ))}
-                <button type="button" className="mobile-chip-button responsible-edit-button" onClick={() => toggleMobileEditor("responsible", movement)} aria-label={`Editar responsables de ${movement.description}`}>Editar</button>
+                {selectedResponsibles.length === 0 && (
+                  <button type="button" className="mobile-chip-button responsible-edit-button" onClick={() => toggleMobileEditor("responsible", movement)} aria-label={`Editar responsables de ${movement.description}`}>Editar</button>
+                )}
                 {responsiblePayment && <span className={`personal-payment-dot ${responsiblePayment}`} title={responsiblePayment === "paid" ? "Pagado" : "Pendiente"} aria-label={responsiblePayment === "paid" ? "Pagado" : "Pendiente"} />}
               </div>
               {mobileEditor?.type === "category" && mobileEditor.key === editorKey && (
