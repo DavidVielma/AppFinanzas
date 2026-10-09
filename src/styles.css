@@ -1611,9 +1611,15 @@ button:disabled {
 }
 
 .category-option:hover,
+.category-option:focus-visible,
 .category-option.active {
   border-color: color-mix(in srgb, var(--category-color) 28%, #d7e2df);
   background: color-mix(in srgb, var(--category-color) 9%, #ffffff);
+}
+
+.category-option:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--category-color) 55%, #172033);
+  outline-offset: -2px;
 }
 
 .filter-grid input,
