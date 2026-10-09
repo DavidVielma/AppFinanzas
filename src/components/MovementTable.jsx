@@ -86,13 +86,6 @@ function getDisplayDescription(movement) {
   return isInstallmentMovement(movement) ? stripInstallmentSuffix(movement.description) : movement.description;
 }
 
-// En movil el prefijo "Reembolso: " sobra: la categoria y la etiqueta $ ya lo indican.
-function getMobileDescription(movement) {
-  const description = getDisplayDescription(movement);
-  const isReimbursementIncome = Boolean(movement.source_movement?.reimbursement_source_id || movement.reimbursement_source_id);
-  return isReimbursementIncome ? description.replace(/^Reembolso:\s*/i, "") : description;
-}
-
 // Fuente unica de las etiquetas: la usan los chips y la leyenda.
 const MOVEMENT_BADGE_TYPES = {
   installment: { className: "installment-badge", symbol: "n/N", label: "Compra en cuotas", hint: "Cuota actual / total de cuotas" },
@@ -644,7 +637,7 @@ export function MovementTable({ movements, currentResponsible, selectedResponsib
               <header>
                 <div>
                   <div className="mobile-title-row">
-                    <strong className="description-text">{getMobileDescription(movement)}</strong>
+                    <strong className="description-text">{getDisplayDescription(movement)}</strong>
                     <MovementBadges movement={movement} paymentBadge={paymentBadge} paymentBadgeMode={paymentBadgeMode} />
                   </div>
                   {transferText && <span className="mobile-account-text">{transferText}</span>}
