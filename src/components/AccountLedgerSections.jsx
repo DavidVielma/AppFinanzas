@@ -4,7 +4,7 @@ import { formatCurrency, getCreditCardPaymentCoverage } from "../lib/finance";
 import { getMutedTextColor, getReadableTextColor } from "../lib/colors";
 import { MovementTable } from "./MovementTable";
 import { getResponsibleAmount } from "../lib/responsibleAmounts";
-import { describeRecurrence } from "../lib/movementSeries";
+import { describeInstallment, describeRecurrence } from "../lib/movementSeries";
 
 function getVisibleSortValue(movement) {
   return Number(movement.visible_sort_order ?? movement.sort_order) || Date.parse(movement.created_at || "") || 0;
@@ -229,7 +229,8 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
         payment_badge: paymentCoverage?.label || null,
         payment_badge_mode: paymentCoverage?.mode || null,
         has_reimbursement: allMovements.some((item) => item.reimbursement_source_id === (movement.source_movement?.id || movement.id)),
-        recurring_hint: describeRecurrence(movement, allMovements, recurringRules)
+        recurring_hint: describeRecurrence(movement, allMovements, recurringRules),
+        installment_hint: describeInstallment(movement, allMovements)
       };
     });
     const total = rows.reduce((sum, movement) => sum + Number(movement.amount || 0), 0);

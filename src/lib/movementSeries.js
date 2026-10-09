@@ -1,4 +1,4 @@
-import { monthLabels } from "./finance.js";
+import { formatCurrency, monthLabels } from "./finance.js";
 import { parseResponsibleAmounts } from "./responsibleAmounts.js";
 
 // Series de movimientos: recurrentes y compras en cuotas, enlazadas por recurring_id.
@@ -136,4 +136,17 @@ export function describeRecurrence(movement, movements, rules = []) {
   const lastLabel = `${monthLabels[last % 12].toLowerCase()} ${Math.floor(last / 12)}`;
   const tail = remaining === 0 ? "esta es la última" : remaining === 1 ? "queda 1 más" : `quedan ${remaining} más`;
   return `${describeStep(step)} hasta ${lastLabel} (${tail})`;
+}
+
+// Texto de ayuda de una cuota: posicion y monto total de la compra. Suma las cuotas de la
+// serie; si faltan filas (cuotas borradas o compra sin serie), estima con esta cuota x total.
+export function describeInstallment(movement, movements) {
+  const installment = parseInstallmentDescription(movement?.description);
+  if (!installment) return null;
+  const rows = getMovementSeriesRows(movement, movements, "all").filter((item) => parseInstallmentDescription(item.description)?.total === installment.total);
+  const isComplete = new Set(rows.map((item) => parseInstallmentDescription(item.description).index)).size === installment.total;
+  const total = isComplete
+    ? rows.reduce((sum, item) => sum + Math.abs(Number(item.amount) || 0), 0)
+    : Math.abs(Number(movement.amount) || 0) * installment.total;
+  return `Cuota ${installment.index} de ${installment.total} · Total de la compra: ${isComplete ? "" : "aprox. "}${formatCurrency(total)}`;
 }
