@@ -1905,11 +1905,19 @@ button:disabled {
   background: #f8fbfa;
 }
 
-.credit-card-payment-summary span {
+/* Etiqueta arriba y monto abajo, ambos en una sola linea: el monto nunca se corta. */
+.credit-card-payment-summary > div {
   min-width: 0;
+}
+
+.credit-card-payment-summary > div > span {
+  display: block;
   color: #607088;
-  font-size: 0.78rem;
-  font-weight: 900;
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .credit-card-payment-summary strong {
@@ -1917,7 +1925,45 @@ button:disabled {
   margin-top: 2px;
   color: #07111f;
   font-size: 0.92rem;
-  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.credit-card-payment-summary .is-pending strong {
+  color: #a62219;
+}
+
+.credit-card-payment-summary .label-short {
+  display: none;
+}
+
+/* En movil se mantienen las 4 columnas: letra mas chica y etiqueta abreviada. */
+@media (max-width: 720px) {
+  /* Cada columna toma el ancho de su monto y la letra se ajusta al ancho de la tarjeta. */
+  .credit-card-payment-summary {
+    container-type: inline-size;
+    grid-template-columns: repeat(4, auto);
+    justify-content: space-between;
+    gap: 6px;
+    padding: 9px 10px;
+  }
+
+  .credit-card-payment-summary > div > span {
+    font-size: min(0.66rem, 3.2cqi);
+  }
+
+  .credit-card-payment-summary strong {
+    font-size: min(0.8rem, 3.6cqi);
+    letter-spacing: -0.01em;
+  }
+
+  .credit-card-payment-summary .label-long {
+    display: none;
+  }
+
+  .credit-card-payment-summary .label-short {
+    display: inline;
+  }
 }
 
 .card-payments h2 {

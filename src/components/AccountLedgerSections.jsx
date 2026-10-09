@@ -273,10 +273,10 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
         </header>
         {isCard && cardStats && !hasActiveFilters && (
           <div className="credit-card-payment-summary">
-            <span>Total consumos: <strong>{formatCurrency(-cardStats.monthCharges)}</strong></span>
-            <span>Saldo anterior: <strong>{formatCurrency(-cardStats.openingDebt)}</strong></span>
-            <span>Pagado: <strong>{formatCurrency(cardStats.payments)}</strong></span>
-            <span>Pendiente: <strong>{formatCurrency(-cardStats.pending)}</strong></span>
+            <div><span>Consumos</span><strong>{formatCurrency(-cardStats.monthCharges)}</strong></div>
+            <div><span>Saldo <span className="label-long">anterior</span><span className="label-short">ant.</span></span><strong>{formatCurrency(-cardStats.openingDebt)}</strong></div>
+            <div><span>Pagado</span><strong>{formatCurrency(cardStats.payments)}</strong></div>
+            <div className={cardStats.pending > 0 ? "is-pending" : ""}><span>Pendiente</span><strong>{formatCurrency(-cardStats.pending)}</strong></div>
           </div>
         )}
         <MovementTable movements={rowsWithMoveState} currentResponsible={currentResponsible} selectedResponsible={selectedResponsible} responsibles={responsibles} categoryOptionsByType={categoryOptionsByType} isCreditCardLedger={isCard} onEdit={onEdit} onDelete={onDelete} onStatusChange={onStatusChange} onQuickUpdate={onQuickUpdate} onMove={onMove} onMoveToMovement={onMoveToMovement} onCreateReimbursement={onCreateReimbursement} onOpenTcDetail={onOpenTcDetail} />
