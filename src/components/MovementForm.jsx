@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Plus, Save } from "lucide-react";
 import { CategorySelector } from "./CategoryVisuals";
-import { getExtensionUntilYearEnd } from "../lib/movementSeries";
+import { getExtensionUntilYearEnd, shiftPeriod } from "../lib/movementSeries";
 import { flowTypes, formatCurrency, getCategoryOptions, getTypeFromAmount, isCreditCardAccount, monthLabels } from "../lib/finance";
 
 function normalizeResponsibleName(name, currentResponsible) {
@@ -228,6 +228,16 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
   const canUseInstallments = !editingId && draft.flow === "Movimiento" && amountType === "Egreso";
   const canUseRecurring = !editingId && draft.flow !== "Pago Tarjeta" && draft.installment_mode === "none";
   const recurringCount = Math.max(1, Math.min(120, Number.parseInt(draft.recurring_count, 10) || 1));
+  // Atajo "hasta diciembre" al crear una serie: el primer movimiento es el periodo elegido,
+  // asi que las veces son las repeticiones que faltan + 1. No aplica a la frecuencia anual.
+  const recurringStep = { monthly: 1, bimonthly: 2, quarterly: 3 }[draft.recurring_frequency];
+  const recurringStart = { year: Number(draft.year), month: Number(draft.month) };
+  const recurringYearEnd = recurringStep && recurringStart.year && recurringStart.month
+    ? (({ year, count }) => ({ year, count: count + 1 }))(getExtensionUntilYearEnd(recurringStart, recurringStep))
+    : null;
+  const recurringLastPeriod = recurringStart.year && recurringStart.month
+    ? shiftPeriod(recurringStart.year, recurringStart.month, ({ monthly: 1, bimonthly: 2, quarterly: 3, yearly: 12 }[draft.recurring_frequency] || 1) * (Math.max(1, Math.min(120, Number.parseInt(draft.recurring_count, 10) || 1)) - 1))
+    : null;
   const recurringFrequencyLabel = {
     monthly: "mensuales",
     bimonthly: "cada 2 meses",
@@ -398,9 +408,15 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
               </label>
             )}
           </div>
+          {recurringYearEnd && (
+            <button type="button" className={`series-extend-shortcut${Number(draft.recurring_count) === recurringYearEnd.count ? " active" : ""}`} onClick={() => update("recurring_count", String(recurringYearEnd.count))}>
+              Hasta diciembre {recurringYearEnd.year} ({recurringYearEnd.count})
+            </button>
+          )}
           {draft.recurring_frequency !== "none" && (
             <p>
-              Se crearan {recurringCount} movimientos proyectados {recurringFrequencyLabel} desde este periodo.
+              Se crearan {recurringCount} movimientos proyectados {recurringFrequencyLabel} desde este periodo
+              {recurringLastPeriod ? `, hasta ${monthLabels[recurringLastPeriod.month - 1].toLowerCase()} ${recurringLastPeriod.year}` : ""}.
             </p>
           )}
         </fieldset>
