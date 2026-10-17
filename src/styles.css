@@ -124,9 +124,11 @@ p {
 .segmented {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  border: 1px solid var(--dk-border, #d4dde8);
-  border-radius: 8px;
-  overflow: hidden;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--dk-border, #dbe4e5);
+  border-radius: 12px;
+  background: var(--dk-raised, #eef3f2);
 }
 
 .auth-segmented {
@@ -135,14 +137,23 @@ p {
 
 .segmented button {
   border: 0;
-  padding: 10px;
-  background: var(--dk-raised, #f5f7fa);
+  border-radius: 9px;
+  padding: 9px 10px;
+  background: transparent;
   color: var(--dk-text-2, #4d5d72);
+  font-weight: 800;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
+.segmented button:hover:not(.active) {
+  color: var(--brand);
+}
+
+/* Opcion activa: pildora con el teal de la marca. */
 .segmented button.active {
-  background: #173d6d;
+  background: var(--brand);
   color: #ffffff;
+  box-shadow: 0 2px 8px rgba(21, 94, 99, 0.28);
 }
 
 label {
@@ -2857,9 +2868,13 @@ button.movement-badge:focus-visible {
 }
 
 .compact-segmented button {
-  padding: 8px 10px;
+  padding: 7px 10px;
   font-size: 0.82rem;
   font-weight: 900;
+}
+
+.payment-mode-control.compact-segmented {
+  width: min(100%, 300px);
 }
 
 .pie-type-filter.compact-segmented {
@@ -7106,8 +7121,6 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 :root[data-theme="dark"] .amount-input-row button,
 :root[data-theme="dark"] .sync-action-button,
 :root[data-theme="dark"] .filter-action-button,
-:root[data-theme="dark"] .segmented,
-:root[data-theme="dark"] .segmented button,
 :root[data-theme="dark"] .filter-segmented button,
 :root[data-theme="dark"] .annual-month-slicer button,
 :root[data-theme="dark"] .mobile-chip-button,
@@ -7139,6 +7152,24 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   background: var(--d-accent);
   border-color: var(--d-accent);
   color: var(--d-accent-ink);
+}
+
+:root[data-theme="dark"] .segmented {
+  background: var(--d-bg);
+  border-color: var(--d-border-strong);
+}
+
+:root[data-theme="dark"] .segmented button {
+  background: transparent;
+  color: var(--d-text-2);
+}
+
+:root[data-theme="dark"] .segmented button:hover:not(.active) {
+  color: var(--d-text);
+}
+
+:root[data-theme="dark"] .segmented button.active {
+  box-shadow: none;
 }
 
 :root[data-theme="dark"] .primary-action:hover,
