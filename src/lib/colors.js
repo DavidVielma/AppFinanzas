@@ -35,6 +35,7 @@ export function getAccountColorStyle(color, fallback = "#f8fafc") {
 
   return {
     backgroundColor,
+    "--account-color": backgroundColor,
     "--account-ink": getReadableTextColor(backgroundColor),
     "--account-muted-ink": getMutedTextColor(backgroundColor)
   };

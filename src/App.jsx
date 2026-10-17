@@ -459,6 +459,7 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? "dark" : "light";
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", darkMode ? "#0e0e10" : "#155e63");
   }, [darkMode]);
 
   useEffect(() => {
