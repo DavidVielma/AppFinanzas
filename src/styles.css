@@ -18,6 +18,9 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+  /* Distancia de la barra flotante movil al borde: se mete un poco en la zona del
+     indicador de inicio (como las apps nativas) en vez de dejar todo el inset libre. */
+  --nav-bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) - 12px));
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -4776,16 +4779,49 @@ button.movement-badge:focus-visible {
   }
 
   .app-shell {
-    padding: calc(8px + var(--safe-top)) calc(8px + var(--safe-right)) calc(92px + var(--safe-bottom)) calc(8px + var(--safe-left));
+    padding: calc(8px + var(--safe-top)) calc(8px + var(--safe-right)) calc(84px + var(--nav-bottom)) calc(8px + var(--safe-left));
   }
 
+  /* Barra inferior flotante tipo "liquid glass": pildora translucida con desenfoque
+     del contenido que pasa por detras. */
   .app-sidebar {
     position: fixed;
-    inset: auto 0 0;
+    inset: auto calc(12px + var(--safe-right)) var(--nav-bottom) calc(12px + var(--safe-left));
     z-index: 15;
+    max-width: 520px;
     height: auto;
-    padding: 8px calc(10px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(10px + var(--safe-left));
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    margin: 0 auto;
+    padding: 6px;
+    overflow: visible;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #103f46;
+    box-shadow:
+      0 10px 30px rgba(8, 31, 36, 0.16),
+      0 1px 2px rgba(8, 31, 36, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .app-sidebar {
+      background: rgba(255, 255, 255, 0.74);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      backdrop-filter: blur(24px) saturate(180%);
+    }
+
+    :root[data-theme="dark"] .app-sidebar {
+      background: rgba(22, 30, 38, 0.7);
+    }
+  }
+
+  :root[data-theme="dark"] .app-sidebar {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(22, 30, 38, 0.92);
+    color: #e6f0f0;
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .sidebar-brand {
@@ -4884,7 +4920,7 @@ button.movement-badge:focus-visible {
 
   .quick-action-button {
     right: 14px;
-    bottom: calc(104px + var(--safe-bottom));
+    bottom: calc(76px + var(--nav-bottom));
     width: 56px;
     height: 56px;
     min-height: 56px;
@@ -4907,7 +4943,7 @@ button.movement-badge:focus-visible {
   .sync-action-button {
     position: fixed;
     left: 14px;
-    bottom: calc(104px + var(--safe-bottom));
+    bottom: calc(76px + var(--nav-bottom));
     z-index: 14;
     width: 56px;
     height: 56px;
@@ -4929,7 +4965,7 @@ button.movement-badge:focus-visible {
   .filter-action-button {
     position: fixed;
     left: 14px;
-    bottom: calc(168px + var(--safe-bottom));
+    bottom: calc(140px + var(--nav-bottom));
     z-index: 14;
     width: 56px;
     height: 56px;
@@ -5099,8 +5135,8 @@ button.movement-badge:focus-visible {
   }
 
   .sidebar-nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
   }
 
   .desktop-only-nav {
@@ -5130,16 +5166,45 @@ button.movement-badge:focus-visible {
   }
 
   .sidebar-nav button {
-    min-height: 56px;
+    min-height: 50px;
     flex-direction: column;
     justify-content: center;
-    gap: 4px;
-    padding: 6px 4px;
-    font-size: 0.66rem;
+    gap: 3px;
+    padding: 5px 4px;
+    font-size: 0.64rem;
     line-height: 1.1;
     text-align: center;
-    border-radius: 10px;
+    border-radius: 24px;
+    color: inherit;
     overflow-wrap: anywhere;
+    transition: background-color 180ms ease, color 180ms ease;
+  }
+
+  .sidebar-nav .nav-label-full {
+    display: none;
+  }
+
+  .sidebar-nav .nav-label-short {
+    display: block;
+  }
+
+  .sidebar-nav button:hover {
+    background: transparent;
+    color: inherit;
+  }
+
+  .sidebar-nav button.active,
+  .sidebar-nav button.active:hover,
+  .sidebar-nav button.mobile-active {
+    background: rgba(21, 94, 99, 0.14);
+    color: var(--brand);
+  }
+
+  :root[data-theme="dark"] .sidebar-nav button.active,
+  :root[data-theme="dark"] .sidebar-nav button.active:hover,
+  :root[data-theme="dark"] .sidebar-nav button.mobile-active {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
   }
 
   .mobile-only-nav {
@@ -7137,7 +7202,7 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
    flotantes mas bajos para no comerse la poca altura disponible. */
 @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape) {
   .app-sidebar {
-    padding: 4px calc(10px + var(--safe-right)) calc(4px + var(--safe-bottom)) calc(10px + var(--safe-left));
+    padding: 4px;
   }
 
   .sidebar-nav button {
@@ -7149,7 +7214,7 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   }
 
   .app-shell {
-    padding-bottom: calc(64px + var(--safe-bottom));
+    padding-bottom: calc(64px + var(--nav-bottom));
   }
 
   .quick-action-button,
@@ -7162,11 +7227,11 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 
   .quick-action-button,
   .sync-action-button {
-    bottom: calc(60px + var(--safe-bottom));
+    bottom: calc(60px + var(--nav-bottom));
   }
 
   .filter-action-button {
-    bottom: calc(114px + var(--safe-bottom));
+    bottom: calc(114px + var(--nav-bottom));
   }
 }
 

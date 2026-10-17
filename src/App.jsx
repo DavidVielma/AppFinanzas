@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Camera, ChevronLeft, ChevronRight, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
+import { BookOpen, Camera, ChevronLeft, ChevronRight, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, ReceiptText, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
 import { AccountAdminModal } from "./components/AccountAdminModal";
 import { ResponsibleAdminModal } from "./components/ResponsibleAdminModal";
 import { AccountBalances } from "./components/AccountBalances";
@@ -2844,9 +2844,9 @@ export function App() {
   const navItems = [
     { id: "movements", label: "Movimientos", shortLabel: "Movim.", icon: ListChecks },
     { id: "annual-summary", label: "Resumen Anual", shortLabel: "Anual", icon: FileText },
-    { id: "tc-analysis", label: "Análisis TC", shortLabel: "TC", icon: CreditCard },
+    { id: "tc-analysis", label: "Análisis TC", shortLabel: "TC", icon: CreditCard, className: "desktop-only-nav" },
     { id: "dashboard", label: "Dashboard", shortLabel: "Panel", icon: LayoutDashboard },
-    { id: "profile", label: "Perfil", shortLabel: "Perfil", icon: User },
+    { id: "profile", label: "Perfil", shortLabel: "Perfil", icon: User, mobileActiveFor: ["tc-analysis"] },
     { id: "help", label: "Guia de uso", shortLabel: "Guia", icon: BookOpen, action: openTutorial, className: "desktop-only-nav" }
   ];
   const navOrder = ["movements", "annual-summary", "dashboard", "tc-analysis", "profile", "help"];
@@ -2872,7 +2872,7 @@ export function App() {
           {orderedNavItems.map((item) => {
             const Icon = item.icon;
             return (
-              <button type="button" className={`${item.className || ""}${activeView === item.id ? " active" : ""}`.trim()} key={item.id} onClick={() => (item.action ? item.action() : setActiveView(item.id))}>
+              <button type="button" className={`${item.className || ""}${activeView === item.id ? " active" : ""}${item.mobileActiveFor?.includes(activeView) ? " mobile-active" : ""}`.trim()} key={item.id} onClick={() => (item.action ? item.action() : setActiveView(item.id))}>
                 <Icon size={18} />
                 <span className="nav-label-full">{item.label}</span>
                 <span className="nav-label-short">{item.shortLabel || item.label}</span>
@@ -3397,6 +3397,13 @@ export function App() {
                 <span>
                   <strong>Categorias</strong>
                   <small>{customCategories.length} categorias personalizadas.</small>
+                </span>
+              </button>
+              <button type="button" className="profile-action-card" onClick={() => { setActiveView("tc-analysis"); window.scrollTo(0, 0); }}>
+                <ReceiptText size={20} />
+                <span>
+                  <strong>Análisis TC</strong>
+                  <small>Importa estados de cuenta y separa por usuario.</small>
                 </span>
               </button>
             </div>
