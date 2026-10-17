@@ -5135,7 +5135,7 @@ button.movement-badge:focus-visible {
   }
 
   .sidebar-nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 2px;
   }
 
@@ -5194,13 +5194,15 @@ button.movement-badge:focus-visible {
   }
 
   .sidebar-nav button.active,
-  .sidebar-nav button.active:hover {
+  .sidebar-nav button.active:hover,
+  .sidebar-nav button.mobile-active {
     background: rgba(21, 94, 99, 0.14);
     color: var(--brand);
   }
 
   :root[data-theme="dark"] .sidebar-nav button.active,
-  :root[data-theme="dark"] .sidebar-nav button.active:hover {
+  :root[data-theme="dark"] .sidebar-nav button.active:hover,
+  :root[data-theme="dark"] .sidebar-nav button.mobile-active {
     background: rgba(255, 255, 255, 0.14);
     color: #ffffff;
   }
