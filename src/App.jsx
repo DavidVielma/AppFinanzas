@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Camera, ChevronLeft, ChevronRight, ClipboardCopy, ClipboardPaste, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, ReceiptText, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
+import { BookOpen, Camera, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCopy, ClipboardPaste, Clock, CreditCard, FileText, Filter, KeyRound, LayoutDashboard, Link, ListChecks, LogOut, Moon, Plus, ReceiptText, RefreshCcw, Sun, Tags, User, Users, UploadCloud, X, Zap } from "lucide-react";
 import { AccountAdminModal } from "./components/AccountAdminModal";
 import { ResponsibleAdminModal } from "./components/ResponsibleAdminModal";
 import { AccountBalances } from "./components/AccountBalances";
@@ -3610,20 +3610,24 @@ export function App() {
                 <PeriodSelector month={reimbursementModal.month} year={reimbursementModal.year} onChange={({ month, year }) => setReimbursementModal((current) => ({ ...current, month, year }))} />
               </div>
               <div className="reimbursement-person-list">
-                {reimbursementModal.people.map((person) => (
-                  <label key={person}>
-                    <span className="reimbursement-person-name">
-                      <strong>{person}</strong>
-                      <button type="button" className={reimbursementModal.paidNames.includes(person) ? "paid" : "pending"} onClick={() => setReimbursementModal((current) => ({ ...current, paidNames: current.paidNames.includes(person) ? current.paidNames.filter((name) => name !== person) : [...current.paidNames, person] }))}>
-                        {reimbursementModal.paidNames.includes(person) ? "Pagado" : "Pendiente"}
-                      </button>
-                    </span>
-                    <div>
-                      <span>$</span>
-                      <input type="number" min="0" step="1" inputMode="numeric" value={reimbursementModal.amounts[person]} onChange={(event) => setReimbursementModal((current) => ({ ...current, amounts: { ...current.amounts, [person]: event.target.value } }))} />
+                {reimbursementModal.people.map((person) => {
+                  const isPaid = reimbursementModal.paidNames.includes(person);
+                  return (
+                    <div className="reimbursement-person" key={person}>
+                      <strong className="reimbursement-person-name">{person}</strong>
+                      <div className="reimbursement-person-row">
+                        <label className="reimbursement-amount">
+                          <span>$</span>
+                          <input type="number" min="0" step="1" inputMode="numeric" aria-label={`Monto de ${person}`} value={reimbursementModal.amounts[person]} onChange={(event) => setReimbursementModal((current) => ({ ...current, amounts: { ...current.amounts, [person]: event.target.value } }))} />
+                        </label>
+                        <button type="button" className={`reimbursement-status ${isPaid ? "paid" : "pending"}`} aria-pressed={isPaid} aria-label={`${person}: ${isPaid ? "pagado" : "pendiente"}. Cambiar estado`} onClick={() => setReimbursementModal((current) => ({ ...current, paidNames: current.paidNames.includes(person) ? current.paidNames.filter((name) => name !== person) : [...current.paidNames, person] }))}>
+                          {isPaid ? <CheckCircle2 size={17} /> : <Clock size={17} />}
+                          {isPaid ? "Pagado" : "Pendiente"}
+                        </button>
+                      </div>
                     </div>
-                  </label>
-                ))}
+                  );
+                })}
               </div>
               <div className="reimbursement-total">
                 <span>Total del reembolso</span>
