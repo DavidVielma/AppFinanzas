@@ -5833,7 +5833,7 @@ table tbody tr[draggable="true"] { cursor: grab; transition: transform 160ms eas
 table tbody tr[draggable="true"] { cursor: pointer; }
 table tbody tr[draggable="true"]:hover { background-color: color-mix(in srgb, var(--brand) 5%, transparent); }
 .mobile-movement-card { cursor: pointer; }
-table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e0f2fe; }
+table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: var(--dk-info-soft, #e0f2fe); }
 
 .responsible-chip-button,
 .responsible-edit-button {
@@ -5851,7 +5851,7 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
 }
 
 .responsible-payment-editor legend { padding: 0 6px; font-weight: 800; }
-.responsible-payment-editor > p { margin: 0 0 10px; color: #64748b; font-size: 0.82rem; }
+.responsible-payment-editor > p { margin: 0 0 10px; color: var(--dk-text-2, #64748b); font-size: 0.82rem; }
 .responsible-payment-editor > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
 .responsible-payment-editor button {
   display: flex;
@@ -5865,7 +5865,7 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
   color: var(--dk-warn, #7a5000);
   cursor: pointer;
 }
-.responsible-payment-editor button.paid { border-color: #86d5a4; background: #dcfce7; color: #166534; }
+.responsible-payment-editor button.paid { border-color: var(--dk-border-strong, #86d5a4); background: var(--dk-income-soft, #dcfce7); color: var(--dk-income, #166534); }
 .responsible-payment-editor button span { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .responsible-payment-editor button small { font-size: 0.7rem; }
 .responsible-payment-editor button b { white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -5879,8 +5879,8 @@ table tbody tr.desktop-dragging { opacity: 0.4; cursor: grabbing; background: #e
   font-size: 0.68rem;
   font-weight: 800;
 }
-.personal-payment-badge.paid { background: #dcfce7; color: #166534; }
-.personal-payment-badge.pending { background: #fff1c2; color: #8a5a00; }
+.personal-payment-badge.paid { background: var(--dk-income-soft, #dcfce7); color: var(--dk-income, #166534); }
+.personal-payment-badge.pending { background: var(--dk-warn-soft, #fff1c2); color: var(--dk-warn, #8a5a00); }
 
 .personal-payment-dot {
   display: inline-block;
@@ -5914,55 +5914,63 @@ button.reimbursement-source-summary {
   text-align: left;
   cursor: pointer;
 }
-button.reimbursement-source-summary:hover { background: #e2f0eb; }
+button.reimbursement-source-summary:hover { background: var(--dk-raised, #e2f0eb); }
 button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .reimbursement-source-amount { display: inline-flex; align-items: center; gap: 4px; }
 .reimbursement-person-list { display: grid; gap: 9px; margin: 14px 0; }
 .reimbursement-period-control { max-width: 280px; margin: 14px 0; }
 .reimbursement-period-control .period-picker { width: 100%; }
-.reimbursement-person-list label {
+.reimbursement-person { display: grid; gap: 6px; }
+.reimbursement-person-name { font-size: 0.86rem; font-weight: 800; }
+/* Monto y estado en la misma linea: el estado va a la derecha del monto, al mismo alto. */
+.reimbursement-person-row {
   display: grid;
-  grid-template-columns: minmax(100px, 1fr) minmax(150px, 0.8fr);
-  align-items: center;
-  gap: 12px;
-  font-weight: 800;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 8px;
 }
-.reimbursement-person-list label > div {
+.reimbursement-amount {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 7px;
-  padding-left: 10px;
+  padding-left: 12px;
   border: 1px solid var(--dk-border, #ccd9df);
-  border-radius: 9px;
+  border-radius: 10px;
   background: var(--dk-surface, #ffffff);
+  font-weight: 800;
 }
-.reimbursement-person-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.reimbursement-person-name button {
-  min-height: 28px;
-  padding: 3px 9px;
-  border: 1px solid var(--dk-border-strong, #e8c76c);
-  border-radius: 999px;
+.reimbursement-status {
+  min-width: 128px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--dk-warn, #e8c76c);
+  border-radius: 10px;
   background: var(--dk-warn-soft, #fff4cf);
   color: var(--dk-warn, #8a5a00);
-  font-size: 0.68rem;
+  font-size: 0.86rem;
   font-weight: 900;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
 }
-.reimbursement-person-name button.paid { border-color: #86d5a4; background: #dcfce7; color: #166534; }
+.reimbursement-status.paid {
+  border-color: var(--dk-income, #86d5a4);
+  background: var(--dk-income-soft, #dcfce7);
+  color: var(--dk-income, #166534);
+}
 .reimbursement-person-list input { width: 100%; min-height: 42px; border: 0; background: transparent; }
 .reimbursement-person-list input:focus { outline: 0; }
 .reimbursement-scope { display: grid; gap: 6px; margin: 12px 0 0; font-size: 0.82rem; font-weight: 700; }
 .reimbursement-scope select { width: 100%; }
-.reimbursement-help { margin: 12px 0; color: #64748b; font-size: 0.78rem; }
-.reimbursement-total { margin-top: 4px; background: #f8fafc; }
-.reimbursement-action { color: #0f766e; }
+.reimbursement-help { margin: 12px 0; color: var(--dk-text-2, #64748b); font-size: 0.78rem; }
+.reimbursement-total { margin-top: 4px; background: var(--dk-raised, #f8fafc); }
+.reimbursement-action { color: var(--dk-accent-text, #0f766e); }
 .reimbursement-badge {
   background: var(--dk-raised, #ccfbf1);
   color: var(--dk-accent-text, #0f766e);
-}
-
-@media (max-width: 560px) {
-  .reimbursement-person-list label { grid-template-columns: 1fr; gap: 5px; }
 }
 
 .debt-summary-action { background: rgba(255, 255, 255, 0.58); }
@@ -5989,19 +5997,19 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   color: inherit;
   text-align: left;
 }
-.debt-person-summary:hover { background: #edf6f3; }
+.debt-person-summary:hover { background: var(--dk-raised, #edf6f3); }
 .debt-person-summary > div:first-child { display: grid; gap: 3px; }
-.debt-summary-list small { color: #64748b; }
-.debt-summary-breakdown { display: flex; flex-wrap: wrap; gap: 8px 16px; color: #64748b; font-size: 0.78rem; }
-.debt-summary-breakdown b { color: #334155; }
+.debt-summary-list small { color: var(--dk-text-2, #64748b); }
+.debt-summary-breakdown { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--dk-text-2, #64748b); font-size: 0.78rem; }
+.debt-summary-breakdown b { color: var(--dk-text-2, #334155); }
 .debt-net { white-space: nowrap; font-size: 0.84rem; }
-.debt-net.owed-to-me { color: #15803d; }
-.debt-net.i-owe { color: #c2410c; }
-.debt-net.settled { color: #64748b; }
-.debt-summary-note { margin: 14px 0 0; color: #64748b; font-size: 0.76rem; }
-.debt-expand-icon { color: #64748b; transition: transform 160ms ease; }
+.debt-net.owed-to-me { color: var(--dk-income, #15803d); }
+.debt-net.i-owe { color: var(--dk-expense, #c2410c); }
+.debt-net.settled { color: var(--dk-text-2, #64748b); }
+.debt-summary-note { margin: 14px 0 0; color: var(--dk-text-2, #64748b); font-size: 0.76rem; }
+.debt-expand-icon { color: var(--dk-text-2, #64748b); transition: transform 160ms ease; }
 .debt-summary-list article.expanded .debt-expand-icon { transform: rotate(180deg); }
-.debt-movement-detail { display: grid; border-top: 1px solid #dbe5e8; background: #ffffff; }
+.debt-movement-detail { display: grid; border-top: 1px solid var(--dk-border, #dbe5e8); background: var(--dk-surface, #ffffff); }
 .debt-movement-detail > div {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto 34px 34px;
@@ -6013,15 +6021,15 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 .debt-movement-detail > div:last-child { border-bottom: 0; }
 .debt-movement-detail > div > span:first-child { min-width: 0; display: grid; gap: 2px; }
 .debt-movement-detail > div > span:first-child strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.debt-movement-detail .owed-to-me { color: #15803d; font-size: 0.72rem; font-weight: 800; }
-.debt-movement-detail .i-owe { color: #c2410c; font-size: 0.72rem; font-weight: 800; }
+.debt-movement-detail .owed-to-me { color: var(--dk-income, #15803d); font-size: 0.72rem; font-weight: 800; }
+.debt-movement-detail .i-owe { color: var(--dk-expense, #c2410c); font-size: 0.72rem; font-weight: 800; }
 .debt-movement-detail b { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .debt-detail-edit { width: 32px; min-width: 32px; min-height: 32px; }
-.debt-movement-detail .paid { color: #15803d; font-size: 0.72rem; font-weight: 800; }
+.debt-movement-detail .paid { color: var(--dk-income, #15803d); font-size: 0.72rem; font-weight: 800; }
 .debt-movement-detail > div.is-paid > span:first-child strong,
-.debt-movement-detail > div.is-paid > b { text-decoration: line-through; color: #94a3b8; }
-.debt-detail-paid { width: 34px; min-width: 34px; min-height: 34px; color: #94a3b8; }
-.debt-detail-paid:hover { color: #15803d; border-color: #15803d; }
+.debt-movement-detail > div.is-paid > b { text-decoration: line-through; color: var(--dk-text-3, #94a3b8); }
+.debt-detail-paid { width: 34px; min-width: 34px; min-height: 34px; color: var(--dk-text-3, #94a3b8); }
+.debt-detail-paid:hover { color: var(--dk-income, #15803d); border-color: #15803d; }
 .debt-detail-paid.is-paid { background: #15803d; border-color: #15803d; color: #ffffff; }
 
 @media (max-width: 620px) {
@@ -6158,7 +6166,7 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
     transform: translateY(-2px);
   }
 
-  .filter-action-button:hover { background: #d8ebe7; }
+  .filter-action-button:hover { background: var(--dk-accent-soft, #d8ebe7); }
 }
 
 /* Movil: pantallas angostas o celulares en horizontal (bajos y tactiles). */
@@ -7000,6 +7008,8 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 }
 
 :root[data-theme="dark"] .modal-panel {
+  /* El modal ya es una superficie elevada: sus bloques secundarios suben un nivel. */
+  --dk-raised: var(--d-raised-2);
   background: var(--d-raised);
   border-color: var(--d-border-strong);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
@@ -7367,6 +7377,15 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 
 :root[data-theme="dark"] .account-balance-link:hover {
   filter: brightness(1.15);
+}
+
+:root[data-theme="dark"] .reimbursement-amount {
+  background: var(--d-bg);
+  border-color: var(--d-border-strong);
+}
+
+:root[data-theme="dark"] .reimbursement-amount input {
+  background: transparent;
 }
 
 :root[data-theme="dark"] .movement-filter-panel .filter-heading {

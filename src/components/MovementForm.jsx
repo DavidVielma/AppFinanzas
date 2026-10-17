@@ -28,7 +28,7 @@ function parseResponsibleNames(value, currentResponsible) {
   return raw.split(",").map((name) => normalizeResponsibleName(name, currentResponsible)).filter(Boolean);
 }
 
-function parseAmountInput(value) {
+export function parseAmountInput(value) {
   const raw = String(value || "");
   const isNegative = raw.trim().startsWith("-");
   const digits = raw.replace(/\D/g, "");
@@ -36,7 +36,7 @@ function parseAmountInput(value) {
   return `${isNegative ? "-" : ""}${Number(digits)}`;
 }
 
-function formatAmountInput(value) {
+export function formatAmountInput(value) {
   let raw = String(value ?? "");
   if (!raw || raw === "-") return raw;
   // Montos guardados con decimales (ej. una cuota de 135619.33): se muestran en pesos enteros.
