@@ -12,6 +12,12 @@
   --sky: #2f6fb0;
   --panel: #ffffff;
   --line: #dbe4e5;
+  /* Zona segura inferior: la barra de inicio del iPhone o los botones/gestos de Android.
+     Con un minimo para equipos que no informan el inset. */
+  --safe-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -4770,8 +4776,7 @@ button.movement-badge:focus-visible {
   }
 
   .app-shell {
-    padding: 8px;
-    padding-bottom: 92px;
+    padding: calc(8px + var(--safe-top)) calc(8px + var(--safe-right)) calc(92px + var(--safe-bottom)) calc(8px + var(--safe-left));
   }
 
   .app-sidebar {
@@ -4779,7 +4784,7 @@ button.movement-badge:focus-visible {
     inset: auto 0 0;
     z-index: 15;
     height: auto;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    padding: 8px calc(10px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(10px + var(--safe-left));
     border-top: 1px solid rgba(255, 255, 255, 0.18);
   }
 
@@ -4879,7 +4884,7 @@ button.movement-badge:focus-visible {
 
   .quick-action-button {
     right: 14px;
-    bottom: calc(104px + env(safe-area-inset-bottom));
+    bottom: calc(104px + var(--safe-bottom));
     width: 56px;
     height: 56px;
     min-height: 56px;
@@ -4902,7 +4907,7 @@ button.movement-badge:focus-visible {
   .sync-action-button {
     position: fixed;
     left: 14px;
-    bottom: calc(104px + env(safe-area-inset-bottom));
+    bottom: calc(104px + var(--safe-bottom));
     z-index: 14;
     width: 56px;
     height: 56px;
@@ -4924,7 +4929,7 @@ button.movement-badge:focus-visible {
   .filter-action-button {
     position: fixed;
     left: 14px;
-    bottom: calc(168px + env(safe-area-inset-bottom));
+    bottom: calc(168px + var(--safe-bottom));
     z-index: 14;
     width: 56px;
     height: 56px;
@@ -5202,7 +5207,7 @@ button.movement-badge:focus-visible {
     min-width: 0;
     max-height: none;
     margin: 0;
-    padding: calc(18px + env(safe-area-inset-top)) 12px calc(88px + env(safe-area-inset-bottom));
+    padding: calc(18px + env(safe-area-inset-top)) 12px calc(88px + var(--safe-bottom));
     border-width: 0 1px 0 0;
     border-radius: 0 12px 12px 0;
     background: #f8fbfa;
@@ -5979,7 +5984,7 @@ button.movement-badge:focus-visible {
     width: 100%;
     max-height: min(84dvh, calc(100dvh - 88px));
     border-radius: 14px 14px 0 0;
-    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    padding: 16px 16px calc(16px + var(--safe-bottom));
   }
 
   .modal-panel.movement-modal-panel {
@@ -7132,7 +7137,7 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
    flotantes mas bajos para no comerse la poca altura disponible. */
 @media (max-height: 500px) and (pointer: coarse) and (orientation: landscape) {
   .app-sidebar {
-    padding: 4px 10px calc(4px + env(safe-area-inset-bottom));
+    padding: 4px calc(10px + var(--safe-right)) calc(4px + var(--safe-bottom)) calc(10px + var(--safe-left));
   }
 
   .sidebar-nav button {
@@ -7144,7 +7149,7 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   }
 
   .app-shell {
-    padding-bottom: 64px;
+    padding-bottom: calc(64px + var(--safe-bottom));
   }
 
   .quick-action-button,
@@ -7157,11 +7162,11 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 
   .quick-action-button,
   .sync-action-button {
-    bottom: calc(60px + env(safe-area-inset-bottom));
+    bottom: calc(60px + var(--safe-bottom));
   }
 
   .filter-action-button {
-    bottom: calc(114px + env(safe-area-inset-bottom));
+    bottom: calc(114px + var(--safe-bottom));
   }
 }
 
