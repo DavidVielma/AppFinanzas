@@ -16,7 +16,7 @@ import { ColorPicker } from "./components/ColorPicker";
 import { CreditCardAnalysis } from "./components/CreditCardAnalysis";
 import { CreditCardMonthlyChart } from "./components/CreditCardMonthlyChart";
 import { MonthlyGrid } from "./components/MonthlyGrid";
-import { MovementForm, PeriodSelector } from "./components/MovementForm";
+import { formatAmountInput, MovementForm, parseAmountInput, PeriodSelector } from "./components/MovementForm";
 import { PasswordChangeForm } from "./components/PasswordChangeForm";
 import { PasswordResetPanel } from "./components/PasswordResetPanel";
 import { SummaryCards } from "./components/SummaryCards";
@@ -3618,7 +3618,7 @@ export function App() {
                       <div className="reimbursement-person-row">
                         <label className="reimbursement-amount">
                           <span>$</span>
-                          <input type="number" min="0" step="1" inputMode="numeric" aria-label={`Monto de ${person}`} value={reimbursementModal.amounts[person]} onChange={(event) => setReimbursementModal((current) => ({ ...current, amounts: { ...current.amounts, [person]: event.target.value } }))} />
+                          <input type="text" inputMode="numeric" aria-label={`Monto de ${person}`} value={formatAmountInput(reimbursementModal.amounts[person])} onChange={(event) => setReimbursementModal((current) => ({ ...current, amounts: { ...current.amounts, [person]: parseAmountInput(event.target.value).replace("-", "") } }))} />
                         </label>
                         <button type="button" className={`reimbursement-status ${isPaid ? "paid" : "pending"}`} aria-pressed={isPaid} aria-label={`${person}: ${isPaid ? "pagado" : "pendiente"}. Cambiar estado`} onClick={() => setReimbursementModal((current) => ({ ...current, paidNames: current.paidNames.includes(person) ? current.paidNames.filter((name) => name !== person) : [...current.paidNames, person] }))}>
                           {isPaid ? <CheckCircle2 size={17} /> : <Clock size={17} />}
