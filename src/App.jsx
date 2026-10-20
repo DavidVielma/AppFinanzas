@@ -440,6 +440,9 @@ export function App() {
   const movementWheelRef = useRef({ total: 0, locked: false, timer: null, lockedAt: 0, tailEvents: 0 });
   const movementWheelHandlerRef = useRef(null);
   const movementFilterPanelRef = useRef(null);
+  const movementsRequestRef = useRef(0);
+  const lastRemoteSyncRef = useRef(0);
+  const resumeSyncRef = useRef(null);
 
   const isRemote = hasSupabaseConfig && session && !demoMode;
   const hasOpenModal = Boolean(
@@ -652,18 +655,39 @@ export function App() {
   }, [activeView]);
 
   async function loadMovements({ showLoading = false } = {}) {
+    const requestId = ++movementsRequestRef.current;
     if (showLoading) {
       setLoading(true);
     }
-    const { data, error } = await supabase
-      .from("movements")
-      .select("*")
-      .order("year", { ascending: false })
-      .order("month", { ascending: true })
-      .order("created_at", { ascending: true });
+
+    const pageSize = 1000;
+    const rows = [];
+    let error = null;
+    for (let from = 0; ; from += pageSize) {
+      const { data, error: pageError } = await supabase
+        .from("movements")
+        .select("*")
+        .order("year", { ascending: false })
+        .order("month", { ascending: true })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (pageError) {
+        error = pageError;
+        break;
+      }
+      rows.push(...(data || []));
+      if (!data || data.length < pageSize) break;
+    }
 
     if (showLoading) {
       setLoading(false);
+    }
+
+    // Una carga más reciente ya está en curso: no pisar sus datos con una respuesta vieja.
+    if (requestId !== movementsRequestRef.current) {
+      return;
     }
 
     if (error) {
@@ -671,7 +695,8 @@ export function App() {
       return;
     }
 
-    setMovements(data || []);
+    lastRemoteSyncRef.current = Date.now();
+    setMovements(rows);
   }
 
   async function loadRecurringMovements() {
@@ -1532,6 +1557,38 @@ export function App() {
 
     setMovements((current) => current.map((item) => (item.id === sourceMovement.id ? { ...item, ...patch } : item)));
   }
+
+  resumeSyncRef.current = isRemote
+    ? () => {
+        loadMovements();
+        loadAccounts();
+        loadResponsibles();
+        loadCategories();
+        loadRecurringMovements();
+      }
+    : null;
+
+  useEffect(() => {
+    if (!isRemote) return undefined;
+
+    // En el móvil la PWA queda congelada en segundo plano y al volver no se vuelve a montar,
+    // así que hay que recargar los datos cuando la app vuelve a estar visible.
+    function syncOnResume(event) {
+      if (document.visibilityState !== "visible") return;
+      const isRestore = event.type === "pageshow" && event.persisted;
+      if (!isRestore && event.type !== "online" && Date.now() - lastRemoteSyncRef.current < 15000) return;
+      resumeSyncRef.current?.();
+    }
+
+    document.addEventListener("visibilitychange", syncOnResume);
+    window.addEventListener("pageshow", syncOnResume);
+    window.addEventListener("online", syncOnResume);
+    return () => {
+      document.removeEventListener("visibilitychange", syncOnResume);
+      window.removeEventListener("pageshow", syncOnResume);
+      window.removeEventListener("online", syncOnResume);
+    };
+  }, [isRemote]);
 
   async function syncRemoteData() {
     if (!isRemote) return;
