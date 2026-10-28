@@ -2,6 +2,19 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app-financiera-lovat.vercel.app"
+        }
+      ],
+      "destination": "https://fluxa-finanzas.vercel.app/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

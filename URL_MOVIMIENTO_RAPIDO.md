@@ -5,7 +5,7 @@ La app puede abrir el modal de registro de movimiento usando parametros explicit
 URL base de produccion:
 
 ```text
-https://app-financiera-lovat.vercel.app/
+https://fluxa-finanzas.vercel.app/
 ```
 
 ## Parametros aceptados
@@ -22,10 +22,10 @@ https://app-financiera-lovat.vercel.app/
 ## Ejemplos
 
 ```text
-https://app-financiera-lovat.vercel.app/?monto=-20000&descripcion=farmacia&categoria=Salud&status=Confirmado
-https://app-financiera-lovat.vercel.app/?monto=-12000&descripcion=Uber&categoria=Transporte&year=2026&month=6
-https://app-financiera-lovat.vercel.app/?amount=145000&description=Pago%20cliente&categoria=Honorarios&status=Confirmado
-https://app-financiera-lovat.vercel.app/?monto=50000&descripcion=Reembolso&categoria=Reembolso&estado=Pendiente
+https://fluxa-finanzas.vercel.app/?monto=-20000&descripcion=farmacia&categoria=Salud&status=Confirmado
+https://fluxa-finanzas.vercel.app/?monto=-12000&descripcion=Uber&categoria=Transporte&year=2026&month=6
+https://fluxa-finanzas.vercel.app/?amount=145000&description=Pago%20cliente&categoria=Honorarios&status=Confirmado
+https://fluxa-finanzas.vercel.app/?monto=50000&descripcion=Reembolso&categoria=Reembolso&estado=Pendiente
 ```
 
 ## Opciones
@@ -35,7 +35,7 @@ https://app-financiera-lovat.vercel.app/?monto=50000&descripcion=Reembolso&categ
 Usa `monto` negativo:
 
 ```text
-https://app-financiera-lovat.vercel.app/?monto=-20000&descripcion=farmacia&categoria=Salud
+https://fluxa-finanzas.vercel.app/?monto=-20000&descripcion=farmacia&categoria=Salud
 ```
 
 ### Ingreso
@@ -43,7 +43,7 @@ https://app-financiera-lovat.vercel.app/?monto=-20000&descripcion=farmacia&categ
 Usa `monto` positivo:
 
 ```text
-https://app-financiera-lovat.vercel.app/?monto=50000&descripcion=Pago%20cliente&categoria=Honorarios
+https://fluxa-finanzas.vercel.app/?monto=50000&descripcion=Pago%20cliente&categoria=Honorarios
 ```
 
 ### Estado inicial
@@ -51,8 +51,8 @@ https://app-financiera-lovat.vercel.app/?monto=50000&descripcion=Pago%20cliente&
 Puedes abrir el modal con estado preseleccionado:
 
 ```text
-https://app-financiera-lovat.vercel.app/?monto=-12000&descripcion=Uber&status=Confirmado
-https://app-financiera-lovat.vercel.app/?monto=-12000&descripcion=Uber&estado=Pendiente
+https://fluxa-finanzas.vercel.app/?monto=-12000&descripcion=Uber&status=Confirmado
+https://fluxa-finanzas.vercel.app/?monto=-12000&descripcion=Uber&estado=Pendiente
 ```
 
 ### Periodo
@@ -60,14 +60,14 @@ https://app-financiera-lovat.vercel.app/?monto=-12000&descripcion=Uber&estado=Pe
 Puedes forzar anio y mes:
 
 ```text
-https://app-financiera-lovat.vercel.app/?monto=-12000&descripcion=Uber&year=2026&month=6
+https://fluxa-finanzas.vercel.app/?monto=-12000&descripcion=Uber&year=2026&month=6
 ```
 
 ## Automatizaciones y PWA
 
 La app esta configurada como PWA con `scope: "/"`, `start_url: "/"` y service worker. Para que una automatizacion abra Fluxa como app instalada:
 
-1. Abre `https://app-financiera-lovat.vercel.app/` en Chrome/Android.
+1. Abre `https://fluxa-finanzas.vercel.app/` en Chrome/Android.
 2. Instala Fluxa con **Agregar a pantalla de inicio** o **Instalar app**.
 3. En tu automatizacion usa una URL dentro del mismo dominio.
 

@@ -4,7 +4,7 @@ Permite mostrar los movimientos de **una cuenta** (por ejemplo `Ahorro Matrimoni
 por ejemplo incrustando la pagina en Notion.
 
 ```text
-https://app-financiera-lovat.vercel.app/cuenta-compartida?clave=CLAVE
+https://fluxa-finanzas.vercel.app/cuenta-compartida?clave=CLAVE
 ```
 
 La pagina muestra, mes a mes:
