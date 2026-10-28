@@ -164,6 +164,8 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
 
   const mainAccounts = visibleAccounts.filter((account) => account.type !== "tarjeta_credito");
   const creditCards = visibleAccounts.filter((account) => account.type === "tarjeta_credito");
+  // El resumen de deudas es global: va en la primera cuenta, aunque la principal se haya renombrado.
+  const debtSummaryAccountName = mainAccounts[0]?.name;
   const paymentByCard = Object.fromEntries(
     movements
       .filter((movement) => movement.flow === "Pago Tarjeta" && movement.target_account)
@@ -260,7 +262,7 @@ export function AccountLedgerSections({ accounts, cardPaymentTotals, cardFullPay
                 {registeredPayment ? "Editar pago" : "Pagar"}
               </button>
             )}
-            {isPrincipal && (
+            {account.name === debtSummaryAccountName && (
               <button type="button" className="icon-text debt-summary-action" onClick={() => setDebtSummaryOpen(true)}>
                 <HandCoins size={16} />
                 Deudas
