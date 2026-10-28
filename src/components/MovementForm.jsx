@@ -263,6 +263,18 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
     });
   }
 
+  // Enter guarda desde cualquier campo (selects, botones, checkboxes), salvo dentro de un
+  // desplegable abierto (periodo, categoria, responsables), donde Enter elige la opcion.
+  function handleFormKeyDown(event) {
+    if (event.key !== "Enter" || event.defaultPrevented || event.nativeEvent.isComposing) return;
+    if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+    const target = event.target;
+    if (target.tagName === "TEXTAREA" || target.type === "submit") return;
+    if (target.closest("fieldset")?.querySelector('[aria-expanded="true"]')) return;
+    event.preventDefault();
+    event.currentTarget.requestSubmit();
+  }
+
   async function createResponsibleFromQuery() {
     if (!canCreateResponsible || creatingResponsible) return;
     setCreatingResponsible(true);
@@ -293,7 +305,7 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
   }
 
   return (
-    <form className="movement-form" onSubmit={onSubmit}>
+    <form className="movement-form" onSubmit={onSubmit} onKeyDown={handleFormKeyDown}>
       <label>
         Operacion
         <select value={draft.flow} onChange={(event) => update("flow", event.target.value)}>
