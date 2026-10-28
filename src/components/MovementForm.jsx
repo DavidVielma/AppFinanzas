@@ -116,12 +116,13 @@ export function PeriodSelector({ month, year, onChange }) {
   );
 }
 
-export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, responsibles, currentResponsible, categoryOptionsByType, draft, onChange, onSubmit, editingId, showTypeSummary = true }) {
+export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotals = {}, responsibles, currentResponsible, categoryOptionsByType, draft, onChange, onSubmit, editingId, showTypeSummary = true, onCreateResponsible }) {
   const amountInputRef = useRef(null);
   const rememberedCategories = useRef({});
   const responsibleRef = useRef(null);
   const [responsibleOpen, setResponsibleOpen] = useState(false);
   const [responsibleQuery, setResponsibleQuery] = useState("");
+  const [creatingResponsible, setCreatingResponsible] = useState(false);
   // "Extender serie" queda plegado para no recargar el formulario de edicion.
   const [extendOpen, setExtendOpen] = useState(false);
 
@@ -214,6 +215,10 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
     .concat(selectedResponsibles)
     .filter((name, index, names) => names.indexOf(name) === index);
   const visibleResponsibleChoices = responsibleChoices.filter((name) => (name === currentResponsible ? "Yo" : name).toLowerCase().includes(responsibleQuery.trim().toLowerCase()));
+  const newResponsibleName = responsibleQuery.trim();
+  const canCreateResponsible = Boolean(onCreateResponsible && newResponsibleName)
+    && !responsibleChoices.some((name) => name.toLowerCase() === newResponsibleName.toLowerCase())
+    && newResponsibleName.toLowerCase() !== "yo";
   const responsibleLabels = selectedResponsibles.map((name) => (name === currentResponsible ? "Yo" : name));
   const responsibleSummary = !responsibleLabels.length
     ? "Selecciona responsables"
@@ -256,6 +261,16 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
       responsible: next.join(", "),
       paid_responsibles: next.length > 1 ? JSON.stringify(paidNames.filter((item) => next.includes(item))) : "[]"
     });
+  }
+
+  async function createResponsibleFromQuery() {
+    if (!canCreateResponsible || creatingResponsible) return;
+    setCreatingResponsible(true);
+    const createdName = await onCreateResponsible(newResponsibleName);
+    setCreatingResponsible(false);
+    if (!createdName) return;
+    setResponsibleQuery("");
+    if (!selectedResponsibles.includes(createdName)) toggleResponsible(createdName);
   }
 
   function toggleResponsiblePayment(name) {
@@ -468,8 +483,19 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
         </button>
         {responsibleOpen && (
           <div className="responsible-menu" role="listbox" aria-multiselectable="true">
-            {responsibleChoices.length > 8 && (
-              <input className="responsible-search" value={responsibleQuery} onChange={(event) => setResponsibleQuery(event.target.value)} placeholder="Buscar responsable..." />
+            {(responsibleChoices.length > 8 || onCreateResponsible) && (
+              <input
+                className="responsible-search"
+                value={responsibleQuery}
+                onChange={(event) => setResponsibleQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") return;
+                  // Enter no debe enviar el formulario del movimiento.
+                  event.preventDefault();
+                  createResponsibleFromQuery();
+                }}
+                placeholder={onCreateResponsible ? "Buscar o agregar responsable..." : "Buscar responsable..."}
+              />
             )}
             <div className="responsible-options">
               {visibleResponsibleChoices.map((name) => (
@@ -478,7 +504,14 @@ export function MovementForm({ accounts, cardPaymentTotals, cardFullPaymentTotal
                   <span>{name === currentResponsible ? "Yo" : name}</span>
                 </label>
               ))}
-              {!visibleResponsibleChoices.length && <p>Sin resultados.</p>}
+              {canCreateResponsible ? (
+                <button type="button" className="responsible-create" onClick={createResponsibleFromQuery} disabled={creatingResponsible}>
+                  <Plus size={15} aria-hidden="true" />
+                  <span>Agregar "{newResponsibleName}"</span>
+                </button>
+              ) : (
+                !visibleResponsibleChoices.length && <p>Sin resultados.</p>
+              )}
             </div>
           </div>
         )}

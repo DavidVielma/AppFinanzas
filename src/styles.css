@@ -6608,6 +6608,39 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   accent-color: #1f6f78;
 }
 
+.responsible-picker .responsible-options .responsible-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px dashed var(--dk-border-strong, #bcdcd5);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dk-accent-text, #1f6f78);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.responsible-picker .responsible-options .responsible-create span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.responsible-picker .responsible-options .responsible-create:hover {
+  background: var(--dk-raised, #e3f1ee);
+}
+
+.responsible-picker .responsible-options .responsible-create:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .responsible-options p {
   margin: 0;
   padding: 8px 10px;
@@ -7542,6 +7575,11 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 }
 
 :root[data-theme="dark"] .responsible-picker .responsible-options label {
+  color: var(--d-text);
+}
+
+:root[data-theme="dark"] .responsible-picker .responsible-options .responsible-create {
+  border-color: var(--d-accent);
   color: var(--d-text);
 }
 

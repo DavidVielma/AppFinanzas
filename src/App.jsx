@@ -2317,28 +2317,48 @@ export function App() {
     setNotice("Categoria eliminada.");
   }
 
-  async function createResponsible(event) {
-    event.preventDefault();
-    const name = responsibleDraft.trim();
-    if (!name) return;
-    if (responsibles.some((item) => item.name.toLowerCase() === name.toLowerCase())) {
+  // Devuelve el nombre agregado (o null si falla) para que el formulario pueda seleccionarlo.
+  async function addResponsible(rawName) {
+    const name = rawName.trim();
+    if (!name) return null;
+    if (name.includes(",")) {
+      setNotice("El nombre del responsable no puede llevar comas.");
+      return null;
+    }
+    if (normalizeResponsibleName(name, currentResponsible) === currentResponsible) {
       setNotice("Ese responsable ya existe.");
-      return;
+      return null;
+    }
+    const existing = responsibles.find((item) => item.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      if (!existing.archived) {
+        setNotice("Ese responsable ya existe.");
+        return null;
+      }
+      await archiveResponsible(existing, false);
+      return existing.name;
     }
 
     if (isRemote) {
       const { data, error } = await supabase.from("responsibles").insert({ name }).select().single();
       if (error) {
         setNotice(error.message);
-        return;
+        return null;
       }
       setResponsibles((current) => [...current, { ...data, archived: Boolean(data.archived) }]);
     } else {
       setResponsibles((current) => [...current, { name, archived: false }]);
     }
 
-    setResponsibleDraft("");
     setNotice("Responsable agregado.");
+    return name;
+  }
+
+  async function createResponsible(event) {
+    event.preventDefault();
+    if (await addResponsible(responsibleDraft)) {
+      setResponsibleDraft("");
+    }
   }
 
   async function deleteResponsible(responsible) {
@@ -3730,7 +3750,7 @@ export function App() {
                 <X size={18} />
               </button>
             </header>
-            <MovementForm accounts={selectableAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={draftCardFullPaymentTotals} responsibles={formResponsibles} currentResponsible={currentResponsible} categoryOptionsByType={categoryOptionsByType} draft={draft} onChange={setDraft} onSubmit={handleSubmit} editingId={editingId} showTypeSummary={false} />
+            <MovementForm accounts={selectableAccounts} cardPaymentTotals={cardPaymentTotals} cardFullPaymentTotals={draftCardFullPaymentTotals} responsibles={formResponsibles} currentResponsible={currentResponsible} categoryOptionsByType={categoryOptionsByType} draft={draft} onChange={setDraft} onSubmit={handleSubmit} editingId={editingId} showTypeSummary={false} onCreateResponsible={addResponsible} />
           </section>
         </div>
       )}
