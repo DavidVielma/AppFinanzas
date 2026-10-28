@@ -4,6 +4,17 @@
   "outputDirectory": "dist",
   "redirects": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "app-financiera-lovat.vercel.app"
+        }
+      ],
+      "destination": "https://fluxa-finanzas.vercel.app/",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [
         {
