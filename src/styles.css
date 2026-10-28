@@ -915,7 +915,7 @@ button:disabled {
   display: none;
 }
 
-@media (min-width: 721px) and (max-width: 940px) and (min-height: 501px), (min-width: 721px) and (max-width: 940px) and (pointer: fine) {
+@media (min-width: 721px) and (max-width: 1100px) and (min-height: 501px), (min-width: 721px) and (max-width: 1100px) and (pointer: fine) {
   .nav-label-full {
     display: none;
   }
@@ -1457,7 +1457,7 @@ button:disabled {
   background: var(--dk-raised, #f8fbfa);
   box-shadow: 18px 0 42px rgba(8, 31, 36, 0.22);
   overflow-y: auto;
-  transform: translateX(-105%);
+  transform: translateX(calc(-100% - 64px));
   transition: transform 220ms ease;
   pointer-events: none;
 }
@@ -4423,7 +4423,7 @@ button.movement-badge:focus-visible {
 
 @media (max-width: 1100px) {
   .app-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .app-sidebar {
@@ -4983,7 +4983,7 @@ button.movement-badge:focus-visible {
     background: var(--dk-raised, #f8fbfa);
     box-shadow: 18px 0 42px rgba(8, 31, 36, 0.22);
     overflow-y: auto;
-    transform: translateX(-105%);
+    transform: translateX(calc(-100% - 64px));
     transition: transform 220ms ease;
   }
 
@@ -6070,7 +6070,7 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   border-radius: 16px 0 0 16px;
   background: var(--dk-raised, #f7faf9);
   box-shadow: -18px 0 42px rgba(8, 31, 36, 0.22);
-  transform: translateX(105%);
+  transform: translateX(calc(100% + 64px));
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -6195,7 +6195,7 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
     border-width: 0 0 0 1px;
     border-radius: 14px 0 0 14px;
     box-shadow: -18px 0 42px rgba(8, 31, 36, 0.22);
-    transform: translateX(105%);
+    transform: translateX(calc(100% + 64px));
   }
 
   .movement-filter-panel.open { transform: translateX(0); }
@@ -6606,6 +6606,39 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
   width: 18px;
   height: 18px;
   accent-color: #1f6f78;
+}
+
+.responsible-picker .responsible-options .responsible-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px dashed var(--dk-border-strong, #bcdcd5);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dk-accent-text, #1f6f78);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.responsible-picker .responsible-options .responsible-create span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.responsible-picker .responsible-options .responsible-create:hover {
+  background: var(--dk-raised, #e3f1ee);
+}
+
+.responsible-picker .responsible-options .responsible-create:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 
 .responsible-options p {
@@ -7542,6 +7575,11 @@ button.reimbursement-source-summary:focus-visible { outline: 2px solid var(--bra
 }
 
 :root[data-theme="dark"] .responsible-picker .responsible-options label {
+  color: var(--d-text);
+}
+
+:root[data-theme="dark"] .responsible-picker .responsible-options .responsible-create {
+  border-color: var(--d-accent);
   color: var(--d-text);
 }
 
