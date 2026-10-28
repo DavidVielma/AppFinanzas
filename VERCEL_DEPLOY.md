@@ -39,7 +39,7 @@ Importante: no subas ni configures la `secret key` de Supabase en Vercel para es
 Cuando Vercel entregue la URL final, por ejemplo:
 
 ```text
-https://app-financiera.vercel.app
+https://fluxa-finanzas.vercel.app
 ```
 
 Ve a Supabase:
@@ -51,10 +51,10 @@ Authentication > URL Configuration
 Configura:
 
 ```text
-Site URL: https://app-financiera.vercel.app
+Site URL: https://fluxa-finanzas.vercel.app
 Redirect URLs:
-https://app-financiera.vercel.app
-https://app-financiera.vercel.app/*
+https://fluxa-finanzas.vercel.app
+https://fluxa-finanzas.vercel.app/*
 ```
 
 Esto es necesario para recuperacion de contraseña y redirecciones de Auth.
