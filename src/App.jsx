@@ -155,6 +155,13 @@ function isBaseAccount(account) {
   return account.name === "Principal" || account.name === "Ahorro";
 }
 
+// Cuenta donde caen reembolsos, pagos de tarjeta y movimientos nuevos: la primera cuenta
+// principal activa (según el orden de cuentas), aunque se haya renombrado.
+function getDefaultAccountName(accounts) {
+  const activeAccounts = accounts.filter((account) => !account.archived && account.type !== "tarjeta_credito");
+  return (activeAccounts.find((account) => account.type === "principal") || activeAccounts[0])?.name || "Principal";
+}
+
 function getAccountSortValue(account, fallback = 0) {
   const value = Number(account?.sort_order);
   return Number.isFinite(value) ? value : fallback;
@@ -1323,7 +1330,7 @@ export function App() {
         payload: {
           flow: "Movimiento",
           type: "Ingreso",
-          account: "Principal",
+          account: getDefaultAccountName(accounts),
           target_account: null,
           category: normalizeCategory("Reembolso", "Ingreso", categoryOptionsByType.Ingreso),
           description: buildReimbursementDescription(target.description),
@@ -1379,7 +1386,7 @@ export function App() {
     const updatedCount = plannedRows.length - createdCount;
     setNotice(
       plannedRows.length === 1
-        ? existing ? "Reembolso actualizado." : "Reembolso pendiente creado en Principal."
+        ? existing ? "Reembolso actualizado." : `Reembolso pendiente creado en ${getDefaultAccountName(accounts)}.`
         : [createdCount && `${createdCount} reembolsos creados`, updatedCount && `${updatedCount} actualizados`].filter(Boolean).join(", ") + "."
     );
   }
@@ -1946,7 +1953,7 @@ export function App() {
     setDraft({
       ...emptyDraft,
       flow: "Pago Tarjeta",
-      account: "Principal",
+      account: getDefaultAccountName(accounts),
       target_account: account.name,
       category: "Pago Tarjeta",
       description: `Pago total ${account.name}`,
@@ -2053,6 +2060,7 @@ export function App() {
     setEditingId(null);
     setDraft({
       ...emptyDraft,
+      account: getDefaultAccountName(accounts),
       amount: prefill.amount ?? "",
       description: prefill.description ?? "",
       category: prefill.category || emptyDraft.category,
